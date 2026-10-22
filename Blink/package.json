@@ -1,0 +1,10 @@
+
+{
+  "name": "blink",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "pnpm@12.10.1",
+  "scripts": {
+    "check:tools": "node --version && pnpm --version"
+  }
+}

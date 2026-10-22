@@ -1,0 +1,237 @@
+
+.blink-public-profile {
+  min-height: 100vh;
+  background: var(--page-bg, #f7f7f8);
+  color: var(--text, #202124);
+}
+
+.public-profile-topbar {
+  height: 76px;
+  padding: 0 clamp(16px, 4vw, 48px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--card-bg, #fff);
+  border-bottom: 1px solid var(--border, #e5e5e5);
+}
+
+.public-profile-topbar img {
+  width: 105px;
+  max-height: 45px;
+  object-fit: contain;
+}
+
+.public-profile-topbar button {
+  padding: 10px 14px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 12px;
+  background: var(--card-bg, #fff);
+  color: var(--text, #222);
+  cursor: pointer;
+}
+
+.public-profile-container {
+  width: min(100% - 28px, 950px);
+  margin: 28px auto 70px;
+}
+
+.public-profile-cover {
+  height: 245px;
+  border-radius: 20px;
+  background: linear-gradient(125deg, #fb6c00, #ffba72);
+  overflow: hidden;
+}
+
+.public-profile-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.public-profile-info {
+  position: relative;
+  margin: -52px 18px 26px;
+  padding: 76px 26px 28px;
+  border: 1px solid var(--border, #e5e5e5);
+  border-radius: 20px;
+  background: var(--card-bg, #fff);
+  text-align: center;
+}
+
+.public-profile-avatar {
+  position: absolute;
+  top: -49px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 98px;
+  height: 98px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 4px solid var(--card-bg, #fff);
+  border-radius: 50%;
+  background: #fb6c00;
+  color: white;
+  font-size: 34px;
+  font-weight: 800;
+}
+
+.public-profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.public-profile-info h1 {
+  margin: 0 0 10px;
+  font-size: 29px;
+}
+
+.public-profile-info > p {
+  color: var(--muted, #777);
+}
+
+.public-profile-count {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 20px auto;
+}
+
+.public-profile-count strong {
+  font-size: 24px;
+}
+
+.public-profile-count span {
+  color: var(--muted, #777);
+  font-size: 13px;
+}
+
+.public-profile-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.public-profile-primary,
+.public-profile-secondary {
+  padding: 12px 22px;
+  border-radius: 12px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.public-profile-primary {
+  border: 1px solid #fb6c00;
+  background: #fb6c00;
+  color: #fff;
+}
+
+.public-profile-secondary {
+  border: 1px solid var(--border, #ddd);
+  background: transparent;
+  color: var(--text, #222);
+}
+
+.public-profile-primary:disabled,
+.public-profile-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.public-profile-status {
+  display: inline-block;
+  color: #fb6c00;
+  font-weight: 700;
+}
+
+.public-profile-moments {
+  padding: 22px;
+  border: 1px solid var(--border, #e5e5e5);
+  border-radius: 20px;
+  background: var(--card-bg, #fff);
+}
+
+.public-profile-moments-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.public-profile-moments-heading h2 {
+  margin: 0;
+}
+
+.public-profile-moments-heading span {
+  color: var(--muted, #777);
+  font-size: 13px;
+}
+
+.public-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.public-profile-moment {
+  min-width: 0;
+}
+
+.public-profile-moment img,
+.public-profile-moment video {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 12px;
+  background: #111;
+}
+
+.public-profile-caption {
+  margin: 7px 2px 14px;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.public-profile-message {
+  padding: 22px;
+  color: var(--muted, #777);
+  text-align: center;
+}
+
+.public-profile-error {
+  padding: 14px;
+  border: 1px solid #e5484d;
+  border-radius: 12px;
+  color: #e5484d;
+}
+
+.public-profile-notice {
+  color: #16a34a !important;
+}
+
+@media (max-width: 600px) {
+  .public-profile-cover {
+    height: 175px;
+  }
+
+  .public-profile-info {
+    margin-left: 8px;
+    margin-right: 8px;
+  }
+
+  .public-profile-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+}
+.public-profile-actions {
+  align-items: center;
+}
+
+.public-profile-actions .public-profile-status {
+  margin-right: 6px;
+}

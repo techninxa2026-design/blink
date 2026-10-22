@@ -1,0 +1,619 @@
+
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+  type TouchEvent,
+} from 'react';
+import './App.css';
+
+const API_URL = 'http://localhost:3000';
+
+type User = {
+  id: string;
+  name: string;
+  email: string;
+  phoneNumber?: string;
+  avatarKey?: string | null;
+  createdAt?: string;
+};
+
+type AuthResponse = {
+  message?: string | string[];
+  accessToken?: string;
+  user?: User;
+};
+
+type Moment = {
+  id: string;
+  name: string;
+  initials: string;
+  time: string;
+  caption: string;
+  image: string;
+  kind: 'photo' | 'video';
+  duration?: string;
+};
+
+const demoMoments: Moment[] = [
+  {
+    id: '1',
+    name: 'Sarah Wilson',
+    initials: 'SW',
+    time: '2h ago',
+    caption: 'Chasing better sunsets 🧡',
+    image:
+      'https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?auto=format&fit=crop&w=1100&q=85',
+    kind: 'photo',
+  },
+  {
+    id: '2',
+    name: 'James Carter',
+    initials: 'JC',
+    time: '4h ago',
+    caption: 'Good friends. Great vibes. 🔥',
+    image:
+      'https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?auto=format&fit=crop&w=1100&q=85',
+    kind: 'video',
+    duration: '0:18',
+  },
+  {
+    id: '3',
+    name: 'Maya Ahmed',
+    initials: 'MA',
+    time: '5h ago',
+    caption: 'A little escape from the everyday 🌿',
+    image:
+      'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=1100&q=85',
+    kind: 'photo',
+  },
+];
+
+type NavItem = {
+  label: string;
+  symbol: string;
+};
+
+const navItems: NavItem[] = [
+  { label: 'Home', symbol: '⌂' },
+  { label: 'Connections', symbol: '♧' },
+  { label: 'Capture', symbol: '+' },
+  { label: 'Checkins', symbol: '⌖' },
+  { label: 'IRL', symbol: '▣' },
+];
+
+function readStoredUser(): User | null {
+  try {
+    const value =
+      sessionStorage.getItem('blink-user') ||
+      localStorage.getItem('blink-user');
+
+    return value ? (JSON.parse(value) as User) : null;
+  } catch {
+    return null;
+  }
+}
+
+function readStoredToken(): string | null {
+  try {
+    return (
+      localStorage.getItem('blink-access-token') ||
+      sessionStorage.getItem('blink-access-token')
+    );
+  } catch {
+    return null;
+  }
+}
+
+export default function App() {
+  const [route, setRoute] = useState(() => {
+    const path = window.location.pathname;
+    return path === '/home' ? 'home' : path === '/login' ? 'login' : 'signup';
+  });
+
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    try {
+      return localStorage.getItem('blink-theme') === 'dark'
+        ? 'dark'
+        : 'light';
+    } catch {
+      return 'light';
+    }
+  });
+
+  const [user, setUser] = useState<User | null>(readStoredUser);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [momentIndex, setMomentIndex] = useState(0);
+  const [visibleMomentCount, setVisibleMomentCount] = useState(35);
+  const [selectedNav, setSelectedNav] = useState('Home');
+  const [fullMoment, setFullMoment] = useState(false);
+  const [notice, setNotice] = useState('');
+
+  // Demo-only flag until moment upload is connected to the backend.
+  const [hasPostedMoment, setHasPostedMoment] = useState(() => {
+    try {
+      return localStorage.getItem('blink-demo-first-moment') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const activeMoment = demoMoments[momentIndex];
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    try {
+      localStorage.setItem('blink-theme', theme);
+    } catch {
+      // Theme remains available for this session.
+    }
+  }, [theme]);
+
+  useEffect(() => {
+    function handlePopState() {
+      const path = window.location.pathname;
+      setRoute(path === '/home' ? 'home' : path === '/login' ? 'login' : 'signup');
+      setMenuOpen(false);
+      setFullMoment(false);
+    }
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  function goTo(path: '/home' | '/login' | '/') {
+    window.history.pushState({}, '', path);
+    setRoute(path === '/home' ? 'home' : path === '/login' ? 'login' : 'signup');
+    setError('');
+    setSuccess('');
+    setMenuOpen(false);
+    setFullMoment(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function logout() {
+    try {
+      localStorage.removeItem('blink-access-token');
+      sessionStorage.removeItem('blink-access-token');
+      localStorage.removeItem('blink-user');
+      sessionStorage.removeItem('blink-user');
+    } catch {
+      // Continue to the login screen even if storage is unavailable.
+    }
+
+    setUser(null);
+    goTo('/login');
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (password.length < 8 || password.length > 72) {
+      setError('Password must be between 8 and 72 characters.');
+      return;
+    }
+
+    if (route !== 'login') {
+      if (name.trim().length < 2 || name.trim().length > 80) {
+        setError('Your name must be between 2 and 80 characters.');
+        return;
+      }
+
+      if (!/^\+?[0-9]{10,15}$/.test(phoneNumber.trim())) {
+        setError('Enter a valid phone number with country code if needed.');
+        return;
+      }
+    }
+
+    setLoading(true);
+
+    try {
+      const endpoint = route === 'login' ? '/auth/login' : '/auth/register';
+      const payload =
+        route === 'login'
+          ? { email: email.trim(), password }
+          : {
+              name: name.trim(),
+              email: email.trim(),
+              phoneNumber: phoneNumber.trim(),
+              password,
+            };
+
+      const response = await fetch(`${API_URL}${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = (await response.json()) as AuthResponse;
+
+      if (!response.ok) {
+        const message = Array.isArray(data.message)
+          ? data.message.join(' ')
+          : data.message;
+
+        throw new Error(
+          message ||
+            (response.status === 401
+              ? 'Incorrect email or password.'
+              : 'Something went wrong. Please try again.'),
+        );
+      }
+
+      if (route === 'login') {
+        if (!data.accessToken) {
+          throw new Error(
+            'Login succeeded, but the server did not return an access token.',
+          );
+        }
+
+        try {
+          if (rememberMe) {
+            localStorage.setItem('blink-access-token', data.accessToken);
+            sessionStorage.removeItem('blink-access-token');
+          } else {
+            sessionStorage.setItem('blink-access-token', data.accessToken);
+            localStorage.removeItem('blink-access-token');
+          }
+
+          if (data.user) {
+            sessionStorage.setItem('blink-user', JSON.stringify(data.user));
+          }
+        } catch {
+          throw new Error(
+            'Your browser could not save the login session. Please enable site storage and try again.',
+          );
+        }
+
+        setUser(data.user ?? null);
+        goTo('/home');
+      } else {
+        setSuccess('Account created successfully! You can now sign in.');
+        setName('');
+        setEmail('');
+        setPhoneNumber('');
+        setPassword('');
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Unable to connect to Blink. Check that the API is running.',
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function changeMoment(direction: number) {
+    setMomentIndex(
+      (current) =>
+        (current + direction + demoMoments.length) % demoMoments.length,
+    );
+  }
+
+  function handleTouchStart(event: TouchEvent<HTMLElement>) {
+    const touch = event.touches[0];
+    touchStart.current = { x: touch.clientX, y: touch.clientY };
+  }
+
+  function handleTouchEnd(event: TouchEvent<HTMLElement>) {
+    if (!touchStart.current) return;
+
+    const touch = event.changedTouches[0];
+    const deltaX = touch.clientX - touchStart.current.x;
+    const deltaY = touch.clientY - touchStart.current.y;
+    touchStart.current = null;
+
+    if (Math.abs(deltaX) > 55 && Math.abs(deltaX) > Math.abs(deltaY)) {
+      changeMoment(deltaX < 0 ? 1 : -1);
+    }
+  }
+
+  function handleFeedKeyDown(event: KeyboardEvent<HTMLElement>) {
+    if (event.key === 'ArrowRight') changeMoment(1);
+    if (event.key === 'ArrowLeft') changeMoment(-1);
+    if (event.key === 'Escape') setFullMoment(false);
+  }
+
+  function demoPostMoment() {
+    try {
+      localStorage.setItem('blink-demo-first-moment', 'true');
+    } catch {
+      // The demo gate still updates in memory.
+    }
+
+    setHasPostedMoment(true);
+    setNotice('Your demo moment is posted! Friends’ moments are now visible.');
+  }
+
+  function handleNav(label: string) {
+    setSelectedNav(label);
+    if (label === 'Home') return;
+
+    if (label === 'Capture') {
+      setNotice('Moment capture will be connected in the next step.');
+      return;
+    }
+
+    setNotice(`${label} will be available when that page is built.`);
+  }
+
+  if (route === 'home') {
+    const hasToken = Boolean(readStoredToken());
+
+    if (!hasToken) {
+      return (
+        <main className="auth-page">
+          <header className="site-header">
+            <a className="brand" href="/" onClick={(e) => { e.preventDefault(); goTo('/'); }}>
+              <img className="brand-logo" src="/blink-logo.png" alt="Blink" />
+            </a>
+            <button className="theme-toggle" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
+              {theme === 'light' ? '☾ Dark mode' : '☀ Light mode'}
+            </button>
+          </header>
+          <section className="home-signin-required">
+            <span className="home-lock">⌑</span>
+            <h1>Welcome to Blink</h1>
+            <p>Sign in to see your friends’ moments and stay connected.</p>
+            <button className="submit-button" onClick={() => goTo('/login')}>Sign in to continue →</button>
+          </section>
+        </main>
+      );
+    }
+
+    return (
+      <main className={`blink-home ${fullMoment ? 'moment-expanded' : ''}`}>
+        <header className="home-header">
+          <button
+            className="icon-button menu-button"
+            aria-label="Open menu"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((open) => !open)}
+          >
+            <span />
+            <span />
+            <span />
+          </button>
+
+          <a className="home-brand" href="/home" onClick={(e) => e.preventDefault()}>
+            <img src="/blink-logo.png" alt="Blink" />
+          </a>
+
+          <button
+            className="icon-button inbox-button"
+            aria-label="Open inbox"
+            onClick={() => setNotice('Your inbox will be connected in the next step.')}
+          >
+            ♧<span className="inbox-dot" />
+          </button>
+        </header>
+
+        {menuOpen && (
+          <>
+            <button className="menu-backdrop" aria-label="Close menu" onClick={() => setMenuOpen(false)} />
+            <aside className="home-drawer">
+              <div className="drawer-heading">
+                <img src="/blink-logo.png" alt="Blink" />
+                <button className="drawer-close" onClick={() => setMenuOpen(false)} aria-label="Close menu">×</button>
+              </div>
+              <p className="drawer-label">YOUR SPACE</p>
+              <button onClick={() => { setMenuOpen(false); setNotice('Your profile page will be built next.'); }}>◉ <span>My profile</span></button>
+              <button onClick={() => { setMenuOpen(false); setNotice('Settings will be available soon.'); }}>⚙ <span>Settings</span></button>
+              <button onClick={() => { setMenuOpen(false); setTheme(theme === 'light' ? 'dark' : 'light'); }}>◐ <span>{theme === 'light' ? 'Dark mode' : 'Light mode'}</span></button>
+              <div className="drawer-spacer" />
+              <button className="drawer-logout" onClick={logout}>↪ <span>Log out</span></button>
+              <p className="drawer-footnote">More Blink features are coming soon.</p>
+            </aside>
+          </>
+        )}
+
+        <section
+          className="home-feed"
+          aria-label="Friends’ moments feed"
+          tabIndex={0}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          onKeyDown={handleFeedKeyDown}
+        >
+          <div className="feed-heading">
+            <div>
+              <p className="feed-eyebrow">YOUR PEOPLE, YOUR MOMENTS</p>
+              <h1>Moments <span className="feed-spark">✦</span></h1>
+            </div>
+            <span className="feed-count">{momentIndex + 1} / {demoMoments.length}</span>
+          </div>
+
+          <div className={`moment-card-home ${!hasPostedMoment ? 'moment-gated' : ''}`}>
+            <img
+              className="moment-cover"
+              src={activeMoment.image}
+              alt={`${activeMoment.name}'s moment`}
+              draggable={false}
+            />
+            <div className="moment-shade" />
+
+            {!hasPostedMoment && (
+              <div className="moment-gate">
+                <span className="gate-icon">✦</span>
+                <h2>Moments are better when shared.</h2>
+                <p>Post your first moment to unlock your friends’ photos and videos.</p>
+                <button className="gate-button" onClick={demoPostMoment}>
+                  <span>＋</span> Post your first moment
+                </button>
+                <small>Demo preview · Upload will be connected later</small>
+              </div>
+            )}
+
+            <div className="moment-topline">
+              <div className="moment-avatar">{activeMoment.initials}</div>
+              <div className="moment-author">
+                <strong>{activeMoment.name}</strong>
+                <span>{activeMoment.time}</span>
+              </div>
+              <button className="moment-more" aria-label="More moment options" onClick={() => setNotice('More moment options will be added soon.')}>•••</button>
+            </div>
+
+            {hasPostedMoment && (
+              <button className="moment-expand" aria-label="Open full-screen moment" onClick={() => setFullMoment(true)}>
+                ⛶
+              </button>
+            )}
+
+            <div className="moment-bottom">
+              <p>{activeMoment.caption}</p>
+              <div className="moment-meta">
+                <span>{activeMoment.kind === 'video' ? '▶ Video moment' : '▧ Photo moment'}</span>
+                {activeMoment.duration && <span>{activeMoment.duration}</span>}
+              </div>
+            </div>
+
+            {hasPostedMoment && (
+              <>
+                <button className="feed-edge feed-edge-left" onClick={() => changeMoment(-1)} aria-label="Previous moment">‹</button>
+                <button className="feed-edge feed-edge-right" onClick={() => changeMoment(1)} aria-label="Next moment">›</button>
+              </>
+            )}
+          </div>
+
+          <div className="feed-controls">
+            <button className="round-control" onClick={() => changeMoment(-1)} aria-label="Previous friend">←</button>
+            <div className="feed-dots" aria-label={`Moment ${momentIndex + 1} of ${demoMoments.length}`}>
+              {demoMoments.map((moment, index) => (
+                <button
+                  key={moment.id}
+                  className={`feed-dot ${index === momentIndex ? 'active' : ''}`}
+                  onClick={() => setMomentIndex(index)}
+                  aria-label={`Show ${moment.name}'s moment`}
+                />
+              ))}
+            </div>
+            <button className="round-control" onClick={() => changeMoment(1)} aria-label="Next friend">→</button>
+          </div>
+          <p className="swipe-hint"><span>←</span> Swipe to explore your friends’ moments <span>→</span></p>
+        </section>
+
+        <nav className="home-bottom-nav" aria-label="Main navigation">
+          {navItems.map((item) => (
+            <button
+              key={item.label}
+              className={`bottom-nav-item ${selectedNav === item.label ? 'selected' : ''} ${item.label === 'Capture' ? 'capture-nav' : ''}`}
+              aria-label={item.label}
+              aria-current={selectedNav === item.label ? 'page' : undefined}
+              onClick={() => handleNav(item.label)}
+            >
+              <span className="nav-symbol">{item.symbol}</span>
+            </button>
+          ))}
+        </nav>
+
+        {notice && (
+          <div className="home-toast" role="status">
+            <span>{notice}</span>
+            <button onClick={() => setNotice('')} aria-label="Dismiss">×</button>
+          </div>
+        )}
+
+        {fullMoment && hasPostedMoment && (
+          <div className="full-moment-view">
+            <img src={activeMoment.image} alt={`${activeMoment.name}'s full-screen moment`} />
+            <div className="full-moment-shade" />
+            <div className="full-moment-header">
+              <div className="moment-avatar">{activeMoment.initials}</div>
+              <div className="moment-author"><strong>{activeMoment.name}</strong><span>{activeMoment.time}</span></div>
+              <button onClick={() => setFullMoment(false)} aria-label="Close full-screen moment">×</button>
+            </div>
+            <p className="full-moment-caption">{activeMoment.caption}</p>
+            <div className="full-moment-controls">
+              <button onClick={() => changeMoment(-1)}>← Previous</button>
+              <button onClick={() => changeMoment(1)}>Next →</button>
+            </div>
+          </div>
+        )}
+      </main>
+    );
+  }
+
+  const isLogin = route === 'login';
+
+  return (
+    <main className={`auth-page ${isLogin ? 'login-page' : 'signup-page'}`}>
+      <header className="site-header">
+        <a className="brand" href="/" aria-label="Blink home" onClick={(event) => { event.preventDefault(); goTo('/'); }}>
+          <img className="brand-logo" src="/blink-logo.png" alt="Blink" />
+        </a>
+        <button className="theme-toggle" type="button" onClick={() => setTheme((current) => current === 'light' ? 'dark' : 'light')}>
+          {theme === 'light' ? '☾  Dark mode' : '☀  Light mode'}
+        </button>
+      </header>
+
+      <div className="auth-layout">
+        <section className="auth-hero">
+          <p className="eyebrow"><span className="eyebrow-dot" /> YOUR MOMENTS. YOUR PEOPLE.</p>
+          <h1>{isLogin ? <>Welcome back<br />to <span>Blink.</span></> : <>Life moves<br />fast. <span>Blink it.</span></>}</h1>
+          <p className="hero-description">
+            {isLogin
+              ? 'Log in to continue sharing moments, reconnecting with your people, and being part of something special.'
+              : 'A little moment can mean everything. Connect with your people and share the moments worth remembering.'}
+          </p>
+          <div className="hero-art" aria-hidden="true">
+            <div className="art-orbit" />
+            <div className="moment-card moment-card-back"><div className="moment-sun" /><div className="moment-mountains" /></div>
+            <div className="moment-card moment-card-front">
+              <div className="moment-scene"><span className="person person-one" /><span className="person person-two" /><span className="person person-three" /><span className="person person-four" /></div>
+              <span className="moment-caption">Good vibes, together</span>
+            </div>
+            <span className="art-spark spark-one">✦</span><span className="art-spark spark-two">✳</span>
+          </div>
+          <p className="hero-footer"><span className="eyebrow-dot" /> Be present. Stay connected.</p>
+        </section>
+
+        <section className="auth-panel">
+          <div className="auth-card">
+            <p className="form-eyebrow">{isLogin ? 'LOG IN TO BLINK' : "LET'S GET STARTED"}</p>
+            <h2>{isLogin ? 'Welcome back' : 'Create your account'}</h2>
+            <p className="form-description">{isLogin ? 'Enter your details to sign in to your account.' : 'Your next favorite moment starts here.'}</p>
+
+            <form onSubmit={handleSubmit} noValidate>
+              {!isLogin && <div className="form-field"><label htmlFor="name">Full name</label><input id="name" autoComplete="name" placeholder="What should we call you?" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} required /></div>}
+              <div className="form-field"><label htmlFor="email">Email address</label><input id="email" type="email" autoComplete="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required /></div>
+              {!isLogin && <div className="form-field"><label htmlFor="phoneNumber">Phone number</label><input id="phoneNumber" type="tel" autoComplete="tel" placeholder="+8801XXXXXXXXX" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} maxLength={16} required /><small>Include your country code, if needed.</small></div>}
+              <div className="form-field">
+                <label htmlFor="password">Password</label>
+                <div className="password-wrap">
+                  <input id="password" type={showPassword ? 'text' : 'password'} autoComplete={isLogin ? 'current-password' : 'new-password'} placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={8} maxLength={72} required />
+                  <button className="show-password" type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Hide password' : 'Show password'}>{showPassword ? 'Hide' : 'Show'}</button>
+                </div>
+              </div>
+
+              {isLogin && <div className="login-options"><label className="remember-option"><input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} /><span>Remember me</span></label><button className="text-link" type="button" onClick={() => setError('Password reset is not available yet.')}>Forgot password?</button></div>}
+              {error && <p className="form-message form-error" role="alert">{error}</p>}
+              {success && <p className="form-message form-success" role="status">{success}</p>}
+              <button className="submit-button" type="submit" disabled={loading}>{loading ? 'Please wait…' : isLogin ? 'Sign in  →' : 'Create account  →'}</button>
+              <div className="form-divider"><span /><span>OR</span><span /></div>
+              <button className="secondary-button" type="button" onClick={() => goTo(isLogin ? '/' : '/login')}>{isLogin ? 'Create a new account' : 'I already have an account'}</button>
+            </form>
+
+            <p className="legal-copy">By continuing, you agree to our<br /><a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>.</p>
+          </div>
+        </section>
+      </div>
+    </main>
+  );
+}

@@ -1,0 +1,222 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum FriendRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum MomentType {
+  PUBLIC
+  PRIVATE
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  phoneNumber  String   @unique
+  passwordHash String
+  avatarKey    String?
+  bio          String?  @db.VarChar(300)
+  coverKey     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sentRequests     FriendRequest[] @relation("SentRequests")
+  receivedRequests FriendRequest[] @relation("ReceivedRequests")
+
+  friendshipsA Friendship[] @relation("FriendshipA")
+  friendshipsB Friendship[] @relation("FriendshipB")
+
+  moments        Moment[]     @relation("MomentSender")
+  receivedMoments Moment[]    @relation("MomentRecipient")
+  momentViews    MomentView[]
+
+  conversationMemberships ConversationMember[]
+  messages                Message[]
+  hiddenMessages          MessageHidden[]
+  messageReactions        MessageReaction[]
+  privateMessageViews MessagePrivateView[]
+  blocksMade              UserBlock[] @relation("Blocker")
+  blocksReceived          UserBlock[] @relation("Blocked")
+  checkin                 Checkin?
+}
+
+model FriendRequest {
+  id         String              @id @default(cuid())
+  senderId   String
+  receiverId String
+  status     FriendRequestStatus @default(PENDING)
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+
+  sender   User @relation("SentRequests", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User @relation("ReceivedRequests", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([senderId, receiverId])
+  @@index([receiverId, status])
+}
+
+model Friendship {
+  id        String   @id @default(cuid())
+  userAId   String
+  userBId   String
+  createdAt DateTime @default(now())
+
+  userA User @relation("FriendshipA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB User @relation("FriendshipB", fields: [userBId], references: [id], onDelete: Cascade)
+
+  @@unique([userAId, userBId])
+  @@index([userBId])
+}
+
+model Moment {
+  id          String     @id @default(cuid())
+  senderId    String
+  recipientId String?
+  type        MomentType
+  mediaKey    String
+  caption     String?    @db.VarChar(500)
+  createdAt   DateTime   @default(now())
+  expiresAt   DateTime?
+
+  sender    User  @relation("MomentSender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient User? @relation("MomentRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  views     MomentView[]
+
+  @@index([senderId, type, createdAt])
+  @@index([recipientId, type, createdAt])
+  @@index([expiresAt])
+}
+
+model MomentView {
+  id        String   @id @default(cuid())
+  momentId  String
+  viewerId  String
+  viewedAt  DateTime @default(now())
+  expiresAt DateTime
+
+  moment Moment @relation(fields: [momentId], references: [id], onDelete: Cascade)
+  viewer User   @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+
+  @@unique([momentId, viewerId])
+  @@index([viewerId, expiresAt])
+}
+
+model Conversation {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members  ConversationMember[]
+  messages Message[]
+  pinnedMessageId String?
+  isGroup Boolean @default(false)
+  groupName String? @db.VarChar(80)
+  groupOwnerId String?
+}
+
+model ConversationMember {
+  id             String   @id @default(cuid())
+  conversationId String
+  userId         String
+  joinedAt       DateTime @default(now())
+  lastReadAt     DateTime?
+  muted          Boolean @default(false)
+  clearedAt      DateTime?
+  role String @default("MEMBER")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String
+  senderId       String
+  body           String?  @db.Text
+  mediaKey       String?
+  mediaType      String?
+  mediaMime      String?
+  isPrivate      Boolean  @default(false)
+  privateOpenedAt DateTime?
+  createdAt      DateTime @default(now())
+  editedAt       DateTime?
+  unsentAt       DateTime?
+  replyToId      String?
+  forwarded      Boolean @default(false)
+  hiddenBy       MessageHidden[]
+  reactions      MessageReaction[]
+  privateViews MessagePrivateView[]
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([replyToId])
+}
+
+model MessageHidden {
+  messageId String
+  userId String
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@id([messageId, userId])
+}
+
+model MessageReaction {
+  messageId String
+  userId String
+  emoji String @db.VarChar(16)
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@id([messageId, userId])
+}
+
+model UserBlock {
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+  blocker User @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+  @@id([blockerId, blockedId])
+  @@index([blockedId])
+}
+
+model MessagePrivateView {
+  messageId String
+  userId String
+  openedAt DateTime @default(now())
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@id([messageId, userId])
+}
+
+// One current check-in per user. An expired check-in can be replaced.
+model Checkin {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  emoji     String   @db.VarChar(16)
+  status    String   @db.VarChar(80)
+  note      String?  @db.VarChar(280)
+  duration  String   @db.VarChar(16)
+  createdAt DateTime @default(now())
+  expiresAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@map("checkin")
+}

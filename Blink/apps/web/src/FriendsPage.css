@@ -1,0 +1,284 @@
+
+.blink-friends {
+  min-height: 100vh;
+  background: var(--page-bg);
+  color: var(--text);
+}
+
+.friends-topbar {
+  height: 76px;
+  padding: 0 clamp(16px, 4vw, 48px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  background: var(--card-bg);
+}
+
+.friends-topbar img {
+  width: 105px;
+  max-height: 45px;
+  object-fit: contain;
+}
+
+.friends-topbar button {
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card-bg);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.friends-container {
+  width: min(100% - 28px, 900px);
+  margin: 36px auto 70px;
+}
+
+.friends-heading {
+  margin-bottom: 28px;
+}
+
+.friends-heading p {
+  margin: 0 0 8px;
+  color: #fb6c00;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+}
+
+.friends-heading h1 {
+  margin: 0 0 8px;
+  font-size: clamp(30px, 5vw, 42px);
+}
+
+.friends-heading > span {
+  color: var(--muted);
+}
+
+.friends-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+}
+
+.friends-tabs button {
+  padding: 12px 18px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.friends-tabs button.active {
+  background: #fb6c00;
+  color: #fff;
+}
+
+.friends-section {
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--card-bg);
+}
+
+.friends-section h2 {
+  margin: 8px 0 18px;
+  font-size: 20px;
+}
+
+.friends-section h2:not(:first-child) {
+  margin-top: 32px;
+}
+
+.friends-section label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: 700;
+}
+
+.friends-section input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--page-bg);
+  color: var(--text);
+  font: inherit;
+  outline: none;
+}
+
+.friends-section input:focus {
+  border-color: #fb6c00;
+}
+
+.friends-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.friends-user {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.friends-avatar {
+  flex: 0 0 52px;
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #fb6c00;
+  color: white;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.friends-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.friends-user-info {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.friends-user-info strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.friends-user-info span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.friends-primary,
+.friends-secondary {
+  padding: 10px 14px;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.friends-primary {
+  border: 1px solid #fb6c00;
+  background: #fb6c00;
+  color: #fff;
+}
+
+.friends-secondary {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+}
+
+.friends-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.friends-status {
+  color: #fb6c00;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.friends-empty {
+  padding: 24px 8px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.friends-error,
+.friends-notice {
+  padding: 13px 16px;
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+.friends-error {
+  color: #e5484d;
+  border: 1px solid #e5484d55;
+}
+
+.friends-notice {
+  color: #16a34a;
+  border: 1px solid #16a34a55;
+}
+
+.friends-primary:disabled,
+.friends-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .friends-container {
+    margin-top: 20px;
+  }
+
+  .friends-section {
+    padding: 14px;
+  }
+
+  .friends-user {
+    flex-wrap: wrap;
+    padding: 12px;
+  }
+
+  .friends-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .friends-tabs button {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+}
+.friends-profile-link {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.friends-profile-link:hover {
+  color: #fb6c00;
+  text-decoration: underline;
+}

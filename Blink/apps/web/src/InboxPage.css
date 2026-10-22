@@ -1,0 +1,460 @@
+
+.blink-inbox {
+  min-height: 100vh;
+  background: var(--page-bg, #f7f7f8);
+  color: var(--text, #222);
+}
+
+.inbox-topbar {
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  background: var(--card-bg, #fff);
+  border-bottom: 1px solid var(--border, #e5e5e5);
+}
+
+.inbox-topbar h1 {
+  font-size: 23px;
+  margin: 0;
+}
+
+.inbox-topbar button,
+.inbox-section-heading button,
+.inbox-close-chat {
+  border: 1px solid var(--border, #ddd);
+  background: var(--card-bg, #fff);
+  color: inherit;
+  border-radius: 10px;
+  padding: 9px 12px;
+  cursor: pointer;
+}
+
+.inbox-layout {
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  width: min(1200px, calc(100% - 32px));
+  height: calc(100vh - 110px);
+  min-height: 500px;
+  margin: 18px auto;
+  overflow: hidden;
+  border: 1px solid var(--border, #e5e5e5);
+  border-radius: 18px;
+  background: var(--card-bg, #fff);
+}
+
+.inbox-sidebar {
+  overflow-y: auto;
+  border-right: 1px solid var(--border, #e5e5e5);
+}
+
+.inbox-section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 16px;
+}
+
+.inbox-section-heading h2 {
+  font-size: 18px;
+  margin: 0;
+}
+
+.inbox-conversation {
+  display: flex;
+  width: 100%;
+  gap: 12px;
+  align-items: center;
+  padding: 15px;
+  border: 0;
+  border-bottom: 1px solid var(--border, #eee);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.inbox-conversation:hover,
+.inbox-conversation.is-active {
+  background: rgba(251, 108, 0, 0.09);
+}
+
+.inbox-avatar {
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #fb6c00;
+  color: #fff;
+  font-weight: 800;
+}
+
+.inbox-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.inbox-conversation-content {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.inbox-preview {
+  color: var(--muted, #777);
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.inbox-conversation time {
+  align-self: flex-start;
+  color: var(--muted, #777);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.inbox-chat {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.inbox-chat-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--border, #eee);
+}
+
+.inbox-name-button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.inbox-name-button:hover {
+  color: #fb6c00;
+}
+
+.inbox-close-chat {
+  margin-left: auto;
+}
+
+.inbox-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.inbox-message {
+  max-width: 75%;
+  width: fit-content;
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: rgba(251, 108, 0, 0.1);
+}
+
+.inbox-message p {
+  margin: 0 0 6px;
+  overflow-wrap: anywhere;
+}
+
+.inbox-message time {
+  font-size: 11px;
+  color: var(--muted, #777);
+}
+
+.inbox-placeholder {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  color: var(--muted, #777);
+}
+
+.inbox-placeholder-icon {
+  font-size: 48px;
+}
+
+.inbox-empty {
+  padding: 20px;
+  color: var(--muted, #777);
+  text-align: center;
+}
+
+.inbox-error {
+  margin: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.08);
+}
+
+.inbox-composer-coming {
+  padding: 18px;
+  border-top: 1px solid var(--border, #eee);
+  color: var(--muted, #777);
+  text-align: center;
+  font-size: 13px;
+}
+
+@media (max-width: 700px) {
+  .inbox-layout {
+    grid-template-columns: 140px minmax(0, 1fr);
+    width: calc(100% - 16px);
+  }
+
+  .inbox-conversation {
+    flex-wrap: wrap;
+  }
+
+  .inbox-conversation time {
+    display: none;
+  }
+
+  .inbox-chat-header {
+    padding: 12px;
+  }
+}
+
+
+/* Blink text messaging */
+.inbox-message.is-mine {
+  margin-left: auto;
+  background: #fb6c00;
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.inbox-message.is-mine time { color: rgba(255, 255, 255, .8); }
+.inbox-message.is-theirs {
+  margin-right: auto;
+  background: var(--input-bg, rgba(251, 108, 0, .10));
+  color: var(--text, #222);
+  border-bottom-left-radius: 4px;
+}
+.inbox-messages { min-height: 0; overscroll-behavior: contain; }
+.inbox-composer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px;
+  border-top: 1px solid var(--border, #eee);
+  background: var(--card-bg, #fff);
+}
+.inbox-composer input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 0 15px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 999px;
+  background: var(--input-bg, #f7f7f8);
+  color: var(--text, #222);
+  outline: none;
+}
+.inbox-composer input:focus { border-color: #fb6c00; }
+.inbox-composer button {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 999px;
+  background: #fb6c00;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+.inbox-composer button:disabled { opacity: .5; cursor: not-allowed; }
+@media (max-width: 700px) {
+  .inbox-composer { padding: 10px 8px; gap: 6px; }
+  .inbox-composer button { padding: 0 12px; }
+  .inbox-message { max-width: 94%; }
+}
+
+/* Start a new conversation */
+.inbox-heading-actions { display: flex; align-items: center; gap: 6px; }
+.inbox-section-heading { gap: 8px; }
+.inbox-section-heading h2 { white-space: nowrap; }
+.inbox-new-message { background: #fb6c00 !important; color: #fff !important; border-color: #fb6c00 !important; font-weight: 700; }
+.inbox-friend-picker { padding: 12px; border-bottom: 1px solid var(--border, #ddd); }
+.inbox-picker-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.inbox-picker-heading button { border: 0; background: transparent; color: inherit; font-size: 24px; cursor: pointer; }
+.inbox-friend-picker > input { width: 100%; min-width: 0; padding: 11px; border: 1px solid var(--border, #ddd); border-radius: 12px; background: var(--input-bg, #fff); color: var(--text, #222); }
+.inbox-friend-picker p { font-size: 13px; color: var(--muted, #777); }
+.inbox-friend-results { max-height: 260px; overflow-y: auto; margin-top: 8px; }
+.inbox-friend-results button { display: flex; width: 100%; align-items: center; gap: 10px; padding: 9px 4px; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
+.inbox-friend-results button:hover { background: rgba(251,108,0,.08); }
+.inbox-friend-results .inbox-avatar { width: 34px; height: 34px; }
+@media (max-width: 700px) {
+  .inbox-layout { grid-template-columns: minmax(0, 1fr); }
+  .inbox-sidebar { max-height: 38vh; border-right: 0; border-bottom: 1px solid var(--border, #ddd); }
+  .inbox-chat { min-height: 320px; }
+  .inbox-section-heading { padding: 12px; }
+}
+
+/* Stage 2: unread counts and read receipts */
+.inbox-unread-badge { display: grid; place-items: center; min-width: 22px; height: 22px; padding: 0 5px; border-radius: 999px; background: #fb6c00; color: #fff; font-size: 11px; font-weight: 800; flex-shrink: 0; }
+.inbox-read-status { display: block; font-size: 10px; opacity: .85; text-align: right; margin-top: 3px; }
+.inbox-message.is-mine .inbox-read-status { color: #fff; }
+
+/* Stage 3 media */
+.inbox-media-tools {display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:8px 14px;border-top:1px solid var(--border,#ddd)}
+.inbox-media-tools select {min-width:0;max-width:220px;padding:9px;border-radius:12px;background:var(--card-bg,#fff);color:inherit;border:1px solid var(--border,#ddd)}
+.inbox-media-tools button,.inbox-private-message button,.inbox-media-message button {padding:9px 13px;border:0;border-radius:999px;background:#fb6c00;color:#fff;font-weight:700;cursor:pointer}
+.inbox-private-message {display:flex;flex-direction:column;gap:8px;min-width:155px}
+.inbox-private-message span {font-size:12px}
+.inbox-media-message img,.inbox-media-message video {display:block;max-width:100%;max-height:330px;border-radius:10px}
+.inbox-private-overlay {position:fixed;inset:0;z-index:9999;background:#080808;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:15px;padding:20px}
+.inbox-private-overlay img,.inbox-private-overlay video {max-width:100%;max-height:78vh;object-fit:contain;user-select:none;-webkit-user-select:none}
+.inbox-private-overlay button {border:1px solid #555;border-radius:999px;background:#222;color:white;padding:10px 20px;cursor:pointer}
+.inbox-private-overlay-heading {font-weight:700}
+@media(max-width:700px){.inbox-media-tools{padding:7px}.inbox-media-tools select{max-width:175px}}
+
+/* Stage 3 refinements: independent chat scrolling and instant regular media */
+.inbox-layout { min-height: 0; }
+.inbox-sidebar, .inbox-chat { min-height: 0; }
+.inbox-chat { overflow: hidden; }
+.inbox-messages {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: #fb6c00 transparent;
+  overscroll-behavior-y: contain;
+}
+.inbox-messages::-webkit-scrollbar { width: 8px; }
+.inbox-messages::-webkit-scrollbar-thumb { background: #fb6c00; border-radius: 999px; }
+.inbox-messages::-webkit-scrollbar-track { background: transparent; }
+.inbox-media-loading { display: block; font-size: 12px; padding: 10px 0; opacity: .75; }
+.inbox-media-message { max-width: min(100%, 480px); }
+@media (max-width: 700px) {
+  .inbox-layout {
+    height: calc(100dvh - 100px);
+    min-height: 0;
+    grid-template-rows: minmax(0, auto) minmax(0, 1fr);
+  }
+  .inbox-sidebar { max-height: min(34dvh, 240px); min-height: 0; }
+  .inbox-chat { min-height: 0; }
+}
+
+/* Stage 4 message actions */
+.inbox-message { position: relative; }
+.inbox-action-area { display: inline-flex; vertical-align: middle; margin-left: 8px; }
+.inbox-action-toggle { border: 0; background: transparent; color: inherit; cursor: pointer; padding: 2px 7px; border-radius: 8px; font-size: 20px; }
+.inbox-action-toggle:hover, .inbox-action-toggle:focus-visible { background: rgba(128,128,128,.18); }
+.inbox-action-menu { position: absolute; z-index: 15; right: 0; top: calc(100% - 4px); display: flex; flex-direction: column; min-width: 205px; padding: 8px; border-radius: 12px; border: 1px solid var(--border,#ddd); background: var(--card-bg,#fff); color: var(--text,#222); box-shadow: 0 8px 30px rgba(0,0,0,.2); }
+.inbox-message.is-theirs .inbox-action-menu { left: 0; right: auto; }
+.inbox-action-menu > button { padding: 9px 11px; border: 0; border-radius: 8px; text-align: left; background: transparent; color: inherit; cursor: pointer; }
+.inbox-action-menu > button:hover { background: rgba(251,108,0,.1); }
+.inbox-reaction-options { display: flex; justify-content: space-between; gap: 2px; padding-bottom: 6px; border-bottom: 1px solid var(--border,#ddd); }
+.inbox-reaction-options button { padding: 5px 3px; background: transparent; border: 0; cursor: pointer; font-size: 19px; }
+.inbox-reaction-display { display: flex; gap: 3px; margin-top: 4px; }
+.inbox-reaction-display span { background: var(--card-bg,#fff); border-radius: 20px; padding: 2px 5px; font-size: 14px; }
+.inbox-edit-box { display: flex; gap: 5px; flex-wrap: wrap; }
+.inbox-edit-box input { min-width: 130px; flex: 1; padding: 8px; border: 1px solid var(--border,#ddd); border-radius: 8px; background: var(--input-bg,#fff); color: var(--text,#222); }
+.inbox-edit-box button { padding: 7px; border: 0; border-radius: 7px; cursor: pointer; }
+.inbox-edited { font-size: 10px; opacity: .8; }
+.inbox-unsent { font-style: italic; opacity: .7; }
+.inbox-messages { padding-bottom: 65px; }
+
+/* Stage 5: conversation management */
+.inbox-chat-controls { display:flex; align-items:center; gap:5px; position:relative; margin-left:auto; }
+.inbox-chat-controls > button, .inbox-search-head button { border:1px solid var(--border,#ddd); border-radius:9px; padding:8px 11px; background:var(--card-bg,#fff); color:inherit; cursor:pointer; font-size:18px; }
+.inbox-chat-controls + .inbox-close-chat { margin-left:0; }
+.inbox-chat-options { position:absolute; z-index:25; right:0; top:calc(100% + 8px); min-width:225px; border:1px solid var(--border,#ddd); border-radius:12px; background:var(--card-bg,#fff); box-shadow:0 12px 35px rgba(0,0,0,.17); padding:6px; }
+.inbox-chat-options button { display:block; width:100%; padding:12px; border:0; background:transparent; color:inherit; text-align:left; cursor:pointer; border-radius:7px; }
+.inbox-chat-options button:hover { background:rgba(251,108,0,.10); }
+.inbox-chat-options button:disabled { opacity:.5; cursor:wait; }
+.inbox-search-panel { border-bottom:1px solid var(--border,#ddd); padding:12px 16px; background:var(--card-bg,#fff); max-height:35%; overflow-y:auto; flex-shrink:0; }
+.inbox-search-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.inbox-search-panel form { display:flex; gap:8px; }
+.inbox-search-panel input { flex:1; min-width:0; padding:10px; border:1px solid var(--border,#ddd); border-radius:10px; color:var(--text,#222); background:var(--input-bg,#f7f7f8); }
+.inbox-search-panel form button, .inbox-block-banner button { padding:9px 12px; border:0; border-radius:9px; background:#FB6C00; color:white; cursor:pointer; }
+.inbox-search-results { display:flex; flex-direction:column; gap:4px; margin-top:8px; }
+.inbox-search-results > button { display:flex; flex-direction:column; gap:4px; text-align:left; padding:9px; border:1px solid var(--border,#ddd); border-radius:9px; color:inherit; background:var(--input-bg,#f7f7f8); cursor:pointer; }
+.inbox-search-results > button span { overflow-wrap:anywhere; }
+.inbox-search-results small { color:var(--muted,#777); }
+.inbox-block-banner { padding:10px 14px; background:rgba(251,108,0,.1); color:var(--text,#222); font-size:13px; }
+.inbox-block-banner button { margin-left:10px; }
+.inbox-message[data-highlighted="true"] { outline:3px solid #FB6C00; outline-offset:3px; }
+@media(max-width:700px) { .inbox-chat-controls { gap:2px; } .inbox-chat-controls > button { padding:7px 9px; } .inbox-chat-options { right:-30px; } .inbox-search-panel { max-height:42%; } }
+
+/* Stage 6: icon composer, attachment decision, and voice messaging */
+.inbox-composer .inbox-icon-button,.inbox-icon-button {display:inline-flex;align-items:center;justify-content:center;gap:2px;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;border:1px solid var(--border,#ddd);border-radius:50%;background:var(--card-bg,#fff);color:var(--text,#222);cursor:pointer}
+.inbox-composer .inbox-primary-send,.inbox-primary-send {background:#FB6C00;color:#fff;border-color:#FB6C00}
+.inbox-icon-button:disabled {opacity:.45;cursor:not-allowed}
+.inbox-attachment-preview {padding:12px 16px;border-top:1px solid var(--border,#ddd);display:flex;flex-direction:column;gap:8px;align-items:center}
+.inbox-attachment-heading {display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;overflow-wrap:anywhere}
+.inbox-attachment-preview img,.inbox-attachment-preview video {max-width:100%;max-height:190px;object-fit:contain;border-radius:10px}
+.inbox-attachment-actions,.inbox-attachment-labels {display:flex;align-items:center;justify-content:flex-end;gap:22px;width:100%}
+.inbox-attachment-labels {gap:12px;font-size:11px;color:var(--muted,#777)}
+.inbox-attachment-labels span {width:85px;text-align:center}
+.inbox-private-send {color:#FB6C00;border-color:#FB6C00}
+.inbox-voice-recorder {display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 16px;border-top:1px solid var(--border,#ddd)}
+.inbox-voice-recorder audio {max-width:100%;flex:1}
+.inbox-voice-recorder button {border:1px solid var(--border,#ddd);border-radius:10px;padding:9px;background:var(--card-bg,#fff);color:var(--text,#222);cursor:pointer}
+.inbox-voice-player {display:flex;align-items:center;gap:7px;min-width:220px;max-width:100%}
+.inbox-voice-player input {flex:1;min-width:40px;accent-color:#FB6C00}
+.inbox-voice-player button {padding:6px 8px;border-radius:9px;border:0;background:rgba(128,128,128,.18);color:inherit;cursor:pointer}
+.inbox-voice-player small {white-space:nowrap;font-size:11px}
+@media(max-width:700px){.inbox-composer{gap:5px}.inbox-composer .inbox-icon-button{width:38px;height:38px;min-width:38px;min-height:38px}.inbox-voice-player{min-width:190px}}
+
+/* Stage 7: reply, forward, and pin */
+.inbox-pinned-bar{display:flex;align-items:center;gap:10px;width:100%;padding:10px 16px;border:0;border-bottom:1px solid var(--border,#ddd);background:var(--input-bg,#f7f7f8);color:inherit;text-align:left;cursor:pointer}
+.inbox-pinned-bar span,.inbox-reply-composer span{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}
+.inbox-pinned-bar small,.inbox-reply-composer small{color:var(--muted,#777);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.inbox-reply-quote{display:flex;flex-direction:column;gap:4px;width:100%;max-width:300px;text-align:left;padding:8px 10px;margin-bottom:7px;border:0;border-left:3px solid #fb6c00;border-radius:7px;background:rgba(128,128,128,.13);color:inherit;cursor:pointer}
+.inbox-reply-quote span{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.inbox-reply-composer{display:flex;align-items:center;gap:10px;padding:10px 15px;border-top:1px solid var(--border,#ddd);border-left:3px solid #fb6c00;background:var(--card-bg,#fff)}
+.inbox-reply-composer button,.inbox-forward-heading button{border:0;background:transparent;color:inherit;cursor:pointer;font-size:20px}
+.inbox-forwarded{display:block;margin-bottom:6px;font-size:11px;opacity:.8}
+.inbox-forward-overlay{position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.55);display:grid;place-items:center;padding:16px}
+.inbox-forward-dialog{width:min(440px,100%);max-height:80vh;overflow:auto;display:flex;flex-direction:column;gap:14px;padding:20px;border-radius:16px;background:var(--card-bg,#fff);color:var(--text,#222)}
+.inbox-forward-heading{display:flex;justify-content:space-between;align-items:center}
+.inbox-forward-preview{padding:12px;border-radius:9px;background:var(--input-bg,#f7f7f8);overflow-wrap:anywhere}
+.inbox-forward-friends{display:flex;flex-direction:column;gap:8px;max-height:240px;overflow-y:auto}
+.inbox-forward-friends label{display:flex;align-items:center;gap:10px;padding:9px;border:1px solid var(--border,#ddd);border-radius:9px;cursor:pointer}
+.inbox-forward-friends input{accent-color:#fb6c00}
+.inbox-forward-submit{align-self:flex-end;padding:11px 18px;border:0;border-radius:999px;background:#fb6c00;color:#fff;cursor:pointer}
+.inbox-forward-submit:disabled{opacity:.5;cursor:not-allowed}
+
+/* Stage 8: groups and profile-photo forwarding */
+.inbox-group-avatar{background:rgba(251,108,0,.15);color:#fb6c00;font-size:23px}
+.inbox-select-friend{display:flex;align-items:center;gap:12px;cursor:pointer}
+.inbox-select-friend .inbox-avatar{width:38px;height:38px;flex-shrink:0}
+.inbox-select-friend > span:nth-of-type(1){flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.inbox-select-friend input[type=checkbox]{position:absolute;opacity:0;width:1px;height:1px}
+.inbox-selection-mark{width:23px;height:23px;border:2px solid var(--border,#bbb);border-radius:50%;display:grid;place-items:center;flex-shrink:0;font-weight:800;color:white}
+.inbox-selection-mark.selected{background:#16a34a;border-color:#16a34a}
+.inbox-select-friend:focus-within{outline:2px solid #fb6c00;outline-offset:2px}
+.inbox-group-picker{display:flex;flex-direction:column;gap:10px}
+.inbox-group-picker .inbox-forward-submit{align-self:stretch}
+.inbox-group-members{padding:14px;display:flex;flex-direction:column;gap:10px;max-height:45%;overflow-y:auto;border-bottom:1px solid var(--border,#ddd)}
+.inbox-group-member{display:flex;align-items:center;gap:10px}
+.inbox-group-member .inbox-avatar{width:34px;height:34px}
+.inbox-group-member span{flex:1}
+.inbox-group-members button{padding:8px;border:1px solid var(--border,#ddd);border-radius:8px;background:var(--card-bg,#fff);color:inherit;cursor:pointer}
+.inbox-group-add{display:flex;flex-direction:column;gap:8px}
+.inbox-group-sender{display:block;margin-bottom:5px;font-weight:700;opacity:.85}
+@media(max-width:700px){.inbox-group-members{max-height:40%}.inbox-heading-actions{flex-wrap:wrap}}
+
+/* Stage 8 group controls */
+.inbox-group-name{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}.inbox-group-name input{padding:10px;border:1px solid var(--border,#ddd);border-radius:9px;background:var(--input-bg,#fff);color:inherit}.inbox-group-create{width:100%;margin-top:10px;padding:11px;border:0;border-radius:10px;background:#FB6C00;color:white;cursor:pointer}.inbox-group-create:disabled{opacity:.5;cursor:not-allowed}.inbox-group-details{padding:14px;max-height:45%;overflow:auto;border-bottom:1px solid var(--border,#ddd);display:flex;flex-direction:column;gap:10px}.inbox-group-member,.inbox-select-friend{display:flex;align-items:center;gap:10px}.inbox-group-member .inbox-avatar,.inbox-select-friend .inbox-avatar{width:36px;height:36px}.inbox-group-member span,.inbox-select-friend span:not(.inbox-selection-mark){flex:1}.inbox-group-details button{padding:8px;border:1px solid var(--border,#ddd);border-radius:9px;background:var(--card-bg,#fff);color:inherit;cursor:pointer}.inbox-group-add{display:flex;flex-direction:column;gap:8px}.inbox-group-add label{padding:7px;border:1px solid var(--border,#ddd);border-radius:9px}
