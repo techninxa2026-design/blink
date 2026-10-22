@@ -52,6 +52,7 @@ model User {
   irlPlans                IrlPlan[] @relation("IrlPlanCreator")
   irlInterests            IrlInterest[]
   irlInvitationsReceived IrlInvitation[] @relation("IrlInvitationRecipient")
+  irlMessages IrlMessage[]
 }
 
 model FriendRequest {
@@ -239,6 +240,7 @@ model IrlPlan {
   creator     User     @relation("IrlPlanCreator", fields: [creatorId], references: [id], onDelete: Cascade)
   interests   IrlInterest[]
   invitations IrlInvitation[]
+  messages IrlMessage[]
   @@index([creatorId, startsAt])
   @@index([startsAt])
 }
@@ -274,4 +276,18 @@ model IrlInvitation {
   recipient   User                @relation("IrlInvitationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
   @@unique([planId, recipientId])
   @@index([recipientId, status, createdAt])
+}
+
+// Phase 3: dedicated plan conversation, separate from main Blink messages.
+model IrlMessage {
+  id        String   @id @default(cuid())
+  planId    String
+  senderId  String
+  text      String   @db.VarChar(2000)
+  createdAt DateTime @default(now())
+  plan      IrlPlan  @relation(fields: [planId], references: [id], onDelete: Cascade)
+  sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([planId, createdAt])
+  @@index([senderId])
 }

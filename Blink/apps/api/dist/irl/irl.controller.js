@@ -24,6 +24,8 @@ let IrlController = class IrlController {
     invitations(req) { return this.service.invitations(req.user.userId); }
     invite(req, id, body) { return this.service.invite(req.user.userId, id, body?.recipientId || ''); }
     respondInvitation(req, id, body) { return this.service.respondInvitation(req.user.userId, id, body?.status); }
+    inboxMessages(req, id) { return this.service.inboxMessages(req.user.userId, id); }
+    sendInboxMessage(req, id, body) { return this.service.sendInboxMessage(req.user.userId, id, body); }
     plans(req) { return this.service.list(req.user.userId); }
     create(req, body) { return this.service.create(req.user.userId, body); }
     remove(req, id) { return this.service.remove(req.user.userId, id); }
@@ -56,6 +58,23 @@ __decorate([
     __metadata("design:paramtypes", [Object, String, Object]),
     __metadata("design:returntype", void 0)
 ], IrlController.prototype, "respondInvitation", null);
+__decorate([
+    (0, common_1.Get)('plans/:id/messages'),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], IrlController.prototype, "inboxMessages", null);
+__decorate([
+    (0, common_1.Post)('plans/:id/messages'),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, Object]),
+    __metadata("design:returntype", void 0)
+], IrlController.prototype, "sendInboxMessage", null);
 __decorate([
     (0, common_1.Get)('plans'),
     __param(0, (0, common_1.Req)()),

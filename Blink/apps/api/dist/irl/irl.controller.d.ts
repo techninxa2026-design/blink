@@ -10,27 +10,27 @@ export declare class IrlController {
     invitations(req: AuthRequest): Promise<({
         plan: {
             creator: {
-                name: string;
                 id: string;
+                name: string;
             };
         } & {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
             creatorId: string;
             title: string;
             category: string;
             description: string | null;
             place: string | null;
             startsAt: Date;
+            createdAt: Date;
+            updatedAt: Date;
         };
     } & {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        planId: string;
         recipientId: string;
         status: import("@prisma/client").$Enums.IrlInvitationStatus;
-        planId: string;
     })[]>;
     invite(req: AuthRequest, id: string, body: {
         recipientId?: string;
@@ -38,9 +38,9 @@ export declare class IrlController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        planId: string;
         recipientId: string;
         status: import("@prisma/client").$Enums.IrlInvitationStatus;
-        planId: string;
     }>;
     respondInvitation(req: AuthRequest, id: string, body: {
         status?: string;
@@ -48,64 +48,75 @@ export declare class IrlController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        planId: string;
         recipientId: string;
         status: import("@prisma/client").$Enums.IrlInvitationStatus;
-        planId: string;
     } | null>;
+    inboxMessages(req: AuthRequest, id: string): Promise<{
+        plan: {
+            id: string;
+            creatorId: string;
+            title: string;
+            place: string | null;
+            startsAt: Date;
+        };
+        messages: any;
+    }>;
+    sendInboxMessage(req: AuthRequest, id: string, body: unknown): Promise<any>;
     plans(req: AuthRequest): Promise<{
         invitations: ({
             recipient: {
-                name: string;
                 id: string;
+                name: string;
                 avatarKey: string | null;
             };
         } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            planId: string;
             recipientId: string;
             status: import("@prisma/client").$Enums.IrlInvitationStatus;
-            planId: string;
         })[];
         creator: {
-            name: string;
             id: string;
+            name: string;
             avatarKey: string | null;
         };
         interests: ({
             user: {
-                name: string;
                 id: string;
+                name: string;
                 avatarKey: string | null;
             };
         } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            userId: string;
             planId: string;
+            userId: string;
             reply: string;
         })[];
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
         creatorId: string;
         title: string;
         category: string;
         description: string | null;
         place: string | null;
         startsAt: Date;
+        createdAt: Date;
+        updatedAt: Date;
     }[]>;
     create(req: AuthRequest, body: unknown): Promise<{
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
         creatorId: string;
         title: string;
         category: string;
         description: string | null;
         place: string | null;
         startsAt: Date;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
     remove(req: AuthRequest, id: string): Promise<{
         deleted: boolean;
@@ -114,8 +125,8 @@ export declare class IrlController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        userId: string;
         planId: string;
+        userId: string;
         reply: string;
     }>;
     withdraw(req: AuthRequest, id: string): Promise<{

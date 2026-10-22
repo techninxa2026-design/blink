@@ -137,6 +137,50 @@ let IrlService = class IrlService {
             throw new common_1.BadRequestException('Invitation already answered.');
         return this.prisma.irlInvitation.findUnique({ where: { id: invitationId } });
     }
+    async requireInboxAccess(userId, planId) {
+        const plan = await this.prisma.irlPlan.findUnique({
+            where: { id: planId },
+            select: { id: true, creatorId: true, title: true, place: true, startsAt: true },
+        });
+        if (!plan)
+            throw new common_1.NotFoundException('Plan not found.');
+        if (plan.creatorId !== userId) {
+            const invitation = await this.prisma.irlInvitation.findUnique({
+                where: { planId_recipientId: { planId, recipientId: userId } },
+                select: { status: true },
+            });
+            if (invitation?.status !== 'ACCEPTED') {
+                throw new common_1.ForbiddenException('Only the creator and accepted invitees can access this IRL inbox.');
+            }
+            const friends = await this.friendIds(userId);
+            if (!friends.includes(plan.creatorId)) {
+                throw new common_1.ForbiddenException('You are no longer friends with the creator.');
+            }
+        }
+        return plan;
+    }
+    async inboxMessages(userId, planId) {
+        const plan = await this.requireInboxAccess(userId, planId);
+        const messages = await this.prisma.irlMessage.findMany({
+            where: { planId },
+            include: { sender: { select: { id: true, name: true } } },
+            orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+            take: 200,
+        });
+        return { plan, messages };
+    }
+    async sendInboxMessage(userId, planId, input) {
+        await this.requireInboxAccess(userId, planId);
+        const body = (input && typeof input === 'object' ? input : {});
+        const text = typeof body.text === 'string' ? body.text.trim() : '';
+        if (!text || text.length > 2000) {
+            throw new common_1.BadRequestException('Message must be 1–2000 characters.');
+        }
+        return this.prisma.irlMessage.create({
+            data: { planId, senderId: userId, text },
+            include: { sender: { select: { id: true, name: true } } },
+        });
+    }
 };
 exports.IrlService = IrlService;
 exports.IrlService = IrlService = __decorate([

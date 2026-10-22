@@ -6,57 +6,57 @@ export declare class IrlService {
     list(userId: string): Promise<{
         invitations: ({
             recipient: {
-                name: string;
                 id: string;
+                name: string;
                 avatarKey: string | null;
             };
         } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            planId: string;
             recipientId: string;
             status: import("@prisma/client").$Enums.IrlInvitationStatus;
-            planId: string;
         })[];
         creator: {
-            name: string;
             id: string;
+            name: string;
             avatarKey: string | null;
         };
         interests: ({
             user: {
-                name: string;
                 id: string;
+                name: string;
                 avatarKey: string | null;
             };
         } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            userId: string;
             planId: string;
+            userId: string;
             reply: string;
         })[];
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
         creatorId: string;
         title: string;
         category: string;
         description: string | null;
         place: string | null;
         startsAt: Date;
+        createdAt: Date;
+        updatedAt: Date;
     }[]>;
     create(userId: string, input: unknown): Promise<{
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
         creatorId: string;
         title: string;
         category: string;
         description: string | null;
         place: string | null;
         startsAt: Date;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
     remove(userId: string, id: string): Promise<{
         deleted: boolean;
@@ -65,8 +65,8 @@ export declare class IrlService {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        userId: string;
         planId: string;
+        userId: string;
         reply: string;
     }>;
     withdraw(userId: string, id: string): Promise<{
@@ -75,42 +75,54 @@ export declare class IrlService {
     invitations(userId: string): Promise<({
         plan: {
             creator: {
-                name: string;
                 id: string;
+                name: string;
             };
         } & {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
             creatorId: string;
             title: string;
             category: string;
             description: string | null;
             place: string | null;
             startsAt: Date;
+            createdAt: Date;
+            updatedAt: Date;
         };
     } & {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        planId: string;
         recipientId: string;
         status: import("@prisma/client").$Enums.IrlInvitationStatus;
-        planId: string;
     })[]>;
     invite(userId: string, planId: string, recipientId: string): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        planId: string;
         recipientId: string;
         status: import("@prisma/client").$Enums.IrlInvitationStatus;
-        planId: string;
     }>;
     respondInvitation(userId: string, invitationId: string, status: unknown): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        planId: string;
         recipientId: string;
         status: import("@prisma/client").$Enums.IrlInvitationStatus;
-        planId: string;
     } | null>;
+    private requireInboxAccess;
+    inboxMessages(userId: string, planId: string): Promise<{
+        plan: {
+            id: string;
+            creatorId: string;
+            title: string;
+            place: string | null;
+            startsAt: Date;
+        };
+        messages: any;
+    }>;
+    sendInboxMessage(userId: string, planId: string, input: unknown): Promise<any>;
 }

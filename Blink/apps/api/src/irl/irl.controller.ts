@@ -9,6 +9,8 @@ export class IrlController {
   @Get('invitations') invitations(@Req() req: AuthRequest) { return this.service.invitations(req.user.userId); }
   @Post('plans/:id/invitations') invite(@Req() req: AuthRequest, @Param('id') id: string, @Body() body: { recipientId?: string }) { return this.service.invite(req.user.userId, id, body?.recipientId || ''); }
   @Post('invitations/:id/respond') respondInvitation(@Req() req: AuthRequest, @Param('id') id: string, @Body() body: { status?: string }) { return this.service.respondInvitation(req.user.userId, id, body?.status); }
+  @Get('plans/:id/messages') inboxMessages(@Req() req: AuthRequest, @Param('id') id: string) { return this.service.inboxMessages(req.user.userId, id); }
+  @Post('plans/:id/messages') sendInboxMessage(@Req() req: AuthRequest, @Param('id') id: string, @Body() body: unknown) { return this.service.sendInboxMessage(req.user.userId, id, body); }
   @Get('plans') plans(@Req() req: AuthRequest) { return this.service.list(req.user.userId); }
   @Post('plans') create(@Req() req: AuthRequest, @Body() body: unknown) { return this.service.create(req.user.userId, body); }
   @Delete('plans/:id') remove(@Req() req: AuthRequest, @Param('id') id: string) { return this.service.remove(req.user.userId, id); }
