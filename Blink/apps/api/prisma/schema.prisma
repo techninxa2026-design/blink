@@ -49,6 +49,9 @@ model User {
   blocksMade              UserBlock[] @relation("Blocker")
   blocksReceived          UserBlock[] @relation("Blocked")
   checkin                 Checkin?
+  irlPlans                IrlPlan[] @relation("IrlPlanCreator")
+  irlInterests            IrlInterest[]
+  irlInvitationsReceived IrlInvitation[] @relation("IrlInvitationRecipient")
 }
 
 model FriendRequest {
@@ -219,4 +222,56 @@ model Checkin {
 
   @@index([expiresAt])
   @@map("checkin")
+}
+
+
+// IRL is independent from Blink's main Inbox.
+model IrlPlan {
+  id          String   @id @default(cuid())
+  creatorId   String
+  title       String   @db.VarChar(120)
+  category    String   @db.VarChar(32)
+  description String?  @db.VarChar(1000)
+  place       String?  @db.VarChar(180)
+  startsAt    DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  creator     User     @relation("IrlPlanCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  interests   IrlInterest[]
+  invitations IrlInvitation[]
+  @@index([creatorId, startsAt])
+  @@index([startsAt])
+}
+
+model IrlInterest {
+  id        String   @id @default(cuid())
+  planId    String
+  userId    String
+  reply     String   @db.VarChar(500)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  plan      IrlPlan  @relation(fields: [planId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([planId, userId])
+  @@index([userId])
+}
+
+// Phase 2: separate IRL invitations; never mixed into the main Inbox.
+enum IrlInvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+model IrlInvitation {
+  id          String              @id @default(cuid())
+  planId      String
+  recipientId String
+  status      IrlInvitationStatus @default(PENDING)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  plan        IrlPlan             @relation(fields: [planId], references: [id], onDelete: Cascade)
+  recipient   User                @relation("IrlInvitationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  @@unique([planId, recipientId])
+  @@index([recipientId, status, createdAt])
 }

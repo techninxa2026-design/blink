@@ -29,7 +29,6 @@ function timeLeft(item: Checkin, now: number) {
   const minutes = Math.ceil((remaining % 3600000) / 60000);
   return hours ? `${hours}h ${minutes}m left` : `${minutes}m left`;
 }
-function avatarSrc(key: string) { return key.startsWith('http') ? key : `${API}${key.startsWith('/') ? key : `/uploads/${key}`}`; }
 export default function CheckinsPage({ onBack, onOpenProfile, theme, onToggleTheme }: Props) {
   const [feed, setFeed] = useState<Checkin[]>([]);
   const [mine, setMine] = useState<Checkin | null>(null);

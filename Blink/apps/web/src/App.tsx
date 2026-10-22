@@ -11,6 +11,7 @@ import FriendsPage from './FriendsPage';
 import PublicProfilePage from './PublicProfilePage';
 import InboxPage from './InboxPage';
 import CheckinsPage from './CheckinsPage';
+import IrlPage from './IrlPage';
 import { NotesRow, useActiveCheckins } from './CheckinPreview';
 
 const API_URL = 'http://localhost:3000';
@@ -146,6 +147,7 @@ export default function App() {
     if (path === '/profile') return 'profile';
     if (path === '/connections') return 'connections';
     if (path === '/checkins') return 'checkins';
+    if (path === '/irl') return 'irl';
     if (path === '/inbox') return 'inbox';
     if (path === '/home') return 'home';
     if (path === '/login') return 'login';
@@ -476,6 +478,9 @@ useEffect(() => {
         setRoute('profile');
       } else if (path === '/connections') {
         setRoute('connections');
+      } else if (path === '/irl') {
+        setRoute('irl');
+        setSelectedNav('IRL');
       } else if (path === '/checkins') {
         setRoute('checkins');
         setSelectedNav('Checkins');
@@ -499,7 +504,7 @@ useEffect(() => {
   }, []);
 
   function goTo(
-    path: '/home' | '/profile' | '/connections' | '/checkins' | '/inbox' | '/login' | '/',
+    path: '/home' | '/profile' | '/connections' | '/checkins' | '/irl' | '/inbox' | '/login' | '/',
   ) {
     window.history.pushState({}, '', path);
 
@@ -513,7 +518,10 @@ useEffect(() => {
     } else if (path === '/connections') {
       setRoute('connections');
       setSelectedNav('Connections');
-    } else if (path === '/checkins') {
+    } else if (path === '/irl') {
+        setRoute('irl');
+        setSelectedNav('IRL');
+      } else if (path === '/checkins') {
       setRoute('checkins');
       setSelectedNav('Checkins');
     } else if (path === '/login') {
@@ -707,6 +715,10 @@ useEffect(() => {
   }
 
 function handleNav(label: string) {
+  if (label === 'IRL') {
+    goTo('/irl');
+    return;
+  }
   setSelectedNav(label);
   if (label === 'Checkins') {
     goTo('/checkins');
@@ -1038,6 +1050,11 @@ if (route === 'inbox') {
       }
     />
   );
+}
+
+if (route === 'irl') {
+  if (!readStoredToken()) { goTo('/login'); return null; }
+  return <IrlPage onBack={() => goTo('/home')} theme={theme} onToggleTheme={() => setTheme(current => current === 'light' ? 'dark' : 'light')} />;
 }
 
 if (route === 'checkins') {

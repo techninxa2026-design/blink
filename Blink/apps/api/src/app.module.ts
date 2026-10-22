@@ -10,6 +10,7 @@ import { ProfileModule } from './profile/profile.module';
 import { FriendsModule } from './friends/friends.module';
 import { InboxModule } from './inbox/inbox.module';
 import { CheckinsModule } from './checkins/checkins.module';
+import { IrlModule } from './irl/irl.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -20,6 +21,7 @@ import { CheckinsModule } from './checkins/checkins.module';
     FriendsModule,
     InboxModule,
     CheckinsModule,
+    IrlModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -18,6 +18,7 @@ const profile_module_1 = require("./profile/profile.module");
 const friends_module_1 = require("./friends/friends.module");
 const inbox_module_1 = require("./inbox/inbox.module");
 const checkins_module_1 = require("./checkins/checkins.module");
+const irl_module_1 = require("./irl/irl.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -32,6 +33,7 @@ exports.AppModule = AppModule = __decorate([
             friends_module_1.FriendsModule,
             inbox_module_1.InboxModule,
             checkins_module_1.CheckinsModule,
+            irl_module_1.IrlModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],
