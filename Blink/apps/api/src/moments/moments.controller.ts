@@ -128,6 +128,38 @@ getViews(
 
 
 
+
+  @Get(':id/activity')
+  activity(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+    return this.momentsService.activity(req.user.userId, id);
+  }
+
+  @Post(':id/comments')
+  comment(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body('body') body: unknown,
+  ) {
+    return this.momentsService.comment(req.user.userId, id, body);
+  }
+
+  @Post(':id/bp')
+  giftPoints(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body('amount') amount: unknown,
+  ) {
+    return this.momentsService.giftPoints(req.user.userId, id, amount);
+  }
+
+  @Delete('comments/:commentId')
+  deleteComment(
+    @Req() req: AuthenticatedRequest,
+    @Param('commentId') id: string,
+  ) {
+    return this.momentsService.deleteComment(req.user.userId, id);
+  }
+
   @Delete(':id')
   remove(
     @Req() req: AuthenticatedRequest,
