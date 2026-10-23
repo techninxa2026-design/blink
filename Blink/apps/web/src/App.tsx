@@ -1262,17 +1262,11 @@ if (route === 'exchange') {
             <img src="/blink-logo.png" alt="Blink" />
           </a>
 
-          <button
-            type="button"
-            className="icon-button inbox-button"
-            onClick={() => goTo('/inbox')}
-            aria-label="Open Inbox"
-            title="Inbox"
-          >
-            <svg aria-hidden="true" viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5 8 8 0 0 1-3.5-.8L4 20l1.8-4.6A7.5 7.5 0 1 1 20 11.5Z" />
-              <path d="M8.5 11.5h7" />
-            </svg>
+          <button type="button" className="icon-button home-profile-button"
+            onClick={() => goTo('/profile')} aria-label="Open my profile" title="My profile">
+            {readStoredUser()?.avatarKey
+              ? <img src={socialAvatar(readStoredUser()?.avatarKey) ?? undefined} alt="" />
+              : <span>{readStoredUser()?.name?.slice(0, 1).toUpperCase() || '👤'}</span>}
           </button>
         </header>
 
@@ -1406,10 +1400,8 @@ if (route === 'exchange') {
 </section>
 
 
-        <nav className="home-bottom-nav" aria-label="Main navigation">
-       
         {selectedNav === 'Capture' && (
-          <section className="capture-screen" aria-label="Create a moment">
+          <section className="capture-screen" aria-label="Create a moment" role="dialog" aria-modal="true">
             <div className="capture-topbar">
               <button
                 className="capture-close"
@@ -1509,6 +1501,24 @@ onTouchEnd={(event) => {
 )}
 
               <canvas ref={cameraCanvasRef} hidden />
+              <input ref={filePickerRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" hidden
+                onChange={e => {
+                  const file = e.currentTarget.files?.[0];
+                  e.currentTarget.value = '';
+                  if (!file) return;
+                  if (!/^(image\/(jpeg|png|webp|gif)|video\/(mp4|webm|quicktime))$/.test(file.type)) {
+                    setCameraError('Choose a JPG, PNG, WEBP, GIF, MP4, WEBM, or MOV file.'); return;
+                  }
+                  if (file.size > 50 * 1024 * 1024) {
+                    setCameraError('Maximum file size is 50 MB.'); return;
+                  }
+                  stopCamera();
+                  if (capturedMedia?.startsWith('blob:')) URL.revokeObjectURL(capturedMedia);
+                  setCapturedMedia(URL.createObjectURL(file));
+                  setCapturedType(file.type.startsWith('video/') ? 'video' : 'photo');
+                  setCameraError('');
+                }}
+              />
 
               {!capturedMedia && !cameraError && !cameraStream && (
                 <p className="capture-status">Starting camera…</p>
@@ -1535,7 +1545,11 @@ onTouchEnd={(event) => {
 
             {capturedMedia ? (
               <div className="capture-review">
-                <p>Would you like to post this moment?</p>
+                <label className="capture-caption-label" htmlFor="capture-caption">Caption (optional)</label>
+                <textarea id="capture-caption" maxLength={500} rows={2}
+                  placeholder="What's happening?" value={captureCaption}
+                  onChange={e => setCaptureCaption(e.target.value)} />
+                <p>Review your photo or video before posting.</p>
                 <div className="capture-review-actions">
                   <button
                     className="capture-discard"
@@ -1597,15 +1611,15 @@ onTouchEnd={(event) => {
                       ? 'Tap again to stop recording'
                       : 'Tap to start recording'}
                 </p>
-                <p className="capture-swipe-hint">
-                  Swipe left for video · Swipe right for photo
-                </p>
+                <p className="capture-swipe-hint">Swipe left for video · Swipe right for photo</p>
+                <button type="button" className="capture-gallery-button"
+                  onClick={() => filePickerRef.current?.click()} disabled={isRecording}>↑ Upload from device</button>
               </div>
             )}
           </section>
         )}
 
-          {navItems.map((item) => (
+        <nav className="home-bottom-nav" aria-label="Main navigation">\n          {navItems.map((item) => (
             <button
               key={item.label}
               className={`bottom-nav-item ${selectedNav === item.label ? 'selected' : ''} ${item.label === 'Capture' ? 'capture-nav' : ''}`}
@@ -1618,6 +1632,13 @@ onTouchEnd={(event) => {
             </button>
           ))}
         </nav>
+        <button type="button" className="home-floating-inbox" onClick={() => goTo('/inbox')}
+          aria-label="Open Inbox" title="Inbox">
+          <svg aria-hidden="true" viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5 8 8 0 0 1-3.5-.8L4 20l1.8-4.6A7.5 7.5 0 1 1 20 11.5Z" />
+            <path d="M8.5 11.5h7" />
+          </svg>
+        </button>
 
         {notice && (
           <div className="home-toast" role="status">
@@ -1744,6 +1765,9 @@ onTouchEnd={(event) => {
     )}
   </div>
 )}
+
+{activeMoment.apiId && <MomentActions key={activeMoment.apiId} momentId={activeMoment.apiId}
+  caption={activeMoment.caption} currentUserId={readStoredUser()?.id} />}
 
           </div>
         )}
