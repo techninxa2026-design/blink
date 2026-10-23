@@ -1183,6 +1183,9 @@
   background: var(--home-surface);
   box-shadow: 14px 0 45px #00000018;
   animation: drawer-enter 180ms ease-out;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: max(25px, env(safe-area-inset-bottom));
 }
 
 @keyframes drawer-enter {
@@ -1222,6 +1225,11 @@
   margin: 0 0 10px 9px;
 }
 
+.drawer-section-label {
+  margin-top: 18px;
+  flex-shrink: 0;
+}
+
 .home-drawer > button:not(.drawer-close) {
   display: flex;
   align-items: center;
@@ -1247,6 +1255,8 @@
 
 .drawer-spacer {
   flex: 1;
+  min-height: 12px;
+  flex-shrink: 0;
 }
 
 .home-drawer .drawer-logout {

@@ -1340,31 +1340,25 @@ if (route === 'exchange') {
                 <img src="/blink-logo.png" alt="Blink" />
                 <button className="drawer-close" onClick={() => setMenuOpen(false)} aria-label="Close menu">×</button>
               </div>
-              <p className="drawer-label">YOUR SPACE</p>
-  
-             <button onClick={() => goTo('/profile')}>
-  ◉ <span>My profile</span>
-
-</button>
-            <button
-  type="button"
-  onClick={() => goTo('/exchange')}
->
-   <span>🗘 Blink Exchange</span>
-</button>
-             <button type="button" onClick={() => goTo('/secrets')}>
-               🔐 <span>Blink Secrets</span>
-             </button>
-             <button type="button" onClick={() => goTo('/hearts')}>
-               🖤 <span>Blink Heart</span>
-             </button>
-              <button onClick={() => { setMenuOpen(false); setNotice('Settings will be available soon.'); }}>⚙ <span>Settings</span></button>
-              <button onClick={() => goTo('/business-match')}>🤝 <span>Business Match</span></button>
-              <button onClick={() => { setMenuOpen(false); goTo('/settings'); }}>⚙ <span>Settings</span></button>
-              <button onClick={() => { setMenuOpen(false); setTheme(theme === 'light' ? 'dark' : 'light'); }}>◐ <span>{theme === 'light' ? 'Dark mode' : 'Light mode'}</span></button>
+              <p className="drawer-label">EXPLORE BLINK</p>
+              <button type="button" onClick={() => goTo('/home')}>⌂ <span>Moments</span></button>
+              <button type="button" onClick={() => goTo('/connections')}>♧ <span>Connections</span></button>
+              <button type="button" onClick={() => goTo('/checkins')}>⌖ <span>Check-Ins</span></button>
+              <button type="button" onClick={() => goTo('/irl')}>▣ <span>IRL Plans</span></button>
+              <button type="button" onClick={() => goTo('/exchange')}>↗ <span>Blink Exchange</span></button>
+              <button type="button" onClick={() => goTo('/secrets')}>◇ <span>Blink Secrets</span></button>
+              <button type="button" onClick={() => goTo('/hearts')}>♡ <span>Blink Hearts</span></button>
+              <button type="button" onClick={() => goTo('/business-match')}>♧ <span>Business Match</span></button>
+              <button type="button" onClick={() => goTo('/inbox')}>✉ <span>Inbox</span></button>
+              <p className="drawer-label drawer-section-label">YOUR SPACE</p>
+              <button type="button" onClick={() => goTo('/profile')}>◉ <span>My profile</span></button>
+              <button type="button" onClick={() => goTo('/settings')}>⚙ <span>Settings</span></button>
+              <button type="button" onClick={() => setTheme(current => current === 'light' ? 'dark' : 'light')}>
+                ◐ <span>{theme === 'light' ? 'Dark mode' : 'Light mode'}</span>
+              </button>
               <div className="drawer-spacer" />
-              <button className="drawer-logout" onClick={logout}>↪ <span>Log out</span></button>
-              <p className="drawer-footnote">More Blink features are coming soon.</p>
+              <button type="button" className="drawer-logout" onClick={logout}>↪ <span>Log out</span></button>
+              <p className="drawer-footnote">Your people. Your moments. Your Blink.</p>
             </aside>
           </>
         )}
