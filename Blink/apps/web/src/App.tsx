@@ -4,6 +4,7 @@ import {
   useRef,
   useState,
   type FormEvent,
+  type ReactNode,
 } from 'react';
 import './App.css';
 import SecretsPage from './SecretsPage';
@@ -1000,6 +1001,50 @@ const uploadBlob = mediaBlob.slice(
     setIsPosting(false);
   }
 }
+
+  function withNavigation(page: ReactNode) {
+    return (
+      <>
+        {page}
+        <nav className="home-bottom-nav blink-shared-dock" aria-label="Main navigation">
+          {navItems.map(item => {
+            const active =
+              (item.label === 'Home' && route === 'home') ||
+              (item.label === 'Connections' && route === 'connections') ||
+              (item.label === 'Checkins' && route === 'checkins') ||
+              (item.label === 'IRL' && route === 'irl');
+            return (
+              <button key={item.label} type="button"
+                className={`bottom-nav-item ${active ? 'selected' : ''} ${item.label === 'Capture' ? 'capture-nav' : ''}`}
+                aria-label={item.label} aria-current={active ? 'page' : undefined}
+                onClick={() => {
+                  if (item.label === 'Capture') {
+                    goTo('/home'); setSelectedNav('Capture');
+                  } else if (item.label === 'Home') goTo('/home');
+                  else if (item.label === 'Connections') goTo('/connections');
+                  else if (item.label === 'Checkins') goTo('/checkins');
+                  else if (item.label === 'IRL') goTo('/irl');
+                }}>
+                <span className="nav-symbol" aria-hidden="true">{item.symbol}</span>
+                <span className="nav-label">{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+        {route !== 'inbox' && (
+          <button type="button" className="home-floating-inbox" aria-label="Open Inbox"
+            title="Inbox" onClick={() => goTo('/inbox')}>
+            <svg aria-hidden="true" viewBox="0 0 24 24" width="23" height="23"
+              fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5 8 8 0 0 1-3.5-.8L4 20l1.8-4.6A7.5 7.5 0 1 1 20 11.5Z"/>
+              <path d="M8.5 11.5h7"/>
+            </svg>
+          </button>
+        )}
+      </>
+    );
+  }
+
 if (route === 'public-profile') {
   if (!readStoredToken()) {
     return (
@@ -1018,7 +1063,7 @@ if (route === 'public-profile') {
     return null;
   }
 
-  return (
+  return withNavigation(
     <PublicProfilePage
       userId={publicProfileId}
       onBack={() => goTo('/connections')}
@@ -1043,7 +1088,7 @@ if (route === 'secrets') {
       </main>
     );
   }
-  return (
+  return withNavigation(
     <SecretsPage
       theme={theme}
       onToggleTheme={() => setTheme(current => current === 'light' ? 'dark' : 'light')}
@@ -1063,7 +1108,7 @@ if (route === 'hearts') {
       </main>
     );
   }
-  return (
+  return withNavigation(
     <HeartPage
       theme={theme}
       onToggleTheme={() => setTheme(current => current === 'light' ? 'dark' : 'light')}
@@ -1087,7 +1132,7 @@ if (route === 'inbox') {
     );
   }
 
-  return (
+  return withNavigation(
     <InboxPage
       onBack={() => goTo('/home')}
       onOpenProfile={openPublicProfile}
@@ -1103,22 +1148,22 @@ if (route === 'inbox') {
 
 if (route === 'settings') {
   if (!readStoredToken()) { return <main className="bm-page"><p>Please sign in to access settings.</p><button onClick={() => goTo('/login')}>Sign in</button></main>; }
-  return <BusinessMatchPage initialView="settings" onBack={() => goTo('/home')} theme={theme} onToggleTheme={() => setTheme(current => current === 'light' ? 'dark' : 'light')} />;
+  return withNavigation(<BusinessMatchPage initialView="settings" onBack={() => goTo('/home')} theme={theme} onToggleTheme={() => setTheme(current => current === 'light' ? 'dark' : 'light')} />);
 }
 
 if (route === 'business-match') {
   if (!readStoredToken()) { goTo('/login'); return null; }
-  return <BusinessMatchPage onBack={() => goTo('/home')} theme={theme} onToggleTheme={() => setTheme(current => current === 'light' ? 'dark' : 'light')} />;
+  return withNavigation(<BusinessMatchPage onBack={() => goTo('/home')} theme={theme} onToggleTheme={() => setTheme(current => current === 'light' ? 'dark' : 'light')} />);
 }
 
 if (route === 'irl') {
   if (!readStoredToken()) { goTo('/login'); return null; }
-  return <IrlPage onBack={() => goTo('/home')} theme={theme} onToggleTheme={() => setTheme(current => current === 'light' ? 'dark' : 'light')} />;
+  return withNavigation(<IrlPage onBack={() => goTo('/home')} theme={theme} onToggleTheme={() => setTheme(current => current === 'light' ? 'dark' : 'light')} />);
 }
 
 if (route === 'checkins') {
   if (!readStoredToken()) { goTo('/login'); return null; }
-  return <CheckinsPage onBack={() => goTo('/home')} onOpenProfile={openPublicProfile} theme={theme} onToggleTheme={() => setTheme(current => current === 'light' ? 'dark' : 'light')} />;
+  return withNavigation(<CheckinsPage onBack={() => goTo('/home')} onOpenProfile={openPublicProfile} theme={theme} onToggleTheme={() => setTheme(current => current === 'light' ? 'dark' : 'light')} />);
 }
 
 if (route === 'connections') {
@@ -1135,7 +1180,7 @@ if (route === 'connections') {
     );
   }
 
-  return (
+  return withNavigation(
     <FriendsPage
     onOpenProfile={openPublicProfile}
       onBack={() => goTo('/home')}
@@ -1149,7 +1194,7 @@ if (route === 'connections') {
   );
 }
 if (route === 'profile') {
-  return (
+  return withNavigation(
     <ProfilePage
       onBack={() => goTo('/home')}
       theme={theme}
@@ -1181,7 +1226,7 @@ if (route === 'profile') {
      );
    }
 
-   return (
+   return withNavigation(
      <ExchangePostPage
        postId={exchangePostId}
        onBack={() => goTo('/exchange')}
@@ -1208,7 +1253,7 @@ if (route === 'exchange') {
     );
   }
 
-  return (
+  return withNavigation(
     <ExchangePage
       onBack={() => goTo('/home')}
       onOpenPost={openExchangePost}
