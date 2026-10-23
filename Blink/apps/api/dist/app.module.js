@@ -22,6 +22,7 @@ const checkins_module_1 = require("./checkins/checkins.module");
 const irl_module_1 = require("./irl/irl.module");
 const secrets_module_1 = require("./secrets/secrets.module");
 const hearts_module_1 = require("./hearts/hearts.module");
+const business_match_module_1 = require("./business-match/business-match.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -40,6 +41,7 @@ exports.AppModule = AppModule = __decorate([
             exchange_module_1.ExchangeModule,
             secrets_module_1.SecretsModule,
             hearts_module_1.HeartsModule,
+            business_match_module_1.BusinessMatchModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

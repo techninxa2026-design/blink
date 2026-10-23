@@ -4,6 +4,13 @@ export declare class IrlService {
     constructor(prisma: PrismaService);
     private friendIds;
     list(userId: string): Promise<{
+        participants: {
+            id: string;
+            name: string;
+        }[];
+        meetupLat: number | null;
+        meetupLng: number | null;
+        meetupUrl: string | null;
         invitations: ({
             recipient: {
                 name: string;
@@ -56,7 +63,13 @@ export declare class IrlService {
         creatorId: string;
         category: string;
         place: string | null;
+        meetupLat: number | null;
+        meetupLng: number | null;
+        meetupUrl: string | null;
         startsAt: Date;
+    }>;
+    updateMeetupLocation(userId: string, planId: string, input: unknown): Promise<{
+        updated: boolean;
     }>;
     remove(userId: string, id: string): Promise<{
         deleted: boolean;
@@ -72,13 +85,12 @@ export declare class IrlService {
     withdraw(userId: string, id: string): Promise<{
         deleted: boolean;
     }>;
+    removeParticipant(userId: string, planId: string, participantId: string): Promise<{
+        removed: boolean;
+        deletedMessages: number;
+    }>;
     invitations(userId: string): Promise<({
         plan: {
-            creator: {
-                name: string;
-                id: string;
-            };
-        } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
@@ -86,8 +98,13 @@ export declare class IrlService {
             description: string | null;
             creatorId: string;
             category: string;
+            title: string;
             place: string | null;
             startsAt: Date;
+            creator: {
+                name: string;
+                id: string;
+            };
         };
     } & {
         id: string;
@@ -105,12 +122,44 @@ export declare class IrlService {
         recipientId: string;
         planId: string;
     }>;
-    respondInvitation(userId: string, invitationId: string, status: unknown): Promise<{
+    private requireInboxAccess;
+    inboxMessages(userId: string, planId: string): Promise<{
+        plan: {
+            id: string;
+            creatorId: string;
+            title: string;
+            place: string | null;
+            meetupLat: number | null;
+            meetupLng: number | null;
+            meetupUrl: string | null;
+            startsAt: Date;
+        };
+        messages: ({
+            sender: {
+                name: string;
+                id: string;
+            };
+        } & {
+            id: string;
+            createdAt: Date;
+            senderId: string;
+            planId: string;
+            text: string;
+        })[];
+    }>;
+    sendInboxMessage(userId: string, planId: string, input: unknown): Promise<{
+        sender: {
+            name: string;
+            id: string;
+        };
+    } & {
         id: string;
         createdAt: Date;
         updatedAt: Date;
         status: import("@prisma/client").$Enums.IrlInvitationStatus;
         recipientId: string;
+        senderId: string;
         planId: string;
-    } | null>;
+        text: string;
+    }>;
 }

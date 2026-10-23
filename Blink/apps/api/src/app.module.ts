@@ -13,6 +13,7 @@ import { CheckinsModule } from './checkins/checkins.module';
 import { IrlModule } from './irl/irl.module';
 import { SecretsModule } from './secrets/secrets.module';
 import { HeartsModule } from './hearts/hearts.module';
+import { BusinessMatchModule } from './business-match/business-match.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -27,6 +28,7 @@ import { HeartsModule } from './hearts/hearts.module';
     ExchangeModule,
     SecretsModule,
     HeartsModule,
+    BusinessMatchModule,
   ],
   controllers: [AppController],
   providers: [AppService],

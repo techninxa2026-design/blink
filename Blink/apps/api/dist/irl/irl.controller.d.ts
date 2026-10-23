@@ -9,11 +9,6 @@ export declare class IrlController {
     constructor(service: IrlService);
     invitations(req: AuthRequest): Promise<({
         plan: {
-            creator: {
-                name: string;
-                id: string;
-            };
-        } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
@@ -21,8 +16,13 @@ export declare class IrlController {
             description: string | null;
             creatorId: string;
             category: string;
+            title: string;
             place: string | null;
             startsAt: Date;
+            creator: {
+                name: string;
+                id: string;
+            };
         };
     } & {
         id: string;
@@ -42,17 +42,60 @@ export declare class IrlController {
         recipientId: string;
         planId: string;
     }>;
-    respondInvitation(req: AuthRequest, id: string, body: {
-        status?: string;
-    }): Promise<{
+    removeParticipant(req: AuthRequest, id: string, participantId: string): Promise<{
+        removed: boolean;
+        deletedMessages: number;
+    }>;
+    updateLocation(req: AuthRequest, id: string, body: unknown): Promise<{
+        updated: boolean;
+    }>;
+    inboxMessages(req: AuthRequest, id: string): Promise<{
+        plan: {
+            id: string;
+            creatorId: string;
+            title: string;
+            place: string | null;
+            meetupLat: number | null;
+            meetupLng: number | null;
+            meetupUrl: string | null;
+            startsAt: Date;
+        };
+        messages: ({
+            sender: {
+                name: string;
+                id: string;
+            };
+        } & {
+            id: string;
+            createdAt: Date;
+            senderId: string;
+            planId: string;
+            text: string;
+        })[];
+    }>;
+    sendInboxMessage(req: AuthRequest, id: string, body: unknown): Promise<{
+        sender: {
+            name: string;
+            id: string;
+        };
+    } & {
         id: string;
         createdAt: Date;
         updatedAt: Date;
         status: import("@prisma/client").$Enums.IrlInvitationStatus;
         recipientId: string;
+        senderId: string;
         planId: string;
-    } | null>;
+        text: string;
+    }>;
     plans(req: AuthRequest): Promise<{
+        participants: {
+            id: string;
+            name: string;
+        }[];
+        meetupLat: number | null;
+        meetupLng: number | null;
+        meetupUrl: string | null;
         invitations: ({
             recipient: {
                 name: string;
@@ -105,6 +148,9 @@ export declare class IrlController {
         creatorId: string;
         category: string;
         place: string | null;
+        meetupLat: number | null;
+        meetupLng: number | null;
+        meetupUrl: string | null;
         startsAt: Date;
     }>;
     remove(req: AuthRequest, id: string): Promise<{
