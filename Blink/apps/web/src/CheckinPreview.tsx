@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import './CheckinPreview.css';
 
-const API = 'http://localhost:3000';
+const API = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '');
 export type ActiveCheckin = { id: string; userId: string; emoji: string; status: string; note: string | null; expiresAt: string | null; createdAt: string; user?: { id: string; name: string; avatarKey?: string | null } };
 
 function getToken() { return localStorage.getItem('blink-access-token') || sessionStorage.getItem('blink-access-token'); }
