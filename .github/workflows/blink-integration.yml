@@ -1,0 +1,40 @@
+name: Blink Integration Build
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Blink
+    env:
+      # Compile-time placeholder only. This job never connects to a database.
+      DATABASE_URL: mysql://blink:blink@127.0.0.1:3306/blink_ci
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.10.1
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: Blink/pnpm-lock.yaml
+      - name: Install workspace dependencies
+        run: pnpm install --no-frozen-lockfile
+      - name: Validate Prisma schema
+        run: pnpm --dir apps/api exec prisma validate
+      - name: Generate Prisma client
+        run: pnpm --dir apps/api exec prisma generate
+      - name: Compile NestJS API
+        run: pnpm --dir apps/api run build
+      - name: Compile Vite React frontend
+        run: pnpm --dir apps/web run build
