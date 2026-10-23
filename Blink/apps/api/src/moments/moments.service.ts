@@ -264,7 +264,7 @@ async getViews(userId: string, momentId: string) {
   }
 
   async giftPoints(userId: string, momentId: string, amount: unknown) {
-    if (!Number.isInteger(amount) || (amount as number) < 1 || (amount as number) > 100) {
+    if (typeof amount !== 'number' || !Number.isInteger(amount) || amount < 1 || amount > 100) {
       throw new BadRequestException('Choose an amount between 1 and 100 BP.');
     }
     const points = amount as number;
