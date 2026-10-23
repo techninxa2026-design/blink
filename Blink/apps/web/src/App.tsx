@@ -744,6 +744,7 @@ function handleNav(label: string) {
     setCameraError('');
     setCapturedMedia(null);
     setCapturedType(null);
+    setCaptureCaption('');
     setIsRecording(false);
     return;
   }
@@ -752,6 +753,7 @@ function handleNav(label: string) {
     setCameraError('');
     setCapturedMedia(null);
     setCapturedType(null);
+    setCaptureCaption('');
     setCaptureMode('photo');
     return;
   }
@@ -774,7 +776,7 @@ function handleNav(label: string) {
         video: {
           facingMode: { ideal: 'environment' },
         },
-        audio: true,
+        audio: captureMode === 'video',
       });
 
       setCameraStream(stream);
@@ -1566,7 +1568,7 @@ onTouchEnd={(event) => {
                     {isPosting ? 'Please wait…' : 'Post moment'}
                   </button>
                 </div>
-                <p className="capture-demo-note">
+                <p className="capture-info-note">
                    Your moment will be uploaded and shared with Blink.
                 </p>
               </div>
@@ -1619,7 +1621,8 @@ onTouchEnd={(event) => {
           </section>
         )}
 
-        <nav className="home-bottom-nav" aria-label="Main navigation">\n          {navItems.map((item) => (
+        <nav className="home-bottom-nav" aria-label="Main navigation">
+          {navItems.map((item) => (
             <button
               key={item.label}
               className={`bottom-nav-item ${selectedNav === item.label ? 'selected' : ''} ${item.label === 'Capture' ? 'capture-nav' : ''}`}
