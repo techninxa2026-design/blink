@@ -76,6 +76,8 @@ model User {
   moments         Moment[]     @relation("MomentSender")
   receivedMoments Moment[]     @relation("MomentRecipient")
   momentViews     MomentView[]
+  momentComments  MomentComment[]
+  momentBpGifts   MomentBpGift[]
 
   // Main Inbox
   conversationMemberships ConversationMember[]
@@ -170,6 +172,8 @@ model Moment {
   sender    User         @relation("MomentSender", fields: [senderId], references: [id], onDelete: Cascade)
   recipient User?        @relation("MomentRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
   views     MomentView[]
+  comments  MomentComment[]
+  bpGifts   MomentBpGift[]
 
   @@index([senderId, type, createdAt])
   @@index([recipientId, type, createdAt])
@@ -188,6 +192,35 @@ model MomentView {
 
   @@unique([momentId, viewerId])
   @@index([viewerId, expiresAt])
+}
+
+
+model MomentComment {
+  id        String   @id @default(cuid())
+  momentId  String
+  authorId  String
+  body      String   @db.VarChar(500)
+  createdAt DateTime @default(now())
+
+  moment Moment @relation(fields: [momentId], references: [id], onDelete: Cascade)
+  author User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([momentId, createdAt])
+  @@index([authorId])
+}
+
+model MomentBpGift {
+  id        String   @id @default(cuid())
+  momentId  String
+  senderId  String
+  amount    Int
+  createdAt DateTime @default(now())
+
+  moment Moment @relation(fields: [momentId], references: [id], onDelete: Cascade)
+  sender User   @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([momentId, createdAt])
+  @@index([senderId, createdAt])
 }
 
 // ======================================================
