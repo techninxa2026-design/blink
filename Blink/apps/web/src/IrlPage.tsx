@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import './IrlPage.css';
-const API = 'http://localhost:3000';
+const API = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '');
 type Interest = { id: string; userId: string; reply: string; user: { id: string; name: string } };
 type Invitation = { id: string; recipientId: string; status: 'PENDING' | 'ACCEPTED' | 'DECLINED'; recipient?: { id: string; name: string }; plan?: { id: string; title: string; startsAt: string; creator: { name: string } } };
 type IrlChatMessage = { id: string; senderId: string; text: string; createdAt: string; sender: { id: string; name: string } };
