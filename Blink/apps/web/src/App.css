@@ -2085,3 +2085,15 @@
   .capture-review {padding-bottom:32px;}
 }
 @media(prefers-reduced-motion: reduce){.recording-indicator span{animation:none;}}
+
+
+/* Navigation also appears on the other authenticated Blink pages. */
+.blink-shared-dock {
+  --home-surface:#fff;--home-bg:#fffaf6;--home-text:#171717;
+  --home-muted:#77716d;--home-border:#eee5de;--home-orange:#fb6c00;
+}
+:root[data-theme='dark'] .blink-shared-dock {
+  --home-surface:#191919;--home-bg:#101010;--home-text:#f8f5f2;
+  --home-muted:#aaa19b;--home-border:#303030;
+}
+.capture-info-note {font-size:12px;color:#ffffffa9;}
