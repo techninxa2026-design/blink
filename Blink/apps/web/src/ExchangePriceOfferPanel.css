@@ -1,0 +1,305 @@
+
+/* Blink Exchange — private-chat price offers */
+
+.blink-price-offer {
+  --offer-accent: #ff6900;
+  --offer-border: #e6e8ed;
+  --offer-surface: #fffaf5;
+  --offer-text: #20232b;
+  --offer-muted: #777f8d;
+
+  flex-shrink: 0;
+  min-width: 0;
+  max-height: 46%;
+  overflow-y: auto;
+
+  background: var(--offer-surface);
+  border-bottom: 1px solid var(--offer-border);
+  color: var(--offer-text);
+  font-family: Inter, system-ui, sans-serif;
+}
+
+:root[data-theme="dark"] .blink-price-offer {
+  --offer-border: #343640;
+  --offer-surface: #29231f;
+  --offer-text: #f6f6f8;
+  --offer-muted: #abb0bb;
+}
+
+.blink-price-offer *,
+.blink-price-offer *::before,
+.blink-price-offer *::after {
+  box-sizing: border-box;
+}
+
+.blink-offer-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 52px;
+  padding: 12px 17px;
+  gap: 10px;
+
+  border: 0;
+  background: transparent;
+  color: var(--offer-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.blink-offer-heading-title,
+.blink-offer-heading-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.blink-offer-heading-title {
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.blink-offer-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffebdc;
+  color: var(--offer-accent);
+  font-size: 19px;
+}
+
+.blink-offer-chevron {
+  color: var(--offer-muted);
+  font-size: 18px;
+}
+
+.blink-offer-status {
+  border-radius: 20px;
+  padding: 5px 9px;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.45px;
+}
+
+.blink-offer-status.pending {
+  color: #9d6000;
+  background: #fff0c7;
+}
+
+.blink-offer-status.accepted {
+  color: #13794a;
+  background: #e0f6e9;
+}
+
+.blink-offer-status.declined {
+  color: #ac3342;
+  background: #ffe3e5;
+}
+
+.blink-offer-content {
+  padding: 0 17px 16px;
+}
+
+.blink-offer-muted {
+  margin: 0;
+  color: var(--offer-muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.blink-offer-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 13px 15px;
+
+  border: 1px solid var(--offer-border);
+  border-radius: 12px;
+  background: var(--ed-panel, #ffffff);
+}
+
+.blink-offer-summary small {
+  display: block;
+  color: var(--offer-muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.blink-offer-price {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin-top: 5px;
+}
+
+.blink-offer-price strong {
+  color: var(--offer-text);
+  font-size: clamp(20px, 2vw, 26px);
+  font-weight: 900;
+  letter-spacing: -0.6px;
+  overflow-wrap: anywhere;
+}
+
+.blink-offer-price > span {
+  color: var(--offer-accent);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.blink-offer-summary p {
+  margin: 0;
+  color: var(--offer-muted);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.blink-offer-summary .blink-offer-accepted-text {
+  color: #168455;
+}
+
+.blink-offer-summary .blink-offer-declined-text {
+  color: #b64753;
+}
+
+.blink-offer-actions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 12px;
+}
+
+.blink-offer-actions button {
+  flex: 1;
+  min-width: 0;
+  padding: 11px 13px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.blink-offer-decline {
+  background: var(--ed-panel, #ffffff);
+  border: 1px solid var(--offer-border);
+  color: var(--offer-text);
+}
+
+.blink-offer-decline:hover:not(:disabled) {
+  border-color: #e27b85;
+  color: #c43c4b;
+}
+
+.blink-offer-accept {
+  border: 1px solid var(--offer-accent);
+  background: var(--offer-accent);
+  color: #ffffff;
+}
+
+.blink-offer-accept:hover:not(:disabled) {
+  background: #e85f00;
+}
+
+.blink-offer-edit {
+  margin-top: 11px;
+  padding: 10px 13px;
+  width: 100%;
+  border: 1px dashed #ffad78;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--offer-accent);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.blink-offer-edit:hover {
+  background: rgba(255, 105, 0, 0.06);
+}
+
+.blink-offer-form {
+  margin-top: 12px;
+}
+
+.blink-offer-form-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+  gap: 10px;
+}
+
+.blink-offer-form-grid label {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.blink-offer-form-grid label > span {
+  font-size: 10px;
+  font-weight: 850;
+  color: var(--offer-muted);
+}
+
+.blink-offer-form-grid input,
+.blink-offer-form-grid select {
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  padding: 0 10px;
+  border: 1px solid var(--offer-border);
+  border-radius: 9px;
+  background: var(--ed-panel, #ffffff);
+  color: var(--offer-text);
+  font-size: 12px;
+  outline: none;
+}
+
+.blink-offer-form-grid input:focus,
+.blink-offer-form-grid select:focus {
+  border-color: var(--offer-accent);
+}
+
+.blink-offer-note {
+  margin: 10px 0 0;
+  color: var(--offer-muted);
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.blink-offer-error {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: #ffe3e5;
+  color: #ac3342;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.blink-price-offer button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+@media (max-width: 650px) {
+  .blink-price-offer {
+    max-height: 53%;
+  }
+
+  .blink-offer-heading {
+    padding: 11px 13px;
+  }
+
+  .blink-offer-content {
+    padding: 0 13px 13px;
+  }
+
+  .blink-offer-form-grid {
+    grid-template-columns: 1fr;
+  }
+}

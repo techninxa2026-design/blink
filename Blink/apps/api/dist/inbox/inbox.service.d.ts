@@ -6,8 +6,8 @@ export declare class InboxService {
     editMessage(userId: string, messageId: string, body: unknown): Promise<{
         id: string;
         createdAt: Date;
-        mediaKey: string | null;
         senderId: string;
+        mediaKey: string | null;
         conversationId: string;
         body: string | null;
         mediaType: string | null;
@@ -56,8 +56,8 @@ export declare class InboxService {
     sendMedia(userId: string, conversationId: string, file: Express.Multer.File, isPrivate: boolean): Promise<{
         id: string;
         createdAt: Date;
-        mediaKey: string | null;
         senderId: string;
+        mediaKey: string | null;
         body: string | null;
         mediaType: string | null;
         mediaMime: string | null;
@@ -93,8 +93,8 @@ export declare class InboxService {
         lastMessage: {
             id: string;
             createdAt: Date;
-            mediaKey: string | null;
             senderId: string;
+            mediaKey: string | null;
             body: string | null;
             mediaType: string | null;
             mediaMime: string | null;
@@ -140,8 +140,8 @@ export declare class InboxService {
             privateOpenedAt: Date | null;
             id: string;
             createdAt: Date;
-            mediaKey: string | null;
             senderId: string;
+            mediaKey: string | null;
             body: string | null;
             mediaType: string | null;
             mediaMime: string | null;
@@ -176,8 +176,8 @@ export declare class InboxService {
     sendMessage(userId: string, conversationId: string, body: unknown, replyToId?: unknown): Promise<{
         id: string;
         createdAt: Date;
-        mediaKey: string | null;
         senderId: string;
+        mediaKey: string | null;
         body: string | null;
         mediaType: string | null;
         isPrivate: boolean;

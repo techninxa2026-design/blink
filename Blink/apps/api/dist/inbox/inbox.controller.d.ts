@@ -32,8 +32,8 @@ export declare class InboxController {
         lastMessage: {
             id: string;
             createdAt: Date;
-            mediaKey: string | null;
             senderId: string;
+            mediaKey: string | null;
             body: string | null;
             mediaType: string | null;
             mediaMime: string | null;
@@ -122,8 +122,8 @@ export declare class InboxController {
             privateOpenedAt: Date | null;
             id: string;
             createdAt: Date;
-            mediaKey: string | null;
             senderId: string;
+            mediaKey: string | null;
             body: string | null;
             mediaType: string | null;
             mediaMime: string | null;
@@ -161,8 +161,8 @@ export declare class InboxController {
     }): Promise<{
         id: string;
         createdAt: Date;
-        mediaKey: string | null;
         senderId: string;
+        mediaKey: string | null;
         body: string | null;
         mediaType: string | null;
         isPrivate: boolean;
@@ -187,8 +187,8 @@ export declare class InboxController {
     }): Promise<{
         id: string;
         createdAt: Date;
-        mediaKey: string | null;
         senderId: string;
+        mediaKey: string | null;
         conversationId: string;
         body: string | null;
         mediaType: string | null;
@@ -216,8 +216,8 @@ export declare class InboxController {
     }): Promise<{
         id: string;
         createdAt: Date;
-        mediaKey: string | null;
         senderId: string;
+        mediaKey: string | null;
         body: string | null;
         mediaType: string | null;
         mediaMime: string | null;

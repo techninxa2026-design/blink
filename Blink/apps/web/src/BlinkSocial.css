@@ -1,0 +1,1355 @@
+
+/* ================================================
+   BLINK SECRETS + BLINK HEART
+   Original feature styling — NO SIDEBAR
+   Brand orange: #FB6C00
+   ================================================ */
+
+/* 1. PAGE AND THEME */
+
+.blink-social {
+  --bs-orange: var(--brand, #fb6c00);
+  --bs-bg: var(--page-bg, #fff9f5);
+  --bs-card: var(--card-bg, #ffffff);
+  --bs-input: var(--input-bg, #faf7f4);
+  --bs-text: var(--text, #231f1c);
+  --bs-muted: var(--muted, #77716e);
+  --bs-border: var(--border, #e8e0dc);
+  --bs-soft: var(--soft-brand, #fff0e4);
+
+  display: block;
+  width: 100%;
+  min-height: 100vh;
+  background: var(--bs-bg);
+  color: var(--bs-text);
+  text-align: left;
+  font-family: Inter, 'Segoe UI', sans-serif;
+}
+
+html[data-theme='dark'] .blink-social {
+  --bs-bg: var(--page-bg, #101015);
+  --bs-card: var(--card-bg, #191b23);
+  --bs-input: var(--input-bg, #20232e);
+  --bs-text: var(--text, #f7f4f2);
+  --bs-muted: var(--muted, #a6a2a2);
+  --bs-border: var(--border, #34333c);
+  --bs-soft: var(--soft-brand, #392618);
+}
+
+.blink-social,
+.blink-social * {
+  box-sizing: border-box;
+}
+
+.blink-social button,
+.blink-social input,
+.blink-social textarea,
+.blink-social select {
+  font-family: inherit;
+}
+
+/* 2. MAIN PAGE — FULL WIDTH */
+
+.blink-social .bs-main {
+  width: 100%;
+  max-width: 1500px;
+  min-width: 0;
+  margin: 0 auto;
+  padding: 24px clamp(18px, 4vw, 56px) 80px;
+}
+
+/* 3. BACK BUTTON HEADER */
+
+.blink-social .bs-topbar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--bs-border);
+}
+
+.blink-social .bs-home-link {
+  width: fit-content;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: 1px solid var(--bs-border);
+  border-radius: 11px;
+  padding: 0 15px;
+  background: var(--bs-card);
+  color: var(--bs-text);
+  font-size: 13px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: border-color .18s, color .18s;
+}
+
+.blink-social .bs-home-link:hover {
+  border-color: var(--bs-orange);
+  color: var(--bs-orange);
+}
+
+.blink-social .bs-theme-toggle {
+  justify-self: end;
+}
+
+.blink-social .bs-top-pill {
+  justify-self: center;
+  padding: 9px 13px;
+  border: 1px solid var(--bs-border);
+  border-radius: 99px;
+  color: var(--bs-muted);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 1.2px;
+  white-space: nowrap;
+}
+
+/* 4. INTRODUCTION */
+
+.blink-social .bs-intro {
+  padding: 30px 0 22px;
+}
+
+.blink-social .bs-kicker {
+  font-size: 11px;
+  letter-spacing: 2.3px;
+  color: var(--bs-orange);
+  font-weight: 900;
+}
+
+.blink-social .bs-kicker span {
+  margin-left: 4px;
+}
+
+.blink-social .bs-intro h1 {
+  margin: 12px 0 10px;
+  font-size: clamp(30px, 3.5vw, 48px);
+  line-height: 1.1;
+  letter-spacing: -1.4px;
+  font-weight: 900;
+}
+
+.blink-social .bs-intro p {
+  margin: 0;
+  max-width: 730px;
+  color: var(--bs-muted);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+/* 5. MOBILE FEATURE SWITCH */
+
+.blink-social .bs-mobile-tabs {
+  display: none;
+  gap: 5px;
+  padding: 5px;
+  margin: 0 0 25px;
+  border: 1px solid var(--bs-border);
+  border-radius: 12px;
+  background: var(--bs-card);
+}
+
+.blink-social .bs-mobile-tabs button {
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--bs-muted);
+  font-size: 13px;
+  font-weight: 800;
+  padding: 10px 17px;
+  cursor: pointer;
+}
+
+.blink-social .bs-mobile-tabs button.active {
+  background: var(--bs-soft);
+  color: var(--bs-orange);
+}
+
+/* 6. STATISTICS */
+
+.blink-social .bs-stats {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 32px;
+}
+
+.blink-social .bs-stat {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 21px 23px;
+  border: 1px solid var(--bs-border);
+  border-radius: 17px;
+  background: var(--bs-card);
+}
+
+.blink-social .bs-stat > span {
+  color: var(--bs-muted);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 1.5px;
+}
+
+.blink-social .bs-stat strong {
+  font-size: 31px;
+  line-height: 1.1;
+  font-weight: 900;
+  letter-spacing: -1px;
+}
+
+.blink-social .bs-stat strong small {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.blink-social .bs-stat > small {
+  font-size: 12px;
+  color: var(--bs-muted);
+}
+
+.blink-social .bs-stat-orange {
+  border-color: transparent;
+  background: linear-gradient(135deg, #fb6c00, #e65800);
+  color: #fff;
+}
+
+.blink-social .bs-stat-orange > span,
+.blink-social .bs-stat-orange > small {
+  color: rgba(255, 255, 255, .85);
+}
+
+/* 7. SECTION HEADING */
+
+.blink-social .bs-sectionbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 19px;
+}
+
+.blink-social .bs-sectionbar h2 {
+  margin: 0 0 5px;
+  font-size: 22px;
+  font-weight: 850;
+  letter-spacing: -.4px;
+}
+
+.blink-social .bs-sectionbar p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--bs-muted);
+}
+
+/* 8. BUTTONS */
+
+.blink-social .bs-primary,
+.blink-social .bs-secondary {
+  padding: 12px 18px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 850;
+  cursor: pointer;
+  transition: transform .15s, background .15s;
+}
+
+.blink-social .bs-primary {
+  border: 1px solid var(--bs-orange);
+  background: var(--bs-orange);
+  color: #fff;
+}
+
+.blink-social .bs-primary:hover:not(:disabled) {
+  background: #e85f00;
+  transform: translateY(-1px);
+}
+
+.blink-social .bs-secondary {
+  border: 1px solid var(--bs-border);
+  background: var(--bs-card);
+  color: var(--bs-text);
+}
+
+.blink-social .bs-secondary:hover:not(:disabled) {
+  border-color: var(--bs-orange);
+}
+
+.blink-social .bs-primary:disabled,
+.blink-social .bs-secondary:disabled {
+  opacity: .52;
+  cursor: not-allowed;
+}
+
+.blink-social .bs-text-btn {
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: var(--bs-orange);
+  font-weight: 750;
+  cursor: pointer;
+}
+
+/* 9. ALERTS AND PANELS */
+
+.blink-social .bs-alert,
+.blink-social .bs-notice {
+  margin: 12px 0;
+  padding: 12px 16px;
+  border: 1px solid;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.blink-social .bs-alert {
+  color: #dd554e;
+  border-color: rgba(240, 60, 60, .27);
+  background: rgba(240, 60, 60, .07);
+}
+
+.blink-social .bs-notice {
+  color: var(--bs-text);
+  border-color: var(--bs-border);
+  background: var(--bs-soft);
+}
+
+.blink-social .bs-panel {
+  border: 1px solid var(--bs-border);
+  border-radius: 17px;
+  background: var(--bs-card);
+}
+
+/* 10. CREATE SECRET */
+
+.blink-social .bs-creator {
+  padding: 23px;
+  margin: 18px 0 25px;
+}
+
+.blink-social .bs-label {
+  color: var(--bs-orange);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 1.8px;
+}
+
+.blink-social .bs-creator h3 {
+  font-size: 21px;
+  margin: 9px 0 20px;
+}
+
+.blink-social .bs-field {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-bottom: 18px;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.blink-social .bs-field small {
+  color: var(--bs-muted);
+  font-weight: 500;
+}
+
+/* Inputs */
+
+.blink-social textarea,
+.blink-social input[type='text'],
+.blink-social .bs-search,
+.blink-social select {
+  width: 100%;
+  min-width: 0;
+  padding: 12px 14px;
+  outline: 0;
+  border: 1px solid var(--bs-border);
+  border-radius: 10px;
+  background: var(--bs-input);
+  color: var(--bs-text);
+  font-size: 14px;
+  resize: vertical;
+}
+
+.blink-social textarea:focus,
+.blink-social input:focus,
+.blink-social select:focus {
+  border-color: var(--bs-orange);
+  box-shadow: 0 0 0 3px rgba(251, 108, 0, .1);
+}
+
+.blink-social .bs-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.blink-social .bs-option-edit {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.blink-social .bs-option-edit input[type='radio'] {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 17px;
+  accent-color: var(--bs-orange);
+}
+
+.blink-social .bs-option-edit > button {
+  width: 32px;
+  height: 39px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--bs-soft);
+  color: var(--bs-text);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+/* 11. SECRET TABS */
+
+.blink-social .bs-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 18px 0;
+}
+
+.blink-social .bs-tabs button {
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--bs-muted);
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.blink-social .bs-tabs button.active {
+  background: var(--bs-soft);
+  color: var(--bs-orange);
+}
+
+.blink-social .bs-tabs button.bs-refresh {
+  margin-left: auto;
+  border: 1px solid var(--bs-border);
+}
+
+/* 12. SECRET CARDS */
+
+.blink-social .bs-secret-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.blink-social .bs-secret-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 23px;
+}
+
+.blink-social .bs-secret-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.blink-social .bs-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--bs-soft);
+  color: var(--bs-orange);
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.blink-social .bs-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.blink-social .bs-secret-meta > span:nth-child(2) {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.blink-social .bs-secret-meta strong {
+  font-size: 13px;
+}
+
+.blink-social .bs-secret-meta small {
+  color: var(--bs-muted);
+  font-size: 11px;
+}
+
+.blink-social .bs-chip {
+  margin-left: auto;
+  padding: 7px 9px;
+  border-radius: 8px;
+  background: var(--bs-soft);
+  color: var(--bs-orange);
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.blink-social .bs-chip.done {
+  background: rgba(34, 197, 94, .12);
+  color: #40a761;
+}
+
+.blink-social .bs-secret-card h3 {
+  margin: 20px 0;
+  min-height: 55px;
+  font-size: 20px;
+  line-height: 1.35;
+}
+
+/* 13. ANSWER OPTIONS */
+
+.blink-social .bs-answers {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.blink-social .bs-answer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--bs-border);
+  border-radius: 10px;
+  background: var(--bs-input);
+  color: var(--bs-text);
+  text-align: left;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.blink-social .bs-answer:not(:disabled):hover {
+  border-color: var(--bs-orange);
+}
+
+.blink-social .bs-answer > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: var(--bs-soft);
+  color: var(--bs-orange);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.blink-social .bs-answer b {
+  margin-left: auto;
+  color: var(--bs-orange);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.blink-social .bs-answer.chosen {
+  border-color: var(--bs-orange);
+  background: var(--bs-soft);
+}
+
+.blink-social .bs-answer.correct {
+  border-color: #47a863;
+  background: rgba(34, 197, 94, .07);
+}
+
+.blink-social .bs-answer:disabled {
+  cursor: default;
+}
+
+.blink-social .bs-secret-foot {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+  padding-top: 15px;
+  border-top: 1px solid var(--bs-border);
+  color: var(--bs-muted);
+  font-size: 11px;
+}
+
+.blink-social .bs-win {
+  color: #38a85c;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.blink-social .bs-result {
+  color: var(--bs-muted);
+  font-size: 13px;
+}
+
+/* 14. REACTIONS */
+
+.blink-social .bs-reactions {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-top: 17px;
+}
+
+.blink-social .bs-reactions button {
+  padding: 7px 10px;
+  border: 1px solid var(--bs-border);
+  border-radius: 25px;
+  background: var(--bs-input);
+  color: var(--bs-text);
+  cursor: pointer;
+}
+
+.blink-social .bs-reactions button.active {
+  border-color: var(--bs-orange);
+  background: var(--bs-soft);
+}
+
+.blink-social .bs-reactions small {
+  color: var(--bs-muted);
+  font-size: 11px;
+  margin-left: 4px;
+}
+
+/* 15. EMPTY STATES */
+
+.blink-social .bs-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  grid-column: 1 / -1;
+  padding: 65px 20px;
+  color: var(--bs-muted);
+  text-align: center;
+}
+
+.blink-social .bs-empty > span {
+  font-size: 35px;
+}
+
+.blink-social .bs-empty strong {
+  color: var(--bs-text);
+  font-size: 18px;
+}
+
+.blink-social .bs-empty p {
+  margin: 0 0 15px;
+  font-size: 13px;
+}
+
+/* ================================================
+   BLINK HEART INBOX
+   ================================================ */
+
+/* 16. INBOX LAYOUT */
+
+.blink-social .bs-inbox {
+  display: grid;
+  grid-template-columns: minmax(255px, 35%) minmax(0, 1fr);
+  min-height: 560px;
+  overflow: hidden;
+  border: 1px solid var(--bs-border);
+  border-radius: 18px;
+  background: var(--bs-card);
+}
+
+.blink-social .bs-inbox-list {
+  min-width: 0;
+  border-right: 1px solid var(--bs-border);
+}
+
+.blink-social .bs-inbox-tabs {
+  margin: 0;
+  padding: 13px 14px;
+  border-bottom: 1px solid var(--bs-border);
+}
+
+.blink-social .bs-inbox-tabs button {
+  padding: 10px 14px;
+}
+
+.blink-social .bs-thread-list {
+  max-height: 710px;
+  overflow: auto;
+}
+
+/* 17. INBOX ITEMS */
+
+.blink-social .bs-thread {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  width: 100%;
+  padding: 15px;
+  border: 0;
+  border-bottom: 1px solid var(--bs-border);
+  background: transparent;
+  color: var(--bs-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.blink-social .bs-thread:hover {
+  background: var(--bs-input);
+}
+
+.blink-social .bs-thread.active {
+  background: var(--bs-soft);
+  box-shadow: inset 3px 0 var(--bs-orange);
+}
+
+.blink-social .bs-thread-avatar {
+  width: 42px;
+  height: 42px;
+  flex-basis: 42px;
+}
+
+.blink-social .bs-thread-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 7px;
+  min-width: 0;
+}
+
+.blink-social .bs-thread-content strong {
+  font-size: 13px;
+}
+
+.blink-social .bs-thread-content > span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--bs-muted);
+  font-size: 12px;
+}
+
+.blink-social .bs-thread-content small {
+  color: var(--bs-muted);
+  font-size: 10px;
+}
+
+.blink-social .bs-mini-empty {
+  padding: 25px;
+  color: var(--bs-muted);
+  font-size: 13px;
+}
+
+/* 18. HEART CONVERSATION */
+
+.blink-social .bs-conversation {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 560px;
+}
+
+.blink-social .bs-conversation-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 17px 20px;
+  border-bottom: 1px solid var(--bs-border);
+}
+
+.blink-social .bs-conversation-top > div {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 5px;
+  min-width: 0;
+}
+
+.blink-social .bs-conversation-top strong {
+  font-size: 14px;
+}
+
+.blink-social .bs-conversation-top small {
+  color: var(--bs-muted);
+  font-size: 11px;
+}
+
+.blink-social .bs-avatar-lg {
+  width: 45px;
+  height: 45px;
+  flex-basis: 45px;
+}
+
+.blink-social .bs-danger-ghost {
+  padding: 9px 12px;
+  border: 1px solid rgba(236, 86, 73, .3);
+  border-radius: 9px;
+  background: transparent;
+  color: #e76455;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* 19. MESSAGES */
+
+.blink-social .bs-messages {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 250px;
+  max-height: 485px;
+  overflow: auto;
+  padding: 17px 22px 30px;
+}
+
+.blink-social .bs-privacy-divider {
+  align-self: center;
+  padding: 10px;
+  margin-bottom: 8px;
+  border-radius: 20px;
+  background: var(--bs-input);
+  color: var(--bs-muted);
+  font-size: 10px;
+  text-align: center;
+}
+
+.blink-social .bs-bubble {
+  align-self: flex-start;
+  max-width: 83%;
+  padding: 13px 16px;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--bs-border);
+  border-radius: 13px 13px 13px 4px;
+  background: var(--bs-input);
+}
+
+.blink-social .bs-bubble.mine {
+  align-self: flex-end;
+  border-color: rgba(251, 108, 0, .18);
+  border-radius: 13px 13px 4px 13px;
+  background: var(--bs-soft);
+}
+
+.blink-social .bs-bubble p {
+  margin: 0 0 9px;
+  white-space: pre-wrap;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.blink-social .bs-bubble small {
+  color: var(--bs-muted);
+  font-size: 10px;
+}
+
+/* 20. ACCEPT / DECLINE / REVEAL */
+
+.blink-social .bs-decision,
+.blink-social .bs-reveal-strip {
+  padding: 16px 21px;
+  border-top: 1px solid var(--bs-border);
+  background: var(--bs-input);
+}
+
+.blink-social .bs-decision strong,
+.blink-social .bs-reveal-strip strong {
+  font-size: 14px;
+}
+
+.blink-social .bs-decision p,
+.blink-social .bs-reveal-strip p {
+  margin: 7px 0 13px;
+  color: var(--bs-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.blink-social .bs-decision > div {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.blink-social .bs-reveal-strip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  background: var(--bs-soft);
+}
+
+.blink-social .bs-reveal-strip > div {
+  flex: 1;
+}
+
+.blink-social .bs-reveal-strip p {
+  margin-bottom: 0;
+}
+
+/* 21. SEND MESSAGE */
+
+.blink-social .bs-reply {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 14px;
+  border-top: 1px solid var(--bs-border);
+}
+
+.blink-social .bs-reply textarea {
+  flex: 1;
+  min-height: 55px;
+  resize: vertical;
+}
+
+.blink-social .bs-reply button {
+  white-space: nowrap;
+}
+
+/* 22. COMPOSE NEW HEART */
+
+.blink-social .bs-compose-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 24px;
+}
+
+.blink-social .bs-compose-body .bs-primary {
+  align-self: flex-start;
+}
+
+.blink-social .bs-privacy-note {
+  color: var(--bs-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.blink-social .bs-selected-person {
+  margin: 0;
+  padding: 12px;
+  border-radius: 9px;
+  background: var(--bs-soft);
+  font-size: 13px;
+}
+
+.blink-social .bs-selected-person button {
+  float: right;
+  border: 0;
+  background: transparent;
+  color: var(--bs-orange);
+  cursor: pointer;
+}
+
+/* 23. SEARCH PEOPLE */
+
+.blink-social .bs-people {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-height: 225px;
+  overflow: auto;
+}
+
+.blink-social .bs-people > button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  border: 1px solid var(--bs-border);
+  border-radius: 9px;
+  background: var(--bs-input);
+  color: var(--bs-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.blink-social .bs-people > button:hover {
+  border-color: var(--bs-orange);
+}
+
+.blink-social .bs-people > button > b {
+  margin-left: auto;
+  color: var(--bs-orange);
+  font-size: 11px;
+}
+
+.blink-social .bs-detail-empty {
+  height: 100%;
+  min-height: 500px;
+}
+
+/* 24. REVEAL / BLOCK CONFIRMATION */
+
+.blink-social .bs-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, .7);
+}
+
+.blink-social .bs-modal {
+  width: min(440px, 100%);
+  padding: 27px;
+  border: 1px solid var(--bs-border);
+  border-radius: 19px;
+  background: var(--bs-card);
+  color: var(--bs-text);
+}
+
+.blink-social .bs-modal-icon {
+  font-size: 36px;
+}
+
+.blink-social .bs-modal h2 {
+  margin: 17px 0 10px;
+  font-size: 23px;
+  letter-spacing: -.4px;
+}
+
+.blink-social .bs-modal p {
+  color: var(--bs-muted);
+  font-size: 13px;
+  line-height: 1.75;
+}
+
+.blink-social .bs-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 11px;
+  margin-top: 23px;
+}
+
+/* ================================================
+   RESPONSIVE DESIGN
+   ================================================ */
+
+/* 25. TABLET */
+
+@media (max-width: 980px) {
+  .blink-social .bs-main {
+    padding-inline: 25px;
+  }
+
+  .blink-social .bs-stat {
+    padding: 16px;
+  }
+
+  .blink-social .bs-stat strong {
+    font-size: 27px;
+  }
+}
+
+/* 26. MOBILE */
+
+@media (max-width: 690px) {
+  .blink-social .bs-main {
+    padding: 15px 14px 65px;
+  }
+
+  .blink-social .bs-topbar {
+    min-height: 46px;
+    gap: 6px;
+  }
+
+  .blink-social .bs-home-link {
+    padding: 0 10px;
+    min-height: 37px;
+    font-size: 12px;
+  }
+
+  .blink-social .bs-top-pill {
+    padding: 8px;
+    font-size: 8px;
+    letter-spacing: .3px;
+  }
+
+  .blink-social .bs-intro {
+    padding: 24px 0 21px;
+  }
+
+  .blink-social .bs-intro h1 {
+    font-size: 29px;
+  }
+
+  .blink-social .bs-intro p {
+    font-size: 13px;
+  }
+
+  .blink-social .bs-mobile-tabs {
+    display: flex;
+    width: 100%;
+    margin-bottom: 20px;
+  }
+
+  .blink-social .bs-mobile-tabs button {
+    flex: 1;
+    padding: 12px 8px;
+  }
+
+  .blink-social .bs-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+    margin-bottom: 22px;
+  }
+
+  .blink-social .bs-stat {
+    padding: 11px 9px;
+    gap: 8px;
+    border-radius: 11px;
+  }
+
+  .blink-social .bs-stat > span {
+    font-size: 8px;
+    letter-spacing: .6px;
+  }
+
+  .blink-social .bs-stat strong {
+    font-size: 22px;
+  }
+
+  .blink-social .bs-stat strong small {
+    font-size: 11px;
+  }
+
+  .blink-social .bs-stat > small {
+    font-size: 9px;
+  }
+
+  .blink-social .bs-sectionbar h2 {
+    font-size: 18px;
+  }
+
+  .blink-social .bs-sectionbar p {
+    font-size: 11px;
+  }
+
+  .blink-social .bs-sectionbar .bs-primary {
+    padding: 11px;
+    font-size: 11px;
+  }
+
+  .blink-social .bs-secret-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .blink-social .bs-form-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .blink-social .bs-inbox {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .blink-social .bs-inbox-list {
+    border-right: 0;
+    border-bottom: 1px solid var(--bs-border);
+  }
+
+  .blink-social .bs-thread-list {
+    max-height: 200px;
+  }
+
+  .blink-social .bs-conversation {
+    min-height: 470px;
+  }
+
+  .blink-social .bs-messages {
+    max-height: 430px;
+  }
+
+  .blink-social .bs-reveal-strip {
+    flex-wrap: wrap;
+  }
+
+  .blink-social .bs-reply {
+    align-items: stretch;
+  }
+
+  .blink-social .bs-reply .bs-primary {
+    padding: 11px;
+  }
+
+  .blink-social .bs-conversation-top {
+    padding: 14px;
+  }
+}
+
+/* 27. SMALL PHONES */
+
+@media (max-width: 375px) {
+  .blink-social .bs-top-pill {
+    display: none;
+  }
+
+  .blink-social .bs-topbar {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .blink-social .bs-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .blink-social .bs-sectionbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+/* 28. ACCESSIBILITY */
+
+@media (prefers-reduced-motion: reduce) {
+  .blink-social .bs-primary,
+  .blink-social .bs-home-link {
+    transition: none;
+  }
+}
+
+/* ===========================================
+   BLINK SECRETS + HEART
+   EDITING FEATURE ONLY
+   Keeps the existing orange Blink design
+   =========================================== */
+
+/* Edit Secret button */
+.blink-social .bs-card-edit {
+  margin: -4px 0 16px;
+  align-self: flex-start;
+  padding: 8px 13px;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+/* Editing information */
+.blink-social .bs-edit-hint {
+  margin: 0 0 14px;
+  color: var(--bs-muted, #77716e);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* Save and Cancel buttons in Secret editor */
+.blink-social .bs-form-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* Change reveal time checkbox */
+.blink-social .bs-edit-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 3px 0;
+  color: var(--bs-muted, #77716e);
+  font-size: 12px;
+  font-weight: 550;
+}
+
+.blink-social .bs-edit-check input {
+  accent-color: #fb6c00;
+}
+
+/* Heart message timestamp + edit link */
+.blink-social .bs-bubble-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.blink-social .bs-bubble-edit {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--bs-orange, #fb6c00);
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.blink-social .bs-bubble-edit:hover {
+  text-decoration: underline;
+}
+
+.blink-social .bs-bubble-edit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Inline Heart message editor */
+.blink-social .bs-edit-message {
+  width: 100%;
+  min-width: 240px;
+  max-width: 100%;
+}
+
+.blink-social .bs-edit-message textarea {
+  width: 100%;
+  min-height: 85px;
+  resize: vertical;
+  color: var(--bs-text);
+}
+
+/* Inline Save / Cancel buttons */
+.blink-social .bs-edit-message-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 9px;
+}
+
+.blink-social .bs-edit-message-actions button {
+  padding: 7px 12px;
+  font-size: 11px;
+}
+
+/* Mobile */
+@media (max-width: 690px) {
+  .blink-social .bs-edit-message {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .blink-social .bs-form-actions button {
+    flex: 1;
+  }
+}

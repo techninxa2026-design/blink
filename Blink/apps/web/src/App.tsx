@@ -6,6 +6,10 @@ import {
   type FormEvent,
 } from 'react';
 import './App.css';
+import SecretsPage from './SecretsPage';
+import HeartPage from './HeartPage';
+import ExchangePage from './exchnagePage';
+import ExchangePostPage from './ExchangePostPage';
 import ProfilePage from './ProfilePage';
 import FriendsPage from './FriendsPage';
 import PublicProfilePage from './PublicProfilePage';
@@ -149,12 +153,21 @@ export default function App() {
     if (path === '/connections') return 'connections';
     if (path === '/checkins') return 'checkins';
     if (path === '/irl') return 'irl';
+    if (path === '/secrets') return 'secrets';
+    if (path === '/hearts') return 'hearts';
     if (path === '/business-match') return 'business-match';
     if (path === '/settings') return 'settings';
     if (path === '/inbox') return 'inbox';
+    if (/^\/exchange\/[^/]+$/.test(path)) return 'exchange-post';
+    if (path === '/exchange') return 'exchange';
     if (path === '/home') return 'home';
     if (path === '/login') return 'login';
     return 'signup';
+  });
+
+  const [exchangePostId, setExchangePostId] = useState<string | null>(() => {
+    const match = window.location.pathname.match(/^\/exchange\/([^/]+)$/);
+    return match ? decodeURIComponent(match[1]) : null;
   });
 
   const { items: homeCheckins, loading: homeCheckinsLoading } = useActiveCheckins(route === 'home');
@@ -472,11 +485,22 @@ useEffect(() => {
   useEffect(() => {
     function handlePopState() {
       const path = window.location.pathname;
+      const exchangeMatch = path.match(/^\/exchange\/([^/]+)$/);
+      setExchangePostId(exchangeMatch ? decodeURIComponent(exchangeMatch[1]) : null);
       const match = path.match(/^\/profile\/user\/([^/]+)$/);
       setPublicProfileId(match ? decodeURIComponent(match[1]) : null);
 
-      if (match) {
+      if (exchangeMatch) {
+        setRoute('exchange-post');
+        setSelectedNav('Blink Exchange');
+      } else if (match) {
         setRoute('public-profile');
+      } else if (path === '/secrets') {
+        setRoute('secrets');
+        setSelectedNav('Blink Secrets');
+      } else if (path === '/hearts') {
+        setRoute('hearts');
+        setSelectedNav('Blink Heart');
       } else if (path === '/profile') {
         setRoute('profile');
       } else if (path === '/connections') {
@@ -493,9 +517,13 @@ useEffect(() => {
         setSelectedNav('Checkins');
       } else if (path === '/inbox') {
         setRoute('inbox');
-      } else if (path === '/home') {
+      } else if (path === '/exchange') {
+          setRoute('exchange');
+      }
+      else if (path === '/home') {
         setRoute('home');
         setSelectedNav('Home');
+       
       } else if (path === '/login') {
         setRoute('login');
       } else {
@@ -511,18 +539,28 @@ useEffect(() => {
   }, []);
 
   function goTo(
-    path: '/home' | '/profile' | '/connections' | '/checkins' | '/irl' | '/business-match' | '/settings' | '/inbox' | '/login' | '/',
+    path: '/home' | '/profile' | '/connections' | '/checkins' | '/irl' |'/business-match' | '/settings' | '/exchange' | '/inbox' | '/secrets' | '/hearts' | '/login' | '/',
   ) {
     window.history.pushState({}, '', path);
 
     if (path === '/home') {
       setRoute('home');
       setSelectedNav('Home');
+    } else if (path === '/secrets') {
+      setRoute('secrets');
+      setSelectedNav('Blink Secrets');
+    } else if (path === '/hearts') {
+      setRoute('hearts');
+      setSelectedNav('Blink Heart');
     } else if (path === '/inbox') {
       setRoute('inbox');
     } else if (path === '/profile') {
       setRoute('profile');
-    } else if (path === '/connections') {
+    }else if (path === '/exchange') {
+      setRoute('exchange');
+      setSelectedNav('Blink Exchange');
+    }
+     else if (path === '/connections') {
       setRoute('connections');
       setSelectedNav('Connections');
     } else if (path === '/business-match') {
@@ -542,13 +580,26 @@ useEffect(() => {
     }
 
     setPublicProfileId(null);
+    setExchangePostId(null);
     setMenuOpen(false);
     setFullMoment(false);
     window.scrollTo(0, 0);
   }
 
+   function openExchangePost(postId: string) {
+     window.history.pushState({}, '', `/exchange/${encodeURIComponent(postId)}`);
+     setExchangePostId(postId);
+     setPublicProfileId(null);
+     setRoute('exchange-post');
+     setSelectedNav('Blink Exchange');
+     setMenuOpen(false);
+     setFullMoment(false);
+     window.scrollTo(0, 0);
+   }
+
   function openPublicProfile(userId: string) {
   setPublicProfileId(userId);
+  setExchangePostId(null);
   window.history.pushState(
     {},
     '',
@@ -1036,6 +1087,47 @@ if (route === 'public-profile') {
   );
 }
 
+// Blink Secrets - private guessing games and BP rewards.
+if (route === 'secrets') {
+  if (!readStoredToken()) {
+    return (
+      <main className="blink-home" style={{ padding: 32 }}>
+        <h1>Sign in to use Blink Secrets</h1>
+        <button type="button" onClick={() => goTo('/login')}>Sign in</button>
+      </main>
+    );
+  }
+  return (
+    <SecretsPage
+      theme={theme}
+      onToggleTheme={() => setTheme(current => current === 'light' ? 'dark' : 'light')}
+      onBack={() => goTo('/home')}
+      onHearts={() => goTo('/hearts')}
+    />
+  );
+}
+
+// Blink Heart - anonymous requests and optional identity reveal.
+if (route === 'hearts') {
+  if (!readStoredToken()) {
+    return (
+      <main className="blink-home" style={{ padding: 32 }}>
+        <h1>Sign in to use Blink Heart</h1>
+        <button type="button" onClick={() => goTo('/login')}>Sign in</button>
+      </main>
+    );
+  }
+  return (
+    <HeartPage
+      theme={theme}
+      onToggleTheme={() => setTheme(current => current === 'light' ? 'dark' : 'light')}
+      onBack={() => goTo('/home')}
+      onSecrets={() => goTo('/secrets')}
+      onOpenProfile={openPublicProfile}
+    />
+  );
+}
+
 // NEW: Inbox page
 if (route === 'inbox') {
   if (!readStoredToken()) {
@@ -1124,7 +1216,66 @@ if (route === 'profile') {
 }
 
 
+ if (route === 'exchange-post') {
+   if (!readStoredToken()) {
+     return (
+       <main className="blink-home" style={{ padding: 32 }}>
+         <h1>Sign in to view this exchange</h1>
+         <button type="button" onClick={() => goTo('/login')}>Sign in</button>
+       </main>
+     );
+   }
 
+   if (!exchangePostId) {
+     return (
+       <main className="blink-home" style={{ padding: 32 }}>
+         <h1>Exchange post not found</h1>
+         <button type="button" onClick={() => goTo('/exchange')}>All exchanges</button>
+       </main>
+     );
+   }
+
+   return (
+     <ExchangePostPage
+       postId={exchangePostId}
+       onBack={() => goTo('/exchange')}
+       onOpenProfile={openPublicProfile}
+       theme={theme}
+       onToggleTheme={() => setTheme(current => current === 'light' ? 'dark' : 'light')}
+     />
+   );
+ }
+
+if (route === 'exchange') {
+  if (!readStoredToken()) {
+    return (
+      <main className="blink-home" style={{ padding: 32 }}>
+        <h1>Sign in to use Blink Exchange</h1>
+
+        <button
+          type="button"
+          onClick={() => goTo('/login')}
+        >
+          Sign in
+        </button>
+      </main>
+    );
+  }
+
+  return (
+    <ExchangePage
+      onBack={() => goTo('/home')}
+      onOpenPost={openExchangePost}
+      onOpenProfile={openPublicProfile}
+      theme={theme}
+      onToggleTheme={() =>
+        setTheme((current) =>
+          current === 'light' ? 'dark' : 'light'
+        )
+      }
+    />
+  );
+}
   if (route === 'home') {
     const hasToken = Boolean(readStoredToken());
 
@@ -1190,9 +1341,24 @@ if (route === 'profile') {
                 <button className="drawer-close" onClick={() => setMenuOpen(false)} aria-label="Close menu">×</button>
               </div>
               <p className="drawer-label">YOUR SPACE</p>
+  
              <button onClick={() => goTo('/profile')}>
   ◉ <span>My profile</span>
+
 </button>
+            <button
+  type="button"
+  onClick={() => goTo('/exchange')}
+>
+   <span>🗘 Blink Exchange</span>
+</button>
+             <button type="button" onClick={() => goTo('/secrets')}>
+               🔐 <span>Blink Secrets</span>
+             </button>
+             <button type="button" onClick={() => goTo('/hearts')}>
+               🖤 <span>Blink Heart</span>
+             </button>
+              <button onClick={() => { setMenuOpen(false); setNotice('Settings will be available soon.'); }}>⚙ <span>Settings</span></button>
               <button onClick={() => goTo('/business-match')}>🤝 <span>Business Match</span></button>
               <button onClick={() => { setMenuOpen(false); goTo('/settings'); }}>⚙ <span>Settings</span></button>
               <button onClick={() => { setMenuOpen(false); setTheme(theme === 'light' ? 'dark' : 'light'); }}>◐ <span>{theme === 'light' ? 'Dark mode' : 'Light mode'}</span></button>

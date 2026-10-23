@@ -15,8 +15,8 @@ export declare class FriendsService {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        senderId: string;
         status: import("@prisma/client").$Enums.FriendRequestStatus;
+        senderId: string;
         receiverId: string;
     }>;
     getIncoming(userId: string): Promise<({
@@ -30,8 +30,8 @@ export declare class FriendsService {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        senderId: string;
         status: import("@prisma/client").$Enums.FriendRequestStatus;
+        senderId: string;
         receiverId: string;
     })[]>;
     getOutgoing(userId: string): Promise<({
@@ -45,8 +45,8 @@ export declare class FriendsService {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        senderId: string;
         status: import("@prisma/client").$Enums.FriendRequestStatus;
+        senderId: string;
         receiverId: string;
     })[]>;
     acceptRequest(userId: string, requestId: string): Promise<{
