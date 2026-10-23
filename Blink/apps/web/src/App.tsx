@@ -17,9 +17,11 @@ import InboxPage from './InboxPage';
 import CheckinsPage from './CheckinsPage';
 import IrlPage from './IrlPage';
 import BusinessMatchPage from './BusinessMatchPage';
+import MomentActions from './MomentActions';
+import { SOCIAL_API_URL, socialAvatar } from './blinkSocialApi';
 import { NotesRow, useActiveCheckins } from './CheckinPreview';
 
-const API_URL = 'http://localhost:3000';
+const API_URL = SOCIAL_API_URL;
 
 type User = {
   id: string;
@@ -75,39 +77,6 @@ type MomentViewer = {
 
 
 
-const demoMoments: Moment[] = [
-  {
-    id: '1',
-    name: 'Sarah Wilson',
-    initials: 'SW',
-    time: '2h ago',
-    caption: 'Chasing better sunsets 🧡',
-    image:
-      'https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?auto=format&fit=crop&w=1100&q=85',
-    kind: 'photo',
-  },
-  {
-    id: '2',
-    name: 'James Carter',
-    initials: 'JC',
-    time: '4h ago',
-    caption: 'Good friends. Great vibes. 🔥',
-    image:
-      'https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?auto=format&fit=crop&w=1100&q=85',
-    kind: 'video',
-    duration: '0:18',
-  },
-  {
-    id: '3',
-    name: 'Maya Ahmed',
-    initials: 'MA',
-    time: '5h ago',
-    caption: 'A little escape from the everyday 🌿',
-    image:
-      'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=1100&q=85',
-    kind: 'photo',
-  },
-];
 
 type NavItem = {
   label: string;
@@ -215,8 +184,8 @@ const [selectedMomentId, setSelectedMomentId] = useState<string | null>(null);
 const [visibleMomentCount, setVisibleMomentCount] = useState(35);
 const [notice, setNotice] = useState('');
 const [apiMoments, setApiMoments] = useState<ApiMoment[]>([]);
-const [, setIsLoadingMoments] = useState(false);
-const [, setMomentsError] = useState('');
+const [isLoadingMoments, setIsLoadingMoments] = useState(false);
+const [momentsError, setMomentsError] = useState('');
 
 const [captureMode, setCaptureMode] = useState<'photo' | 'video'>('photo');
 const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
@@ -224,7 +193,9 @@ const [capturedMedia, setCapturedMedia] = useState<string | null>(null);
 const [capturedType, setCapturedType] = useState<'photo' | 'video' | null>(null);
 const [isRecording, setIsRecording] = useState(false);
 const [cameraError, setCameraError] = useState('');
-const [isPostingDemo, setIsPostingDemo] = useState(false);
+const [isPosting, setIsPosting] = useState(false);
+const [captureCaption, setCaptureCaption] = useState('');
+const filePickerRef = useRef<HTMLInputElement | null>(null);
 
 const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
 const cameraCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -232,46 +203,20 @@ const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 const recordedChunksRef = useRef<Blob[]>([]);
 
 
-  // Demo-only flag until moment upload is connected to the backend.
-  const [hasPostedMoment, setHasPostedMoment] = useState(() => {
-    try {
-      return localStorage.getItem('blink-demo-first-moment') === 'true';
-    } catch {
-      return false;
-    }
-  });
 
   const touchStart = useRef<{ x: number; y: number } | null>(null);
- const allMoments: Moment[] = [
-  ...apiMoments.map((moment) => ({
-    id: `api-${moment.id}`,
-    apiId: moment.id,
-    senderId: moment.senderId,
-    isMine: moment.senderId === readStoredUser()?.id,
-    name: moment.sender?.name ?? 'Blink user',
-    initials: (moment.sender?.name ?? 'B')
-      .split(' ')
-      .map((part) => part[0] ?? '')
-      .join('')
-      .slice(0, 2)
-      .toUpperCase(),
-    time: new Date(moment.createdAt).toLocaleString(),
-    caption: moment.caption ?? '',
-    image: moment.mediaUrl.startsWith('http')
-      ? moment.mediaUrl
-      : `${API_URL}${moment.mediaUrl}`,
-    kind: moment.mediaType,
-  })),
-  ...Array.from({ length: 105 }, (_, index) => {
-    const original = demoMoments[index % demoMoments.length];
-
-    return {
-      ...original,
-      id: `demo-${index + 1}`,
-      time: index < 3 ? original.time : `${index + 1}h ago`,
-    };
-  }),
-];
+ const allMoments: Moment[] = apiMoments.map(moment => ({
+   id: `api-${moment.id}`,
+   apiId: moment.id,
+   senderId: moment.senderId,
+   isMine: moment.senderId === readStoredUser()?.id,
+   name: moment.sender?.name ?? 'Blink user',
+   initials: (moment.sender?.name ?? 'B').split(' ').map(part => part[0] ?? '').join('').slice(0,2).toUpperCase(),
+   time: new Date(moment.createdAt).toLocaleString(),
+   caption: moment.caption ?? '',
+   image: moment.mediaUrl.startsWith('http') ? moment.mediaUrl : `${API_URL}${moment.mediaUrl}`,
+   kind: moment.mediaType,
+ }));
 
 const activeMoment =
   allMoments.find((moment) => moment.id === selectedMomentId) ??
@@ -308,7 +253,7 @@ useEffect(() => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: { ideal: 'environment' } },
-        audio: true,
+        audio: captureMode === 'video',
       });
 
       if (cancelled) {
@@ -337,7 +282,7 @@ useEffect(() => {
 
     activeStream?.getTracks().forEach((track) => track.stop());
   };
-}, [selectedNav, capturedMedia]);
+}, [selectedNav, capturedMedia, captureMode]);
 
 
 useEffect(() => {
@@ -363,6 +308,7 @@ async function loadApiMoments() {
 
   if (!token) {
     setApiMoments([]);
+    setMomentsError('Please sign in to view Moments.');
     return;
   }
 
@@ -383,6 +329,7 @@ async function loadApiMoments() {
     const data: ApiMoment[] = await response.json();
     setApiMoments(data);
   } catch (error) {
+    setApiMoments([]);
     setMomentsError(
       error instanceof Error
         ? error.message
@@ -477,6 +424,18 @@ useEffect(() => {
     void loadApiMoments();
   }
 }, [route]);
+useEffect(() => {
+  if (route !== 'home' || apiMoments.length === 0 || fullMoment) return;
+  const id = new URLSearchParams(window.location.search).get('moment');
+  if (!id) return;
+  const index = apiMoments.findIndex(item => item.id === id);
+  if (index < 0) return;
+  setSelectedMomentId(`api-${id}`);
+  setMomentIndex(index);
+  setFullMoment(true);
+  if (apiMoments[index].senderId !== readStoredUser()?.id) void recordMomentView(id);
+}, [route, apiMoments, fullMoment]);
+
 
 
 
@@ -728,6 +687,7 @@ useEffect(() => {
   }
 
   function changeMoment(direction: number) {
+  if (allMoments.length === 0) return;
   const currentIndex = allMoments.findIndex(
     (moment) => moment.id === selectedMomentId,
   );
@@ -764,17 +724,6 @@ useEffect(() => {
   //   if (event.key === 'ArrowLeft') changeMoment(-1);
   //   if (event.key === 'Escape') setFullMoment(false);
   // }
-
-  function demoPostMoment() {
-    try {
-      localStorage.setItem('blink-demo-first-moment', 'true');
-    } catch {
-      // The demo gate still updates in memory.
-    }
-
-    setHasPostedMoment(true);
-    setNotice('Your demo moment is posted! Friends’ moments are now visible.');
-  }
 
 function handleNav(label: string) {
   if (label === 'IRL') {
@@ -968,7 +917,7 @@ console.log('Final video size:', blob.size);
   }
 
   
-async function postCapturedMediaDemo() {
+async function postCapturedMedia() {
   if (!capturedMedia || !capturedType) return;
 
   const token = readStoredToken();
@@ -978,7 +927,7 @@ async function postCapturedMediaDemo() {
     return;
   }
 
-  setIsPostingDemo(true);
+  setIsPosting(true);
   setCameraError('');
 
   try {
@@ -1011,6 +960,7 @@ const uploadBlob = mediaBlob.slice(
 
     const formData = new FormData();
     formData.append('file', uploadBlob, `moment.${extension}`);
+    formData.append('caption', captureCaption.trim());
 
     const response = await fetch(`${API_URL}/moments/upload`, {
       method: 'POST',
@@ -1033,14 +983,8 @@ const uploadBlob = mediaBlob.slice(
 
     setCapturedMedia(null);
     setCapturedType(null);
+    setCaptureCaption('');
     await loadApiMoments();
-    setHasPostedMoment(true);
-
-    try {
-      localStorage.setItem('blink-demo-first-moment', 'true');
-    } catch {
-      // Posting still succeeds if browser storage is unavailable.
-    }
 
     setSelectedNav('Home');
     setNotice('Your moment was uploaded successfully!');
@@ -1051,7 +995,7 @@ const uploadBlob = mediaBlob.slice(
         : 'Could not upload your moment. Please try again.',
     );
   } finally {
-    setIsPostingDemo(false);
+    setIsPosting(false);
   }
 }
 if (route === 'public-profile') {
@@ -1382,21 +1326,18 @@ if (route === 'exchange') {
       {Math.min(visibleMomentCount, allMoments.length)} moments
     </span>
   </div>
-
-  {!hasPostedMoment && (
-    <div className="grid-gate">
-      <span className="gate-icon">✦</span>
-      <h2>Moments are better when shared.</h2>
-      <p>Post your first moment to unlock your friends' photos and videos.</p>
-      <button className="gate-button" onClick={demoPostMoment}>
-        <span>＋</span> Post your first moment
-      </button>
-      <small>Demo preview · Upload will be connected later</small>
+  {isLoadingMoments && <p className="blink-moments-state">Loading Moments…</p>}
+  {momentsError && <div className="blink-moments-state" role="alert"><p>{momentsError}</p><button onClick={() => void loadApiMoments()}>Retry</button></div>}
+  {!isLoadingMoments && !momentsError && allMoments.length === 0 && (
+    <div className="blink-moments-state">
+      <span aria-hidden="true">📸</span><h2>No moments yet</h2>
+      <p>Real photos and videos from your community will appear here.</p>
+      <button type="button" onClick={() => handleNav('Capture')}>＋ Capture your first Moment</button>
     </div>
   )}
 
   <div
-    className={`moment-grid ${!hasPostedMoment ? 'moment-grid-locked' : ''}`}
+    className="moment-grid"
     aria-label="Moments gallery"
   >
     {allMoments.slice(0, visibleMomentCount).map((moment, index) => (
@@ -1407,15 +1348,8 @@ if (route === 'exchange') {
   className="moment-grid-card"
   aria-label={`Open ${moment.name}'s ${moment.kind} moment`}
  onClick={() => {
-  if (!hasPostedMoment && !moment.apiId) {
-    demoPostMoment();
-    return;
-  }
-
   setSelectedMomentId(moment.id);
-  if (moment.apiId && !moment.isMine) {
-  void recordMomentView(moment.apiId);
-}
+  if (moment.apiId && !moment.isMine) void recordMomentView(moment.apiId);
   setMomentIndex(index);
   setFullMoment(true);
 }}
@@ -1448,10 +1382,6 @@ if (route === 'exchange') {
   <span className="grid-card-caption">
     {moment.name}
   </span>
-
-  {!hasPostedMoment && (
-    <span className="grid-card-lock">✦</span>
-  )}
 </button>
 
     ))}
@@ -1610,16 +1540,16 @@ onTouchEnd={(event) => {
                   <button
                     className="capture-discard"
                     onClick={discardCapturedMedia}
-                    disabled={isPostingDemo}
+                    disabled={isPosting}
                   >
                     Discard
                   </button>
                   <button
                     className="capture-post"
-                    onClick={postCapturedMediaDemo}
-                    disabled={isPostingDemo}
+                    onClick={postCapturedMedia}
+                    disabled={isPosting}
                   >
-                    {isPostingDemo ? 'Please wait…' : 'Post moment'}
+                    {isPosting ? 'Please wait…' : 'Post moment'}
                   </button>
                 </div>
                 <p className="capture-demo-note">
@@ -1696,9 +1626,7 @@ onTouchEnd={(event) => {
           </div>
         )}
 
-        {fullMoment &&
-  (hasPostedMoment ||
-    apiMoments.some((moment) => `api-${moment.id}` === selectedMomentId)) && (
+        {fullMoment && activeMoment && (
           <div className="full-moment-view">
             {activeMoment.kind === 'video' ? (
   <video
@@ -1758,7 +1686,7 @@ onTouchEnd={(event) => {
 
   <button
     type="button"
-    onClick={() => setFullMoment(false)}
+    onClick={() => { setFullMoment(false); window.history.replaceState({}, '', '/home'); }}
     aria-label="Close full-screen moment"
   >
     ×
