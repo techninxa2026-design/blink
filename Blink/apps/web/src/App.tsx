@@ -4,6 +4,7 @@ import {
   useRef,
   useState,
   type FormEvent,
+  type ReactNode,
 } from 'react';
 import './App.css';
 import SecretsPage from './SecretsPage';
@@ -17,9 +18,11 @@ import InboxPage from './InboxPage';
 import CheckinsPage from './CheckinsPage';
 import IrlPage from './IrlPage';
 import BusinessMatchPage from './BusinessMatchPage';
+import MomentActions from './MomentActions';
+import { SOCIAL_API_URL, socialAvatar } from './blinkSocialApi';
 import { NotesRow, useActiveCheckins } from './CheckinPreview';
 
-const API_URL = 'http://localhost:3000';
+const API_URL = SOCIAL_API_URL;
 
 type User = {
   id: string;
@@ -75,39 +78,6 @@ type MomentViewer = {
 
 
 
-const demoMoments: Moment[] = [
-  {
-    id: '1',
-    name: 'Sarah Wilson',
-    initials: 'SW',
-    time: '2h ago',
-    caption: 'Chasing better sunsets 🧡',
-    image:
-      'https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?auto=format&fit=crop&w=1100&q=85',
-    kind: 'photo',
-  },
-  {
-    id: '2',
-    name: 'James Carter',
-    initials: 'JC',
-    time: '4h ago',
-    caption: 'Good friends. Great vibes. 🔥',
-    image:
-      'https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?auto=format&fit=crop&w=1100&q=85',
-    kind: 'video',
-    duration: '0:18',
-  },
-  {
-    id: '3',
-    name: 'Maya Ahmed',
-    initials: 'MA',
-    time: '5h ago',
-    caption: 'A little escape from the everyday 🌿',
-    image:
-      'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=1100&q=85',
-    kind: 'photo',
-  },
-];
 
 type NavItem = {
   label: string;
@@ -215,8 +185,8 @@ const [selectedMomentId, setSelectedMomentId] = useState<string | null>(null);
 const [visibleMomentCount, setVisibleMomentCount] = useState(35);
 const [notice, setNotice] = useState('');
 const [apiMoments, setApiMoments] = useState<ApiMoment[]>([]);
-const [, setIsLoadingMoments] = useState(false);
-const [, setMomentsError] = useState('');
+const [isLoadingMoments, setIsLoadingMoments] = useState(false);
+const [momentsError, setMomentsError] = useState('');
 
 const [captureMode, setCaptureMode] = useState<'photo' | 'video'>('photo');
 const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
@@ -224,7 +194,9 @@ const [capturedMedia, setCapturedMedia] = useState<string | null>(null);
 const [capturedType, setCapturedType] = useState<'photo' | 'video' | null>(null);
 const [isRecording, setIsRecording] = useState(false);
 const [cameraError, setCameraError] = useState('');
-const [isPostingDemo, setIsPostingDemo] = useState(false);
+const [isPosting, setIsPosting] = useState(false);
+const [captureCaption, setCaptureCaption] = useState('');
+const filePickerRef = useRef<HTMLInputElement | null>(null);
 
 const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
 const cameraCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -232,46 +204,20 @@ const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 const recordedChunksRef = useRef<Blob[]>([]);
 
 
-  // Demo-only flag until moment upload is connected to the backend.
-  const [hasPostedMoment, setHasPostedMoment] = useState(() => {
-    try {
-      return localStorage.getItem('blink-demo-first-moment') === 'true';
-    } catch {
-      return false;
-    }
-  });
 
   const touchStart = useRef<{ x: number; y: number } | null>(null);
- const allMoments: Moment[] = [
-  ...apiMoments.map((moment) => ({
-    id: `api-${moment.id}`,
-    apiId: moment.id,
-    senderId: moment.senderId,
-    isMine: moment.senderId === readStoredUser()?.id,
-    name: moment.sender?.name ?? 'Blink user',
-    initials: (moment.sender?.name ?? 'B')
-      .split(' ')
-      .map((part) => part[0] ?? '')
-      .join('')
-      .slice(0, 2)
-      .toUpperCase(),
-    time: new Date(moment.createdAt).toLocaleString(),
-    caption: moment.caption ?? '',
-    image: moment.mediaUrl.startsWith('http')
-      ? moment.mediaUrl
-      : `${API_URL}${moment.mediaUrl}`,
-    kind: moment.mediaType,
-  })),
-  ...Array.from({ length: 105 }, (_, index) => {
-    const original = demoMoments[index % demoMoments.length];
-
-    return {
-      ...original,
-      id: `demo-${index + 1}`,
-      time: index < 3 ? original.time : `${index + 1}h ago`,
-    };
-  }),
-];
+ const allMoments: Moment[] = apiMoments.map(moment => ({
+   id: `api-${moment.id}`,
+   apiId: moment.id,
+   senderId: moment.senderId,
+   isMine: moment.senderId === readStoredUser()?.id,
+   name: moment.sender?.name ?? 'Blink user',
+   initials: (moment.sender?.name ?? 'B').split(' ').map(part => part[0] ?? '').join('').slice(0,2).toUpperCase(),
+   time: new Date(moment.createdAt).toLocaleString(),
+   caption: moment.caption ?? '',
+   image: moment.mediaUrl.startsWith('http') ? moment.mediaUrl : `${API_URL}${moment.mediaUrl}`,
+   kind: moment.mediaType,
+ }));
 
 const activeMoment =
   allMoments.find((moment) => moment.id === selectedMomentId) ??
@@ -308,7 +254,7 @@ useEffect(() => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: { ideal: 'environment' } },
-        audio: true,
+        audio: captureMode === 'video',
       });
 
       if (cancelled) {
@@ -337,7 +283,7 @@ useEffect(() => {
 
     activeStream?.getTracks().forEach((track) => track.stop());
   };
-}, [selectedNav, capturedMedia]);
+}, [selectedNav, capturedMedia, captureMode]);
 
 
 useEffect(() => {
@@ -363,6 +309,7 @@ async function loadApiMoments() {
 
   if (!token) {
     setApiMoments([]);
+    setMomentsError('Please sign in to view Moments.');
     return;
   }
 
@@ -383,6 +330,7 @@ async function loadApiMoments() {
     const data: ApiMoment[] = await response.json();
     setApiMoments(data);
   } catch (error) {
+    setApiMoments([]);
     setMomentsError(
       error instanceof Error
         ? error.message
@@ -477,6 +425,18 @@ useEffect(() => {
     void loadApiMoments();
   }
 }, [route]);
+useEffect(() => {
+  if (route !== 'home' || apiMoments.length === 0 || fullMoment) return;
+  const id = new URLSearchParams(window.location.search).get('moment');
+  if (!id) return;
+  const index = apiMoments.findIndex(item => item.id === id);
+  if (index < 0) return;
+  setSelectedMomentId(`api-${id}`);
+  setMomentIndex(index);
+  setFullMoment(true);
+  if (apiMoments[index].senderId !== readStoredUser()?.id) void recordMomentView(id);
+}, [route, apiMoments, fullMoment]);
+
 
 
 
@@ -728,6 +688,7 @@ useEffect(() => {
   }
 
   function changeMoment(direction: number) {
+  if (allMoments.length === 0) return;
   const currentIndex = allMoments.findIndex(
     (moment) => moment.id === selectedMomentId,
   );
@@ -765,17 +726,6 @@ useEffect(() => {
   //   if (event.key === 'Escape') setFullMoment(false);
   // }
 
-  function demoPostMoment() {
-    try {
-      localStorage.setItem('blink-demo-first-moment', 'true');
-    } catch {
-      // The demo gate still updates in memory.
-    }
-
-    setHasPostedMoment(true);
-    setNotice('Your demo moment is posted! Friends’ moments are now visible.');
-  }
-
 function handleNav(label: string) {
   if (label === 'IRL') {
     goTo('/irl');
@@ -795,6 +745,7 @@ function handleNav(label: string) {
     setCameraError('');
     setCapturedMedia(null);
     setCapturedType(null);
+    setCaptureCaption('');
     setIsRecording(false);
     return;
   }
@@ -803,6 +754,7 @@ function handleNav(label: string) {
     setCameraError('');
     setCapturedMedia(null);
     setCapturedType(null);
+    setCaptureCaption('');
     setCaptureMode('photo');
     return;
   }
@@ -825,7 +777,7 @@ function handleNav(label: string) {
         video: {
           facingMode: { ideal: 'environment' },
         },
-        audio: true,
+        audio: captureMode === 'video',
       });
 
       setCameraStream(stream);
@@ -968,7 +920,7 @@ console.log('Final video size:', blob.size);
   }
 
   
-async function postCapturedMediaDemo() {
+async function postCapturedMedia() {
   if (!capturedMedia || !capturedType) return;
 
   const token = readStoredToken();
@@ -978,7 +930,7 @@ async function postCapturedMediaDemo() {
     return;
   }
 
-  setIsPostingDemo(true);
+  setIsPosting(true);
   setCameraError('');
 
   try {
@@ -1011,6 +963,7 @@ const uploadBlob = mediaBlob.slice(
 
     const formData = new FormData();
     formData.append('file', uploadBlob, `moment.${extension}`);
+    formData.append('caption', captureCaption.trim());
 
     const response = await fetch(`${API_URL}/moments/upload`, {
       method: 'POST',
@@ -1033,14 +986,8 @@ const uploadBlob = mediaBlob.slice(
 
     setCapturedMedia(null);
     setCapturedType(null);
+    setCaptureCaption('');
     await loadApiMoments();
-    setHasPostedMoment(true);
-
-    try {
-      localStorage.setItem('blink-demo-first-moment', 'true');
-    } catch {
-      // Posting still succeeds if browser storage is unavailable.
-    }
 
     setSelectedNav('Home');
     setNotice('Your moment was uploaded successfully!');
@@ -1051,9 +998,53 @@ const uploadBlob = mediaBlob.slice(
         : 'Could not upload your moment. Please try again.',
     );
   } finally {
-    setIsPostingDemo(false);
+    setIsPosting(false);
   }
 }
+
+  function withNavigation(page: ReactNode) {
+    return (
+      <>
+        {page}
+        <nav className="home-bottom-nav blink-shared-dock" aria-label="Main navigation">
+          {navItems.map(item => {
+            const active =
+              (item.label === 'Home' && route === 'home') ||
+              (item.label === 'Connections' && route === 'connections') ||
+              (item.label === 'Checkins' && route === 'checkins') ||
+              (item.label === 'IRL' && route === 'irl');
+            return (
+              <button key={item.label} type="button"
+                className={`bottom-nav-item ${active ? 'selected' : ''} ${item.label === 'Capture' ? 'capture-nav' : ''}`}
+                aria-label={item.label} aria-current={active ? 'page' : undefined}
+                onClick={() => {
+                  if (item.label === 'Capture') {
+                    goTo('/home'); setSelectedNav('Capture');
+                  } else if (item.label === 'Home') goTo('/home');
+                  else if (item.label === 'Connections') goTo('/connections');
+                  else if (item.label === 'Checkins') goTo('/checkins');
+                  else if (item.label === 'IRL') goTo('/irl');
+                }}>
+                <span className="nav-symbol" aria-hidden="true">{item.symbol}</span>
+                <span className="nav-label">{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+        {route !== 'inbox' && (
+          <button type="button" className="home-floating-inbox" aria-label="Open Inbox"
+            title="Inbox" onClick={() => goTo('/inbox')}>
+            <svg aria-hidden="true" viewBox="0 0 24 24" width="23" height="23"
+              fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5 8 8 0 0 1-3.5-.8L4 20l1.8-4.6A7.5 7.5 0 1 1 20 11.5Z"/>
+              <path d="M8.5 11.5h7"/>
+            </svg>
+          </button>
+        )}
+      </>
+    );
+  }
+
 if (route === 'public-profile') {
   if (!readStoredToken()) {
     return (
@@ -1072,7 +1063,7 @@ if (route === 'public-profile') {
     return null;
   }
 
-  return (
+  return withNavigation(
     <PublicProfilePage
       userId={publicProfileId}
       onBack={() => goTo('/connections')}
@@ -1097,7 +1088,7 @@ if (route === 'secrets') {
       </main>
     );
   }
-  return (
+  return withNavigation(
     <SecretsPage
       theme={theme}
       onToggleTheme={() => setTheme(current => current === 'light' ? 'dark' : 'light')}
@@ -1117,7 +1108,7 @@ if (route === 'hearts') {
       </main>
     );
   }
-  return (
+  return withNavigation(
     <HeartPage
       theme={theme}
       onToggleTheme={() => setTheme(current => current === 'light' ? 'dark' : 'light')}
@@ -1141,7 +1132,7 @@ if (route === 'inbox') {
     );
   }
 
-  return (
+  return withNavigation(
     <InboxPage
       onBack={() => goTo('/home')}
       onOpenProfile={openPublicProfile}
@@ -1157,22 +1148,22 @@ if (route === 'inbox') {
 
 if (route === 'settings') {
   if (!readStoredToken()) { return <main className="bm-page"><p>Please sign in to access settings.</p><button onClick={() => goTo('/login')}>Sign in</button></main>; }
-  return <BusinessMatchPage initialView="settings" onBack={() => goTo('/home')} theme={theme} onToggleTheme={() => setTheme(current => current === 'light' ? 'dark' : 'light')} />;
+  return withNavigation(<BusinessMatchPage initialView="settings" onBack={() => goTo('/home')} theme={theme} onToggleTheme={() => setTheme(current => current === 'light' ? 'dark' : 'light')} />);
 }
 
 if (route === 'business-match') {
   if (!readStoredToken()) { goTo('/login'); return null; }
-  return <BusinessMatchPage onBack={() => goTo('/home')} theme={theme} onToggleTheme={() => setTheme(current => current === 'light' ? 'dark' : 'light')} />;
+  return withNavigation(<BusinessMatchPage onBack={() => goTo('/home')} theme={theme} onToggleTheme={() => setTheme(current => current === 'light' ? 'dark' : 'light')} />);
 }
 
 if (route === 'irl') {
   if (!readStoredToken()) { goTo('/login'); return null; }
-  return <IrlPage onBack={() => goTo('/home')} theme={theme} onToggleTheme={() => setTheme(current => current === 'light' ? 'dark' : 'light')} />;
+  return withNavigation(<IrlPage onBack={() => goTo('/home')} theme={theme} onToggleTheme={() => setTheme(current => current === 'light' ? 'dark' : 'light')} />);
 }
 
 if (route === 'checkins') {
   if (!readStoredToken()) { goTo('/login'); return null; }
-  return <CheckinsPage onBack={() => goTo('/home')} onOpenProfile={openPublicProfile} theme={theme} onToggleTheme={() => setTheme(current => current === 'light' ? 'dark' : 'light')} />;
+  return withNavigation(<CheckinsPage onBack={() => goTo('/home')} onOpenProfile={openPublicProfile} theme={theme} onToggleTheme={() => setTheme(current => current === 'light' ? 'dark' : 'light')} />);
 }
 
 if (route === 'connections') {
@@ -1189,7 +1180,7 @@ if (route === 'connections') {
     );
   }
 
-  return (
+  return withNavigation(
     <FriendsPage
     onOpenProfile={openPublicProfile}
       onBack={() => goTo('/home')}
@@ -1203,7 +1194,7 @@ if (route === 'connections') {
   );
 }
 if (route === 'profile') {
-  return (
+  return withNavigation(
     <ProfilePage
       onBack={() => goTo('/home')}
       theme={theme}
@@ -1235,7 +1226,7 @@ if (route === 'profile') {
      );
    }
 
-   return (
+   return withNavigation(
      <ExchangePostPage
        postId={exchangePostId}
        onBack={() => goTo('/exchange')}
@@ -1262,7 +1253,7 @@ if (route === 'exchange') {
     );
   }
 
-  return (
+  return withNavigation(
     <ExchangePage
       onBack={() => goTo('/home')}
       onOpenPost={openExchangePost}
@@ -1318,17 +1309,11 @@ if (route === 'exchange') {
             <img src="/blink-logo.png" alt="Blink" />
           </a>
 
-          <button
-            type="button"
-            className="icon-button inbox-button"
-            onClick={() => goTo('/inbox')}
-            aria-label="Open Inbox"
-            title="Inbox"
-          >
-            <svg aria-hidden="true" viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5 8 8 0 0 1-3.5-.8L4 20l1.8-4.6A7.5 7.5 0 1 1 20 11.5Z" />
-              <path d="M8.5 11.5h7" />
-            </svg>
+          <button type="button" className="icon-button home-profile-button"
+            onClick={() => goTo('/profile')} aria-label="Open my profile" title="My profile">
+            {readStoredUser()?.avatarKey
+              ? <img src={socialAvatar(readStoredUser()?.avatarKey) ?? undefined} alt="" />
+              : <span>{readStoredUser()?.name?.slice(0, 1).toUpperCase() || '👤'}</span>}
           </button>
         </header>
 
@@ -1382,21 +1367,18 @@ if (route === 'exchange') {
       {Math.min(visibleMomentCount, allMoments.length)} moments
     </span>
   </div>
-
-  {!hasPostedMoment && (
-    <div className="grid-gate">
-      <span className="gate-icon">✦</span>
-      <h2>Moments are better when shared.</h2>
-      <p>Post your first moment to unlock your friends' photos and videos.</p>
-      <button className="gate-button" onClick={demoPostMoment}>
-        <span>＋</span> Post your first moment
-      </button>
-      <small>Demo preview · Upload will be connected later</small>
+  {isLoadingMoments && <p className="blink-moments-state">Loading Moments…</p>}
+  {momentsError && <div className="blink-moments-state" role="alert"><p>{momentsError}</p><button onClick={() => void loadApiMoments()}>Retry</button></div>}
+  {!isLoadingMoments && !momentsError && allMoments.length === 0 && (
+    <div className="blink-moments-state">
+      <span aria-hidden="true">📸</span><h2>No moments yet</h2>
+      <p>Real photos and videos from your community will appear here.</p>
+      <button type="button" onClick={() => handleNav('Capture')}>＋ Capture your first Moment</button>
     </div>
   )}
 
   <div
-    className={`moment-grid ${!hasPostedMoment ? 'moment-grid-locked' : ''}`}
+    className="moment-grid"
     aria-label="Moments gallery"
   >
     {allMoments.slice(0, visibleMomentCount).map((moment, index) => (
@@ -1407,15 +1389,8 @@ if (route === 'exchange') {
   className="moment-grid-card"
   aria-label={`Open ${moment.name}'s ${moment.kind} moment`}
  onClick={() => {
-  if (!hasPostedMoment && !moment.apiId) {
-    demoPostMoment();
-    return;
-  }
-
   setSelectedMomentId(moment.id);
-  if (moment.apiId && !moment.isMine) {
-  void recordMomentView(moment.apiId);
-}
+  if (moment.apiId && !moment.isMine) void recordMomentView(moment.apiId);
   setMomentIndex(index);
   setFullMoment(true);
 }}
@@ -1448,10 +1423,6 @@ if (route === 'exchange') {
   <span className="grid-card-caption">
     {moment.name}
   </span>
-
-  {!hasPostedMoment && (
-    <span className="grid-card-lock">✦</span>
-  )}
 </button>
 
     ))}
@@ -1476,10 +1447,8 @@ if (route === 'exchange') {
 </section>
 
 
-        <nav className="home-bottom-nav" aria-label="Main navigation">
-       
         {selectedNav === 'Capture' && (
-          <section className="capture-screen" aria-label="Create a moment">
+          <section className="capture-screen" aria-label="Create a moment" role="dialog" aria-modal="true">
             <div className="capture-topbar">
               <button
                 className="capture-close"
@@ -1579,6 +1548,24 @@ onTouchEnd={(event) => {
 )}
 
               <canvas ref={cameraCanvasRef} hidden />
+              <input ref={filePickerRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" hidden
+                onChange={e => {
+                  const file = e.currentTarget.files?.[0];
+                  e.currentTarget.value = '';
+                  if (!file) return;
+                  if (!/^(image\/(jpeg|png|webp|gif)|video\/(mp4|webm|quicktime))$/.test(file.type)) {
+                    setCameraError('Choose a JPG, PNG, WEBP, GIF, MP4, WEBM, or MOV file.'); return;
+                  }
+                  if (file.size > 50 * 1024 * 1024) {
+                    setCameraError('Maximum file size is 50 MB.'); return;
+                  }
+                  stopCamera();
+                  if (capturedMedia?.startsWith('blob:')) URL.revokeObjectURL(capturedMedia);
+                  setCapturedMedia(URL.createObjectURL(file));
+                  setCapturedType(file.type.startsWith('video/') ? 'video' : 'photo');
+                  setCameraError('');
+                }}
+              />
 
               {!capturedMedia && !cameraError && !cameraStream && (
                 <p className="capture-status">Starting camera…</p>
@@ -1605,24 +1592,28 @@ onTouchEnd={(event) => {
 
             {capturedMedia ? (
               <div className="capture-review">
-                <p>Would you like to post this moment?</p>
+                <label className="capture-caption-label" htmlFor="capture-caption">Caption (optional)</label>
+                <textarea id="capture-caption" maxLength={500} rows={2}
+                  placeholder="What's happening?" value={captureCaption}
+                  onChange={e => setCaptureCaption(e.target.value)} />
+                <p>Review your photo or video before posting.</p>
                 <div className="capture-review-actions">
                   <button
                     className="capture-discard"
                     onClick={discardCapturedMedia}
-                    disabled={isPostingDemo}
+                    disabled={isPosting}
                   >
                     Discard
                   </button>
                   <button
                     className="capture-post"
-                    onClick={postCapturedMediaDemo}
-                    disabled={isPostingDemo}
+                    onClick={postCapturedMedia}
+                    disabled={isPosting}
                   >
-                    {isPostingDemo ? 'Please wait…' : 'Post moment'}
+                    {isPosting ? 'Please wait…' : 'Post moment'}
                   </button>
                 </div>
-                <p className="capture-demo-note">
+                <p className="capture-info-note">
                    Your moment will be uploaded and shared with Blink.
                 </p>
               </div>
@@ -1667,14 +1658,15 @@ onTouchEnd={(event) => {
                       ? 'Tap again to stop recording'
                       : 'Tap to start recording'}
                 </p>
-                <p className="capture-swipe-hint">
-                  Swipe left for video · Swipe right for photo
-                </p>
+                <p className="capture-swipe-hint">Swipe left for video · Swipe right for photo</p>
+                <button type="button" className="capture-gallery-button"
+                  onClick={() => filePickerRef.current?.click()} disabled={isRecording}>↑ Upload from device</button>
               </div>
             )}
           </section>
         )}
 
+        <nav className="home-bottom-nav" aria-label="Main navigation">
           {navItems.map((item) => (
             <button
               key={item.label}
@@ -1688,6 +1680,13 @@ onTouchEnd={(event) => {
             </button>
           ))}
         </nav>
+        <button type="button" className="home-floating-inbox" onClick={() => goTo('/inbox')}
+          aria-label="Open Inbox" title="Inbox">
+          <svg aria-hidden="true" viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5 8 8 0 0 1-3.5-.8L4 20l1.8-4.6A7.5 7.5 0 1 1 20 11.5Z" />
+            <path d="M8.5 11.5h7" />
+          </svg>
+        </button>
 
         {notice && (
           <div className="home-toast" role="status">
@@ -1696,9 +1695,7 @@ onTouchEnd={(event) => {
           </div>
         )}
 
-        {fullMoment &&
-  (hasPostedMoment ||
-    apiMoments.some((moment) => `api-${moment.id}` === selectedMomentId)) && (
+        {fullMoment && activeMoment && (
           <div className="full-moment-view">
             {activeMoment.kind === 'video' ? (
   <video
@@ -1758,7 +1755,7 @@ onTouchEnd={(event) => {
 
   <button
     type="button"
-    onClick={() => setFullMoment(false)}
+    onClick={() => { setFullMoment(false); window.history.replaceState({}, '', '/home'); }}
     aria-label="Close full-screen moment"
   >
     ×
@@ -1816,6 +1813,9 @@ onTouchEnd={(event) => {
     )}
   </div>
 )}
+
+{activeMoment.apiId && <MomentActions key={activeMoment.apiId} momentId={activeMoment.apiId}
+  caption={activeMoment.caption} currentUserId={readStoredUser()?.id} />}
 
           </div>
         )}

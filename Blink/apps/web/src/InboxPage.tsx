@@ -1,8 +1,9 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import './InboxPage.css';
+import { SOCIAL_API_URL } from './blinkSocialApi';
 
-const API_URL = 'http://localhost:3000';
+const API_URL = SOCIAL_API_URL;
 
 type PublicUser = {
   id: string;
@@ -107,6 +108,15 @@ function formatTime(value: string) {
     hour: 'numeric',
     minute: '2-digit',
   });
+}
+
+function renderMessageText(body: string | null) {
+  if (!body) return null;
+  return body.split(/(https?:\/\/[^\s]+)/g).map((part, index) =>
+    /^https?:\/\//.test(part)
+      ? <a key={index} href={part} target="_blank" rel="noopener noreferrer">{part}</a>
+      : <span key={index}>{part}</span>,
+  );
 }
 
 function UserAvatar({ user }: { user: PublicUser }) {
@@ -913,7 +923,7 @@ export default function InboxPage({
                           <button type="button" disabled={actionBusy || !editDraft.trim()} onClick={() => void saveEdit(message)}>Save</button>
                           <button type="button" onClick={() => setEditingId(null)}>Cancel</button>
                         </div>
-                      ) : <p>{message.body}{message.editedAt ? <small className="inbox-edited"> (edited)</small> : null}</p>}
+                      ) : <p>{renderMessageText(message.body)}{message.editedAt ? <small className="inbox-edited"> (edited)</small> : null}</p>}
                       {!message.unsentAt && <div className="inbox-action-area">
                         <button type="button" className="inbox-action-toggle" aria-label="Message actions" aria-expanded={actionMessageId === message.id} onClick={() => setActionMessageId(previous => previous === message.id ? null : message.id)}>···</button>
                         {actionMessageId === message.id && <div className="inbox-action-menu">

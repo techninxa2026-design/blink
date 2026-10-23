@@ -1,0 +1,48 @@
+
+.moment-interactions {
+  position: absolute; z-index: 4; top: 84px; right: 20px; bottom: 86px;
+  width: min(365px, 38vw); padding: 18px;
+  overflow-y: auto; overscroll-behavior: contain;
+  color: #24201e; background: rgba(255,255,255,.96);
+  border: 1px solid #ffffff70; border-radius: 22px;
+  box-shadow: 0 18px 65px #00000045;
+  font-size: 14px; backdrop-filter: blur(24px);
+}
+.moment-interactions button,.moment-interactions input,.moment-interactions select { font: inherit; }
+.mi-summary { display:flex; gap: 6px; justify-content:space-between; align-items:center; flex-wrap:wrap; border-bottom:1px solid #eee1d7; padding-bottom:14px; }
+.mi-summary strong {font-size:16px;}
+.mi-summary span {color:#f16c08;font-weight:700;font-size:12px;}
+.mi-gift,.mi-comments,.mi-share {padding:15px 0;border-bottom:1px solid #eee1d7;}
+.mi-gift-head {display:flex;justify-content:space-between;align-items:center;gap:7px;margin-bottom:12px;}
+.mi-gift-head span {font-size:12px;color:#826f63;}
+.mi-gift-actions {display:flex;gap:8px;}
+.mi-gift-actions select,.mi-share-form select {min-width:0;flex:1;padding:10px;border:1px solid #e9d9ce;background:#fff;border-radius:12px;}
+.mi-gift-actions button,.mi-share>button,.mi-share-form button:last-child,.mi-comments form button {
+  background:#fb6c00;color:white;border:0;border-radius:12px;
+  padding:10px 13px;cursor:pointer;font-weight:700;
+}
+.moment-interactions button:disabled {opacity:.45;cursor:not-allowed;}
+.mi-comments>strong {display:block;margin-bottom:10px;}
+.mi-comment-list {max-height:225px;overflow:auto;padding-right:3px;display:flex;flex-direction:column;gap:12px;}
+.mi-comment {display:flex;gap:9px;align-items:flex-start;}
+.mi-avatar {width:30px;height:30px;border-radius:50%;background:#fff1e8;color:#d45b06;display:grid;place-items:center;flex:none;overflow:hidden;font-weight:800;}
+.mi-avatar img {width:100%;height:100%;object-fit:cover;}
+.mi-comment>div {flex:1;min-width:0;}
+.mi-comment strong {font-size:12px;}
+.mi-comment p {margin:3px 0 0;white-space:pre-wrap;word-break:break-word;font-size:13px;}
+.mi-comments form {display:flex;gap:7px;margin-top:12px;}
+.mi-comments form input {min-width:0;flex:1;border:1px solid #e9d9ce;background:#fff;border-radius:11px;padding:10px;}
+.mi-comments form button {padding:8px 12px;}
+.mi-delete {border:0;background:none;color:#977c6b;cursor:pointer;font-size:20px;}
+.mi-share>button {width:100%;}
+.mi-share-form {display:grid;gap:10px;}
+.mi-share-form>div {display:flex;gap:9px;justify-content:flex-end;}
+.mi-share-form button {border:1px solid #e4d5ce;border-radius:10px;background:#fff;padding:9px 11px;cursor:pointer;}
+.mi-muted {font-size:13px;color:#82756a;}
+.mi-error {color:#b42318;background:#fff0ef;padding:10px;border-radius:10px;}
+.mi-success {color:#147d50;background:#e9fff3;padding:10px;border-radius:10px;}
+@media (max-width:740px) {
+  .moment-interactions {top:auto;bottom:65px;left:12px;right:12px;width:auto;max-height:43dvh;padding:13px;border-radius:18px;}
+  .mi-comment-list {max-height:120px;}
+  .full-moment-caption {bottom:calc(43dvh + 85px)!important;max-width:calc(100% - 44px);font-size:15px!important;}
+}

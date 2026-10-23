@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import './CheckinsPage.css';
 import './CheckinsOwnerActions.css';
 
-const API = 'http://localhost:3000';
+const API = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '');
 const EMOJIS = ['🧡', '❤️', '😊', '🥹', '🔥', '✨', '🌿', '😴', '🎉', '💪', '🫶', '😂'];
 type Checkin = { id: string; userId: string; emoji: string; status: string; note: string | null; duration: string; expiresAt: string | null; createdAt: string; user?: { id: string; name: string; avatarKey?: string | null } };
 type Props = { onBack: () => void; onOpenProfile: (id: string) => void; theme: 'light' | 'dark'; onToggleTheme: () => void };

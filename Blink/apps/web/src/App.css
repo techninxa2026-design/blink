@@ -1983,3 +1983,117 @@
   .home-header .inbox-button,
   .home-bottom-nav .nav-symbol { transition: none; }
 }
+
+
+/* === Blink production shell: floating sticky dock + bottom-right Inbox === */
+.blink-home { padding-bottom: 128px; }
+.home-header {position:sticky;top:0;z-index:15;}
+.home-header .home-profile-button {
+  justify-self:end;width:46px;height:46px;border:2px solid #fb6c00;
+  border-radius:50%;overflow:hidden;padding:0;background:#fff0e3;
+  color:#c65a03;font-size:20px;font-weight:800;box-shadow:0 3px 10px #00000015;
+}
+.home-profile-button img {width:100%;height:100%;object-fit:cover;}
+.home-bottom-nav {
+  position:fixed!important;left:50%;bottom:16px;
+  width:min(730px, calc(100vw - 150px));max-width:calc(100vw - 20px);
+  transform:translateX(-50%);z-index:22;min-height:76px;
+  padding:6px 12px max(7px,env(safe-area-inset-bottom));
+  border:1px solid var(--home-border);border-radius:26px;
+  background:var(--home-surface);
+  box-shadow:0 18px 60px #27170720,0 4px 20px #27170716;
+  isolation:isolate;
+}
+.home-floating-inbox {
+  position:fixed;z-index:24;bottom:29px;right:clamp(14px,2.6vw,44px);
+  width:58px;height:58px;display:grid;place-items:center;
+  border:0;border-radius:50%;background:#fb6c00;color:#fff;
+  cursor:pointer;box-shadow:0 8px 32px #fb6c005a;
+  transition:transform 180ms ease,box-shadow 180ms ease;
+}
+.home-floating-inbox:hover {transform:translateY(-3px);box-shadow:0 11px 38px #fb6c0073;}
+.home-floating-inbox:focus-visible,.home-profile-button:focus-visible {
+  outline:3px solid #fb6c00;outline-offset:4px;
+}
+.moment-grid-card video.moment-tile-image {display:block;width:100%;height:100%;object-fit:cover;}
+.blink-moments-state {
+  margin:24px auto;max-width:570px;text-align:center;padding:38px 18px;
+  color:var(--home-text);border:1px dashed var(--home-border);
+  border-radius:24px;background:var(--home-surface);
+}
+.blink-moments-state>span {font-size:37px;}
+.blink-moments-state h2 {font-size:23px;margin:13px 0 8px;}
+.blink-moments-state p {color:var(--home-muted);line-height:1.55;}
+.blink-moments-state button {border:0;border-radius:13px;background:#fb6c00;color:white;padding:13px 17px;cursor:pointer;font-weight:750;}
+/* Capture must be its own modal and must never be placed inside the dock */
+.capture-screen {
+  position:fixed;inset:0;z-index:50;
+  display:flex;flex-direction:column;align-items:center;
+  gap:12px;padding:max(15px,env(safe-area-inset-top)) 18px max(25px,env(safe-area-inset-bottom));
+  color:#fff;background:rgba(11,12,15,.97);
+  overflow-y:auto;overscroll-behavior:contain;
+}
+.capture-topbar {width:min(100%,670px);min-height:49px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.capture-topbar h2 {margin:0;font-size:19px;letter-spacing:-.03em;}
+.capture-close {width:42px;height:42px;border:1px solid #ffffff40;border-radius:50%;background:#ffffff14;color:white;font-size:27px;cursor:pointer;}
+.capture-mode-label {border:1px solid #ffffff4d;border-radius:999px;padding:7px 10px;font-size:11px;font-weight:800;letter-spacing:.09em;}
+.capture-stage {
+  width:min(100%,560px);height:min(59dvh,620px);min-height:270px;
+  position:relative;flex:none;overflow:hidden;border:1px solid #ffffff29;border-radius:25px;
+  background:#25272b;box-shadow:0 15px 55px #0007;
+  display:flex;align-items:center;justify-content:center;
+}
+.capture-stage video.capture-live-video,.capture-stage .capture-preview {
+  width:100%;height:100%;display:block;object-fit:contain;background:#151518;
+}
+.capture-stage .capture-live-video {object-fit:cover;transform:scaleX(-1);}
+.capture-stage .capture-status {position:absolute;top:50%;left:0;right:0;text-align:center;}
+.capture-error {position:absolute;inset:auto 14px 14px;padding:15px;border-radius:15px;color:#fff;background:#712e31e8;text-align:center;}
+.capture-error button {border:0;border-radius:9px;padding:10px;background:white;color:#922b30;cursor:pointer;}
+.recording-indicator {position:absolute;top:17px;left:17px;display:flex;align-items:center;gap:8px;background:#111b;padding:8px 12px;border-radius:30px;font-size:12px;}
+.recording-indicator span {height:9px;width:9px;background:#fd3f39;border-radius:50%;animation:blink-record 950ms infinite;}
+@keyframes blink-record {50%{opacity:.3;}}
+.capture-controls,.capture-review {width:min(100%,560px);display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px 0 28px;text-align:center;}
+.capture-mode-switch {display:flex;gap:8px;padding:4px;border-radius:99px;background:#ffffff1c;}
+.capture-mode-switch button {border:0;background:none;color:#ffffffa9;min-width:96px;padding:9px 14px;border-radius:99px;cursor:pointer;font-weight:700;}
+.capture-mode-switch button.active {background:#fb6c00;color:white;}
+.capture-shutter {height:73px;width:73px;padding:6px;border:5px solid #fff;border-radius:50%;background:transparent;display:grid;place-items:center;cursor:pointer;}
+.capture-shutter span {display:block;width:100%;height:100%;border-radius:50%;background:#fff;}
+.capture-shutter.video-mode span {background:#ff493c;}
+.capture-shutter.recording span {width:25px;height:25px;border-radius:6px;}
+.capture-shutter:disabled {opacity:.35;cursor:not-allowed;}
+.capture-instruction,.capture-swipe-hint {font-size:12px;line-height:1.2;margin:0;color:#ffffffba;}
+.capture-gallery-button,.capture-discard {background:#ffffff17;color:white;border:1px solid #ffffff42;padding:12px 18px;border-radius:12px;cursor:pointer;font-weight:700;}
+.capture-review {align-items:stretch;}
+.capture-caption-label {text-align:left;font-size:12px;font-weight:750;color:#ffffffba;}
+.capture-review textarea {resize:vertical;background:#25272d;color:#fff;border:1px solid #ffffff3b;border-radius:14px;padding:14px;font:inherit;}
+.capture-review>p {margin:0;font-size:13px;color:#ffffffa8;}
+.capture-review-actions {display:flex;gap:10px;}
+.capture-review-actions button {flex:1;min-height:44px;}
+.capture-post {border:0;background:#fb6c00;color:white;border-radius:12px;font-weight:800;cursor:pointer;}
+.capture-review-actions button:disabled {opacity:.55;cursor:not-allowed;}
+.capture-demo-note {display:none;}
+@media(max-width:740px) {
+  .blink-home {padding-bottom:145px;}
+  .home-bottom-nav {width:calc(100vw - 20px);bottom:max(8px,env(safe-area-inset-bottom));border-radius:23px;min-height:70px;padding:5px 5px;}
+  .home-bottom-nav .bottom-nav-item {min-height:63px;}
+  .home-floating-inbox {right:14px;bottom:calc(104px + env(safe-area-inset-bottom));width:52px;height:52px;}
+  .home-header .home-profile-button {width:42px;height:42px;}
+  .capture-screen {padding-left:12px;padding-right:12px;gap:9px;}
+  .capture-stage {height:min(55dvh,570px);min-height:230px;}
+  .capture-shutter {width:65px;height:65px;}
+  .capture-review {padding-bottom:32px;}
+}
+@media(prefers-reduced-motion: reduce){.recording-indicator span{animation:none;}}
+
+
+/* Navigation also appears on the other authenticated Blink pages. */
+.blink-shared-dock {
+  --home-surface:#fff;--home-bg:#fffaf6;--home-text:#171717;
+  --home-muted:#77716d;--home-border:#eee5de;--home-orange:#fb6c00;
+}
+:root[data-theme='dark'] .blink-shared-dock {
+  --home-surface:#191919;--home-bg:#101010;--home-text:#f8f5f2;
+  --home-muted:#aaa19b;--home-border:#303030;
+}
+.capture-info-note {font-size:12px;color:#ffffffa9;}
