@@ -9,7 +9,7 @@ import './ExchangePage.css';
 
 // Keep this consistent with ExchangePostPage.tsx.
 // If using a Vite proxy, change both to '/blink-api'.
-const API_URL = 'http://localhost:3000';
+const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '');
 
 const kinds = [
   'OFFER',
