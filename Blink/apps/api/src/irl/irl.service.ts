@@ -2,6 +2,19 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { PrismaService } from '../prisma/prisma.service';
 
 const categories = ['Hangout', 'Sports', 'Gaming', 'Food', 'Shopping', 'Other'];
+function validMapsLink(value: unknown): string {
+  if (typeof value !== 'string' || value.length > 2048) throw new BadRequestException('Enter a Google Maps location link.');
+  let url: URL;
+  try { url = new URL(value.trim()); } catch { throw new BadRequestException('Enter a valid Google Maps URL.'); }
+  const host = url.hostname.toLowerCase();
+  if (url.protocol !== 'https:' || !['maps.app.goo.gl', 'goo.gl', 'www.google.com', 'google.com', 'maps.google.com', 'www.google.co.uk', 'google.co.uk'].includes(host)) {
+    throw new BadRequestException('Only HTTPS Google Maps links are allowed.');
+  }
+  if ((host === 'goo.gl' && !url.pathname.startsWith('/maps')) || (host.includes('google.') && host !== 'maps.app.goo.gl' && !(url.pathname.startsWith('/maps') || url.pathname.startsWith('/url') || url.searchParams.has('q')))) {
+    throw new BadRequestException('Enter a Google Maps location link.');
+  }
+  return url.toString();
+}
 @Injectable()
 export class IrlService {
   constructor(private readonly prisma: PrismaService) {}
@@ -23,7 +36,13 @@ export class IrlService {
       },
       orderBy: { createdAt: 'desc' }, take: 100,
     });
-    return plans.map(plan => ({ ...plan, invitations: plan.creatorId === userId ? plan.invitations : plan.invitations.filter(inv => inv.recipientId === userId) }));
+    return plans.map(plan => {
+      const ownInvitations = plan.invitations.filter(inv => inv.recipientId === userId);
+      const canSeePin = plan.creatorId === userId || (plan.interests.some(i => i.userId === userId) && friends.includes(plan.creatorId) && ownInvitations.some(inv => inv.status === 'ACCEPTED'));
+      const participants = (canSeePin ? plan.interests.filter(i => plan.invitations.some(inv => inv.recipientId === i.userId && inv.status === 'ACCEPTED')).map(i => ({ id: i.userId, name: i.user.name })) : []);
+      return { ...plan, participants, meetupLat: canSeePin ? plan.meetupLat : null, meetupLng: canSeePin ? plan.meetupLng : null, meetupUrl: canSeePin ? plan.meetupUrl : null,
+        invitations: plan.creatorId === userId ? plan.invitations : ownInvitations };
+    });
   }
   async create(userId: string, input: unknown) {
     const body = (input && typeof input === 'object' ? input : {}) as Record<string, unknown>;
@@ -38,6 +57,19 @@ export class IrlService {
     if (Number.isNaN(startsAt.getTime()) || startsAt.getTime() <= Date.now()) throw new BadRequestException('Choose a future date and time.');
     return this.prisma.irlPlan.create({ data: { creatorId: userId, title, category, description: description || null, place: place || null, startsAt } });
   }
+  async updateMeetupLocation(userId: string, planId: string, input: unknown) {
+    const body = (input && typeof input === 'object' ? input : {}) as Record<string, unknown>;
+    const place = typeof body.place === 'string' ? body.place.trim() : '';
+    const meetupUrl = validMapsLink(body.meetupUrl);
+    if (!place || place.length > 180) throw new BadRequestException('Enter a location name (1–180 characters).');
+    const result = await this.prisma.irlPlan.updateMany({
+      where: { id: planId, creatorId: userId, startsAt: { gt: new Date() } },
+      data: { place, meetupUrl, meetupLat: null, meetupLng: null },
+    });
+    if (!result.count) throw new NotFoundException('Your upcoming plan was not found.');
+    return { updated: true };
+  }
+
   async remove(userId: string, id: string) {
     const result = await this.prisma.irlPlan.deleteMany({ where: { id, creatorId: userId } });
     if (!result.count) throw new NotFoundException('Your plan was not found.');
@@ -60,13 +92,36 @@ export class IrlService {
     });
   }
   async withdraw(userId: string, id: string) {
-    await this.prisma.irlInterest.deleteMany({ where: { planId: id, userId } });
+    await this.prisma.$transaction([
+      this.prisma.irlInvitation.deleteMany({ where: { planId: id, recipientId: userId } }),
+      this.prisma.irlInterest.deleteMany({ where: { planId: id, userId } }),
+    ]);
     return { deleted: true };
   }
+  async removeParticipant(userId: string, planId: string, participantId: string) {
+    if (!participantId || participantId === userId) throw new BadRequestException('Choose a valid participant.');
+    return this.prisma.$transaction(async tx => {
+      const plan = await tx.irlPlan.findUnique({ where: { id: planId }, select: { creatorId: true } });
+      if (!plan) throw new NotFoundException('Plan not found.');
+      if (plan.creatorId !== userId) throw new ForbiddenException('Only the creator can remove participants.');
+      const invitation = await tx.irlInvitation.findUnique({
+        where: { planId_recipientId: { planId, recipientId: participantId } }, select: { status: true },
+      });
+      const interest = await tx.irlInterest.findUnique({
+        where: { planId_userId: { planId, userId: participantId } }, select: { id: true },
+      });
+      if (invitation?.status !== 'ACCEPTED' || !interest) throw new BadRequestException('This user is not an active participant.');
+      const messages = await tx.irlMessage.deleteMany({ where: { planId, senderId: participantId } });
+      await tx.irlInvitation.deleteMany({ where: { planId, recipientId: participantId } });
+      await tx.irlInterest.deleteMany({ where: { planId, userId: participantId } });
+      return { removed: true, deletedMessages: messages.count };
+    });
+  }
+
   async invitations(userId: string) {
     return this.prisma.irlInvitation.findMany({
-      where: { recipientId: userId },
-      include: { plan: { include: { creator: { select: { id: true, name: true } } } } },
+      where: { recipientId: userId, status: 'ACCEPTED', plan: { interests: { some: { userId } } } },
+      include: { plan: { select: { id: true, title: true, startsAt: true, place: true, creator: { select: { id: true, name: true } } } } },
       orderBy: { createdAt: 'desc' }, take: 100,
     });
   }
@@ -83,31 +138,15 @@ export class IrlService {
     if (!friends.includes(recipientId)) throw new ForbiddenException('You can only invite your friends.');
     return this.prisma.irlInvitation.upsert({
       where: { planId_recipientId: { planId, recipientId } },
-      create: { planId, recipientId },
-      update: {},
+      create: { planId, recipientId, status: 'ACCEPTED' },
+      update: { status: 'ACCEPTED' },
     });
-  }
-
-  async respondInvitation(userId: string, invitationId: string, status: unknown) {
-    if (status !== 'ACCEPTED' && status !== 'DECLINED') throw new BadRequestException('Choose ACCEPTED or DECLINED.');
-    const invitation = await this.prisma.irlInvitation.findUnique({
-      where: { id: invitationId }, include: { plan: { select: { startsAt: true, creatorId: true } } },
-    });
-    if (!invitation) throw new NotFoundException('Invitation not found.');
-    if (invitation.recipientId !== userId) throw new ForbiddenException('This invitation is not yours.');
-    if (invitation.status !== 'PENDING') throw new BadRequestException('Invitation already answered.');
-    if (invitation.plan.startsAt <= new Date()) throw new BadRequestException('This plan has already started.');
-    const friends = await this.friendIds(userId);
-    if (!friends.includes(invitation.plan.creatorId)) throw new ForbiddenException('You are no longer friends with the creator.');
-    const updated = await this.prisma.irlInvitation.updateMany({ where: { id: invitationId, recipientId: userId, status: 'PENDING' }, data: { status } });
-    if (!updated.count) throw new BadRequestException('Invitation already answered.');
-    return this.prisma.irlInvitation.findUnique({ where: { id: invitationId } });
   }
 
   private async requireInboxAccess(userId: string, planId: string) {
     const plan = await this.prisma.irlPlan.findUnique({
       where: { id: planId },
-      select: { id: true, creatorId: true, title: true, place: true, startsAt: true },
+      select: { id: true, creatorId: true, title: true, place: true, startsAt: true, meetupLat: true, meetupLng: true, meetupUrl: true },
     });
     if (!plan) throw new NotFoundException('Plan not found.');
     if (plan.creatorId !== userId) {
@@ -115,7 +154,10 @@ export class IrlService {
         where: { planId_recipientId: { planId, recipientId: userId } },
         select: { status: true },
       });
-      if (invitation?.status !== 'ACCEPTED') {
+      const interest = await this.prisma.irlInterest.findUnique({
+        where: { planId_userId: { planId, userId } }, select: { id: true },
+      });
+      if (invitation?.status !== 'ACCEPTED' || !interest) {
         throw new ForbiddenException('Only the creator and accepted invitees can access this IRL inbox.');
       }
       const friends = await this.friendIds(userId);

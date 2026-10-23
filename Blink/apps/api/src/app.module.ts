@@ -11,6 +11,7 @@ import { FriendsModule } from './friends/friends.module';
 import { InboxModule } from './inbox/inbox.module';
 import { CheckinsModule } from './checkins/checkins.module';
 import { IrlModule } from './irl/irl.module';
+import { BusinessMatchModule } from './business-match/business-match.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -22,6 +23,7 @@ import { IrlModule } from './irl/irl.module';
     InboxModule,
     CheckinsModule,
     IrlModule,
+    BusinessMatchModule,
   ],
   controllers: [AppController],
   providers: [AppService],

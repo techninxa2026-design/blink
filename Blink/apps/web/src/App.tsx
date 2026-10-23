@@ -12,6 +12,7 @@ import PublicProfilePage from './PublicProfilePage';
 import InboxPage from './InboxPage';
 import CheckinsPage from './CheckinsPage';
 import IrlPage from './IrlPage';
+import BusinessMatchPage from './BusinessMatchPage';
 import { NotesRow, useActiveCheckins } from './CheckinPreview';
 
 const API_URL = 'http://localhost:3000';
@@ -148,6 +149,8 @@ export default function App() {
     if (path === '/connections') return 'connections';
     if (path === '/checkins') return 'checkins';
     if (path === '/irl') return 'irl';
+    if (path === '/business-match') return 'business-match';
+    if (path === '/settings') return 'settings';
     if (path === '/inbox') return 'inbox';
     if (path === '/home') return 'home';
     if (path === '/login') return 'login';
@@ -478,6 +481,10 @@ useEffect(() => {
         setRoute('profile');
       } else if (path === '/connections') {
         setRoute('connections');
+      } else if (path === '/business-match') {
+        setRoute('business-match');
+      } else if (path === '/settings') {
+        setRoute('settings');
       } else if (path === '/irl') {
         setRoute('irl');
         setSelectedNav('IRL');
@@ -504,7 +511,7 @@ useEffect(() => {
   }, []);
 
   function goTo(
-    path: '/home' | '/profile' | '/connections' | '/checkins' | '/irl' | '/inbox' | '/login' | '/',
+    path: '/home' | '/profile' | '/connections' | '/checkins' | '/irl' | '/business-match' | '/settings' | '/inbox' | '/login' | '/',
   ) {
     window.history.pushState({}, '', path);
 
@@ -518,6 +525,10 @@ useEffect(() => {
     } else if (path === '/connections') {
       setRoute('connections');
       setSelectedNav('Connections');
+    } else if (path === '/business-match') {
+      setRoute('business-match');
+    } else if (path === '/settings') {
+      setRoute('settings');
     } else if (path === '/irl') {
         setRoute('irl');
         setSelectedNav('IRL');
@@ -1052,6 +1063,16 @@ if (route === 'inbox') {
   );
 }
 
+if (route === 'settings') {
+  if (!readStoredToken()) { return <main className="bm-page"><p>Please sign in to access settings.</p><button onClick={() => goTo('/login')}>Sign in</button></main>; }
+  return <BusinessMatchPage initialView="settings" onBack={() => goTo('/home')} theme={theme} onToggleTheme={() => setTheme(current => current === 'light' ? 'dark' : 'light')} />;
+}
+
+if (route === 'business-match') {
+  if (!readStoredToken()) { goTo('/login'); return null; }
+  return <BusinessMatchPage onBack={() => goTo('/home')} theme={theme} onToggleTheme={() => setTheme(current => current === 'light' ? 'dark' : 'light')} />;
+}
+
 if (route === 'irl') {
   if (!readStoredToken()) { goTo('/login'); return null; }
   return <IrlPage onBack={() => goTo('/home')} theme={theme} onToggleTheme={() => setTheme(current => current === 'light' ? 'dark' : 'light')} />;
@@ -1172,7 +1193,8 @@ if (route === 'profile') {
              <button onClick={() => goTo('/profile')}>
   ◉ <span>My profile</span>
 </button>
-              <button onClick={() => { setMenuOpen(false); setNotice('Settings will be available soon.'); }}>⚙ <span>Settings</span></button>
+              <button onClick={() => goTo('/business-match')}>🤝 <span>Business Match</span></button>
+              <button onClick={() => { setMenuOpen(false); goTo('/settings'); }}>⚙ <span>Settings</span></button>
               <button onClick={() => { setMenuOpen(false); setTheme(theme === 'light' ? 'dark' : 'light'); }}>◐ <span>{theme === 'light' ? 'Dark mode' : 'Light mode'}</span></button>
               <div className="drawer-spacer" />
               <button className="drawer-logout" onClick={logout}>↪ <span>Log out</span></button>

@@ -31,6 +31,9 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  businessChatMessages BusinessChatMessage[] @relation("BusinessChatSender")
+  businessMeetingsOrganized BusinessMeeting[] @relation("BusinessMeetingOrganizer")
+  businessMeetingsInvited BusinessMeeting[] @relation("BusinessMeetingAttendee")
   sentRequests     FriendRequest[] @relation("SentRequests")
   receivedRequests FriendRequest[] @relation("ReceivedRequests")
 
@@ -53,6 +56,9 @@ model User {
   irlInterests            IrlInterest[]
   irlInvitationsReceived IrlInvitation[] @relation("IrlInvitationRecipient")
   irlMessages IrlMessage[]
+  businessProfile BusinessProfile?
+  businessRequestsSent BusinessConnectionRequest[] @relation("BusinessRequestSender")
+  businessRequestsReceived BusinessConnectionRequest[] @relation("BusinessRequestReceiver")
 }
 
 model FriendRequest {
@@ -234,6 +240,9 @@ model IrlPlan {
   category    String   @db.VarChar(32)
   description String?  @db.VarChar(1000)
   place       String?  @db.VarChar(180)
+  meetupLat   Float?
+  meetupLng   Float?
+  meetupUrl   String?  @db.VarChar(2048)
   startsAt    DateTime
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -290,4 +299,96 @@ model IrlMessage {
 
   @@index([planId, createdAt])
   @@index([senderId])
+}
+
+
+// Business Match is separate from social friendships, Inbox, and IRL.
+enum BusinessProfileType {
+  PROFESSIONAL
+  COMPANY
+}
+
+model BusinessProfile {
+  id         String              @id @default(cuid())
+  userId     String              @unique
+  type       BusinessProfileType @default(PROFESSIONAL)
+  name       String              @db.VarChar(100)
+  headline   String              @db.VarChar(120)
+  industry   String              @db.VarChar(80)
+  location   String              @default("") @db.VarChar(100)
+  skills     String              @default("") @db.VarChar(240)
+  about      String              @default("") @db.VarChar(600)
+  lookingFor String              @default("") @db.VarChar(400)
+  active     Boolean             @default(false)
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([active, type])
+  @@index([active, industry])
+}
+
+// BM-4: business relationships never touch Blink social FriendRequest/Friendship.
+enum BusinessConnectionStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+model BusinessConnectionRequest {
+  id String @id @default(cuid())
+  senderId String
+  receiverId String
+  status BusinessConnectionStatus @default(PENDING)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  messages BusinessChatMessage[]
+  meetings BusinessMeeting[]
+  sender User @relation("BusinessRequestSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User @relation("BusinessRequestReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  @@unique([senderId, receiverId])
+  @@index([receiverId, status, createdAt])
+  @@index([senderId, status, createdAt])
+}
+
+// BM-5: Business chat is isolated from Blink Inbox and IRL messages.
+model BusinessChatMessage {
+  id String @id @default(cuid())
+  connectionId String
+  senderId String
+  text String @db.VarChar(2000)
+  createdAt DateTime @default(now())
+  connection BusinessConnectionRequest @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  sender User @relation("BusinessChatSender", fields: [senderId], references: [id], onDelete: Cascade)
+  @@index([connectionId, createdAt, id])
+  @@index([senderId])
+}
+
+// BM-6: private meetings, independent of Blink IRL plans.
+enum BusinessMeetingStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELED
+}
+
+model BusinessMeeting {
+  id String @id @default(cuid())
+  connectionId String
+  organizerId String
+  attendeeId String
+  title String @db.VarChar(120)
+  agenda String @default("") @db.VarChar(1000)
+  location String @default("") @db.VarChar(300)
+  startsAt DateTime
+  endsAt DateTime
+  status BusinessMeetingStatus @default(PENDING)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  connection BusinessConnectionRequest @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  organizer User @relation("BusinessMeetingOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
+  attendee User @relation("BusinessMeetingAttendee", fields: [attendeeId], references: [id], onDelete: Cascade)
+  @@index([organizerId, startsAt])
+  @@index([attendeeId, startsAt])
+  @@index([connectionId, startsAt])
 }
