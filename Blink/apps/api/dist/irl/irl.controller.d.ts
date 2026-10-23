@@ -17,10 +17,10 @@ export declare class IrlController {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            creatorId: string;
             title: string;
-            category: string;
             description: string | null;
+            creatorId: string;
+            category: string;
             place: string | null;
             startsAt: Date;
         };
@@ -28,8 +28,8 @@ export declare class IrlController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        recipientId: string;
         status: import("@prisma/client").$Enums.IrlInvitationStatus;
+        recipientId: string;
         planId: string;
     })[]>;
     invite(req: AuthRequest, id: string, body: {
@@ -38,8 +38,8 @@ export declare class IrlController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        recipientId: string;
         status: import("@prisma/client").$Enums.IrlInvitationStatus;
+        recipientId: string;
         planId: string;
     }>;
     respondInvitation(req: AuthRequest, id: string, body: {
@@ -48,8 +48,8 @@ export declare class IrlController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        recipientId: string;
         status: import("@prisma/client").$Enums.IrlInvitationStatus;
+        recipientId: string;
         planId: string;
     } | null>;
     plans(req: AuthRequest): Promise<{
@@ -63,8 +63,8 @@ export declare class IrlController {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            recipientId: string;
             status: import("@prisma/client").$Enums.IrlInvitationStatus;
+            recipientId: string;
             planId: string;
         })[];
         creator: {
@@ -83,16 +83,16 @@ export declare class IrlController {
             createdAt: Date;
             updatedAt: Date;
             userId: string;
-            planId: string;
             reply: string;
+            planId: string;
         })[];
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        creatorId: string;
         title: string;
-        category: string;
         description: string | null;
+        creatorId: string;
+        category: string;
         place: string | null;
         startsAt: Date;
     }[]>;
@@ -100,10 +100,10 @@ export declare class IrlController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        creatorId: string;
         title: string;
-        category: string;
         description: string | null;
+        creatorId: string;
+        category: string;
         place: string | null;
         startsAt: Date;
     }>;
@@ -115,8 +115,8 @@ export declare class IrlController {
         createdAt: Date;
         updatedAt: Date;
         userId: string;
-        planId: string;
         reply: string;
+        planId: string;
     }>;
     withdraw(req: AuthRequest, id: string): Promise<{
         deleted: boolean;

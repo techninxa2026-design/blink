@@ -7,6 +7,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppModule = void 0;
+const exchange_module_1 = require("./exchange/exchange.module");
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const app_controller_1 = require("./app.controller");
@@ -19,6 +20,8 @@ const friends_module_1 = require("./friends/friends.module");
 const inbox_module_1 = require("./inbox/inbox.module");
 const checkins_module_1 = require("./checkins/checkins.module");
 const irl_module_1 = require("./irl/irl.module");
+const secrets_module_1 = require("./secrets/secrets.module");
+const hearts_module_1 = require("./hearts/hearts.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -34,6 +37,9 @@ exports.AppModule = AppModule = __decorate([
             inbox_module_1.InboxModule,
             checkins_module_1.CheckinsModule,
             irl_module_1.IrlModule,
+            exchange_module_1.ExchangeModule,
+            secrets_module_1.SecretsModule,
+            hearts_module_1.HeartsModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

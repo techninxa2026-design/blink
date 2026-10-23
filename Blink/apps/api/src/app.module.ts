@@ -1,4 +1,4 @@
-
+import { ExchangeModule } from './exchange/exchange.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
@@ -11,6 +11,8 @@ import { FriendsModule } from './friends/friends.module';
 import { InboxModule } from './inbox/inbox.module';
 import { CheckinsModule } from './checkins/checkins.module';
 import { IrlModule } from './irl/irl.module';
+import { SecretsModule } from './secrets/secrets.module';
+import { HeartsModule } from './hearts/hearts.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -22,6 +24,9 @@ import { IrlModule } from './irl/irl.module';
     InboxModule,
     CheckinsModule,
     IrlModule,
+    ExchangeModule,
+    SecretsModule,
+    HeartsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

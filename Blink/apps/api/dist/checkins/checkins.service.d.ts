@@ -13,8 +13,8 @@ export declare class CheckinsService {
         id: string;
         createdAt: Date;
         userId: string;
-        expiresAt: Date | null;
         status: string;
+        expiresAt: Date | null;
         emoji: string;
         note: string | null;
         duration: string;
@@ -29,8 +29,8 @@ export declare class CheckinsService {
         id: string;
         createdAt: Date;
         userId: string;
-        expiresAt: Date | null;
         status: string;
+        expiresAt: Date | null;
         emoji: string;
         note: string | null;
         duration: string;
@@ -39,8 +39,8 @@ export declare class CheckinsService {
         id: string;
         createdAt: Date;
         userId: string;
-        expiresAt: Date | null;
         status: string;
+        expiresAt: Date | null;
         emoji: string;
         note: string | null;
         duration: string;
@@ -49,8 +49,8 @@ export declare class CheckinsService {
         id: string;
         createdAt: Date;
         userId: string;
-        expiresAt: Date | null;
         status: string;
+        expiresAt: Date | null;
         emoji: string;
         note: string | null;
         duration: string;

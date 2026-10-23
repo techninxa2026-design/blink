@@ -10,6 +10,8 @@ import ProfilePage from './ProfilePage';
 import FriendsPage from './FriendsPage';
 import PublicProfilePage from './PublicProfilePage';
 import InboxPage from './InboxPage';
+import ExchangePage from './ExchangePage';
+import ExchangePostPage from './ExchangePostPage';
 
 const API_URL = 'http://localhost:3000';
 
@@ -140,6 +142,8 @@ function readStoredToken(): string | null {
 export default function App() {
   const [route, setRoute] = useState(() => {
     const path = window.location.pathname;
+    if (/^\/exchange\/[^/]+$/.test(path)) return 'exchange-post';
+    if (path === '/exchange') return 'exchange';
     if (/^\/profile\/user\/[^/]+$/.test(path)) return 'public-profile';
     if (path === '/profile') return 'profile';
     if (path === '/connections') return 'connections';
@@ -150,9 +154,14 @@ export default function App() {
   });
 
   const [publicProfileId, setPublicProfileId] = useState<string | null>(() => {
-  const match = window.location.pathname.match(/^\/profile\/user\/([^/]+)$/);
-  return match ? decodeURIComponent(match[1]) : null;
-});
+    const match = window.location.pathname.match(/^\/profile\/user\/([^/]+)$/);
+    return match ? decodeURIComponent(match[1]) : null;
+  });
+
+  const [exchangePostId, setExchangePostId] = useState<string | null>(() => {
+    const match = window.location.pathname.match(/^\/exchange\/([^/]+)$/);
+    return match ? decodeURIComponent(match[1]) : null;
+  });
 
 
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -463,9 +472,17 @@ useEffect(() => {
     function handlePopState() {
       const path = window.location.pathname;
       const match = path.match(/^\/profile\/user\/([^/]+)$/);
+      const exchangeMatch = path.match(/^\/exchange\/([^/]+)$/);
       setPublicProfileId(match ? decodeURIComponent(match[1]) : null);
+      setExchangePostId(exchangeMatch ? decodeURIComponent(exchangeMatch[1]) : null);
 
-      if (match) {
+      if (exchangeMatch) {
+        setRoute('exchange-post');
+        setSelectedNav('Blink Exchange');
+      } else if (path === '/exchange') {
+        setRoute('exchange');
+        setSelectedNav('Blink Exchange');
+      } else if (match) {
         setRoute('public-profile');
       } else if (path === '/profile') {
         setRoute('profile');
@@ -491,7 +508,7 @@ useEffect(() => {
   }, []);
 
   function goTo(
-    path: '/home' | '/profile' | '/connections' | '/inbox' | '/login' | '/',
+    path: '/home' | '/profile' | '/connections' | '/inbox' | '/exchange' | '/login' | '/',
   ) {
     window.history.pushState({}, '', path);
 
@@ -500,6 +517,9 @@ useEffect(() => {
       setSelectedNav('Home');
     } else if (path === '/inbox') {
       setRoute('inbox');
+    } else if (path === '/exchange') {
+      setRoute('exchange');
+      setSelectedNav('Blink Exchange');
     } else if (path === '/profile') {
       setRoute('profile');
     } else if (path === '/connections') {
@@ -512,6 +532,18 @@ useEffect(() => {
     }
 
     setPublicProfileId(null);
+    setExchangePostId(null);
+    setMenuOpen(false);
+    setFullMoment(false);
+    window.scrollTo(0, 0);
+  }
+
+  function openExchangePost(postId: string) {
+    window.history.pushState({}, '', `/exchange/${encodeURIComponent(postId)}`);
+    setExchangePostId(postId);
+    setPublicProfileId(null);
+    setRoute('exchange-post');
+    setSelectedNav('Blink Exchange');
     setMenuOpen(false);
     setFullMoment(false);
     window.scrollTo(0, 0);
@@ -519,6 +551,7 @@ useEffect(() => {
 
   function openPublicProfile(userId: string) {
   setPublicProfileId(userId);
+  setExchangePostId(null);
   window.history.pushState(
     {},
     '',
@@ -965,6 +998,59 @@ const uploadBlob = mediaBlob.slice(
     setIsPostingDemo(false);
   }
 }
+// Blink Exchange feed: browsing, creating and editing posts.
+if (route === 'exchange') {
+  if (!readStoredToken()) {
+    return (
+      <main className="blink-home" style={{ padding: 32 }}>
+        <h1>Sign in to use Blink Exchange</h1>
+        <button type="button" onClick={() => goTo('/login')}>Sign in</button>
+      </main>
+    );
+  }
+
+  return (
+    <ExchangePage
+      onBack={() => goTo('/home')}
+      onOpenPost={openExchangePost}
+      onOpenProfile={openPublicProfile}
+      theme={theme}
+      onToggleTheme={() => setTheme(current => current === 'light' ? 'dark' : 'light')}
+    />
+  );
+}
+
+// Individual Exchange post with its private conversation.
+if (route === 'exchange-post') {
+  if (!readStoredToken()) {
+    return (
+      <main className="blink-home" style={{ padding: 32 }}>
+        <h1>Sign in to view this exchange</h1>
+        <button type="button" onClick={() => goTo('/login')}>Sign in</button>
+      </main>
+    );
+  }
+
+  if (!exchangePostId) {
+    return (
+      <main className="blink-home" style={{ padding: 32 }}>
+        <h1>Exchange post not found</h1>
+        <button type="button" onClick={() => goTo('/exchange')}>All exchanges</button>
+      </main>
+    );
+  }
+
+  return (
+    <ExchangePostPage
+      postId={exchangePostId}
+      onBack={() => goTo('/exchange')}
+      onOpenProfile={openPublicProfile}
+      theme={theme}
+      onToggleTheme={() => setTheme(current => current === 'light' ? 'dark' : 'light')}
+    />
+  );
+}
+
 if (route === 'public-profile') {
   if (!readStoredToken()) {
     return (
@@ -1126,6 +1212,9 @@ if (route === 'profile') {
                 <button className="drawer-close" onClick={() => setMenuOpen(false)} aria-label="Close menu">×</button>
               </div>
               <p className="drawer-label">YOUR SPACE</p>
+              <button type="button" onClick={() => goTo('/exchange')}>
+                🤝 <span>Blink Exchange</span>
+              </button>
              <button onClick={() => goTo('/profile')}>
   ◉ <span>My profile</span>
 </button>

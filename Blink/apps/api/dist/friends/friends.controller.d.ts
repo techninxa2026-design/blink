@@ -26,8 +26,8 @@ export declare class FriendsController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        senderId: string;
         status: import("@prisma/client").$Enums.FriendRequestStatus;
+        senderId: string;
         receiverId: string;
     }>;
     getIncoming(req: AuthenticatedRequest): Promise<({
@@ -41,8 +41,8 @@ export declare class FriendsController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        senderId: string;
         status: import("@prisma/client").$Enums.FriendRequestStatus;
+        senderId: string;
         receiverId: string;
     })[]>;
     getOutgoing(req: AuthenticatedRequest): Promise<({
@@ -56,8 +56,8 @@ export declare class FriendsController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        senderId: string;
         status: import("@prisma/client").$Enums.FriendRequestStatus;
+        senderId: string;
         receiverId: string;
     })[]>;
     accept(req: AuthenticatedRequest, id: string): Promise<{

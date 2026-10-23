@@ -14,8 +14,8 @@ export declare class IrlService {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            recipientId: string;
             status: import("@prisma/client").$Enums.IrlInvitationStatus;
+            recipientId: string;
             planId: string;
         })[];
         creator: {
@@ -34,16 +34,16 @@ export declare class IrlService {
             createdAt: Date;
             updatedAt: Date;
             userId: string;
-            planId: string;
             reply: string;
+            planId: string;
         })[];
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        creatorId: string;
         title: string;
-        category: string;
         description: string | null;
+        creatorId: string;
+        category: string;
         place: string | null;
         startsAt: Date;
     }[]>;
@@ -51,10 +51,10 @@ export declare class IrlService {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        creatorId: string;
         title: string;
-        category: string;
         description: string | null;
+        creatorId: string;
+        category: string;
         place: string | null;
         startsAt: Date;
     }>;
@@ -66,8 +66,8 @@ export declare class IrlService {
         createdAt: Date;
         updatedAt: Date;
         userId: string;
-        planId: string;
         reply: string;
+        planId: string;
     }>;
     withdraw(userId: string, id: string): Promise<{
         deleted: boolean;
@@ -82,10 +82,10 @@ export declare class IrlService {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            creatorId: string;
             title: string;
-            category: string;
             description: string | null;
+            creatorId: string;
+            category: string;
             place: string | null;
             startsAt: Date;
         };
@@ -93,24 +93,24 @@ export declare class IrlService {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        recipientId: string;
         status: import("@prisma/client").$Enums.IrlInvitationStatus;
+        recipientId: string;
         planId: string;
     })[]>;
     invite(userId: string, planId: string, recipientId: string): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        recipientId: string;
         status: import("@prisma/client").$Enums.IrlInvitationStatus;
+        recipientId: string;
         planId: string;
     }>;
     respondInvitation(userId: string, invitationId: string, status: unknown): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        recipientId: string;
         status: import("@prisma/client").$Enums.IrlInvitationStatus;
+        recipientId: string;
         planId: string;
     } | null>;
 }
