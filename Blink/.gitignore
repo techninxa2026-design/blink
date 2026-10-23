@@ -1,1 +1,17 @@
-node_modules
+# Dependencies and generated output: never merge compiled files.
+**/node_modules/
+**/dist/
+**/build/
+**/*.tsbuildinfo
+**/coverage/
+
+# Local secrets and runtime data.
+**/.env
+**/.env.*
+!**/.env.example
+**/uploads/
+**/inbox-storage/
+
+# Local tooling files.
+**/.DS_Store
+**/*.log
