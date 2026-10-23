@@ -627,6 +627,8 @@ model BlinkHeartMessage {
   author    User             @relation("BlinkHeartMessageAuthor", fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([threadId, createdAt])
+}
+
 // Phase 3: dedicated plan conversation, separate from main Blink messages.
 model IrlMessage {
   id        String   @id @default(cuid())
