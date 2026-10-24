@@ -7,6 +7,7 @@ import {
   type FormEvent,
 } from 'react';
 import './ProfilePage.css';
+import ProfileReels from './ProfileReels';
 import { NotesRow, useActiveCheckins } from './CheckinPreview';
 
 const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '');
@@ -31,6 +32,7 @@ type ProfileMoment = {
 
 type ProfilePageProps = {
   onBack: () => void;
+  onOpenReel: (id: string) => void;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
 };
@@ -49,12 +51,14 @@ function mediaUrl(value: string) {
 
 export default function ProfilePage({
   onBack,
+  onOpenReel,
   theme,
   onToggleTheme,
 }: ProfilePageProps) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const { items: activeCheckins } = useActiveCheckins();
   const [moments, setMoments] = useState<ProfileMoment[]>([]);
+  const [mediaTab, setMediaTab] = useState<'moments' | 'reels'>('moments');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -691,8 +695,13 @@ async function deleteMoment() {
               <p className="blink-ci-preview-empty">You have no active Check-In.</p>}
           </section>
 
-          {/* My Moments */}
-          <section className="profile-moments">
+          <nav className="profile-media-tabs" aria-label="My media tabs">
+            <button type="button" className={mediaTab === 'moments' ? 'active' : ''}
+              onClick={() => setMediaTab('moments')}>▧ Moments</button>
+            <button type="button" className={mediaTab === 'reels' ? 'active' : ''}
+              onClick={() => setMediaTab('reels')}>▶ Reels</button>
+          </nav>
+          {mediaTab === 'moments' ? <section className="profile-moments">
             <div className="profile-section-heading">
               <h2>My Moments</h2>
               <span>{moments.length} moments</span>
@@ -749,9 +758,8 @@ async function deleteMoment() {
                 ))}
               </div>
             )}
-          </section>
+          </section> : <ProfileReels owner onOpenReel={onOpenReel} />}
 
-            
 {momentToDelete && (
   <div
     className="profile-delete-overlay"
