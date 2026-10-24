@@ -509,6 +509,21 @@ export default function App() {
     }
   }, [route]);
 
+  // Reflect verified BP from other sessions without requiring a manual page refresh.
+  useEffect(() => {
+    if (route !== 'home' || !token()) return;
+    const refresh = () => void loadWallet();
+    const onVisible = () => { if (document.visibilityState === 'visible') refresh(); };
+    const poll = window.setInterval(refresh, 30000);
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.clearInterval(poll);
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [route]);
+
   // MOMENT VIEWS
 
   async function recordView(id: string) {
