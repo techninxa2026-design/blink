@@ -213,11 +213,21 @@ export class TaskParticipationsService {
   }
 
   async streamImage(userId: string, imageId: string, response: Response) {
-    const image = await this.prisma.taskParticipationImage.findFirst({
-      where: { id: imageId, userId, OR: [{ participationId: { not: null } }, { stepId: { not: null } }] },
-      select: { storageKey: true, mimeType: true },
+    const image = await this.prisma.taskParticipationImage.findUnique({
+      where: { id: imageId },
+      include: {
+        step: { include: { participation: { include: { task: { select: { creatorId: true } } } } } },
+        participation: { include: { task: { select: { creatorId: true } } } },
+      },
     });
-    if (!image) throw new NotFoundException('Evidence image unavailable.');
+    if (!image || (!image.participationId && !image.stepId)) {
+      throw new NotFoundException('Evidence image unavailable.');
+    }
+    const participation = image.step?.participation ?? image.participation;
+    const canReview = participation?.task.creatorId === userId && participation.status !== 'DRAFT';
+    if (image.userId !== userId && !canReview) {
+      throw new NotFoundException('Evidence image unavailable.');
+    }
     const file = await stat(join(EVIDENCE_ROOT, image.storageKey)).catch(() => null);
     if (!file) throw new NotFoundException('Evidence image file missing.');
     response.setHeader('Content-Type', image.mimeType);
@@ -225,9 +235,9 @@ export class TaskParticipationsService {
     response.setHeader('Cache-Control', 'private, no-store');
     response.setHeader('X-Content-Type-Options', 'nosniff');
     createReadStream(join(EVIDENCE_ROOT, image.storageKey))
-      .on('error', () => response.destroy())
-      .pipe(response);
+      .on('error', () => response.destroy()).pipe(response);
   }
+
   async saveChecklist(userId: string, taskId: string, checked: string[]) {
     const task = await this.publishedTask(taskId, userId);
     if (!Array.isArray(checked) || checked.length > 100 || new Set(checked).size !== checked.length) {
@@ -475,13 +485,19 @@ export class TaskParticipationsService {
   }
 
   async assertVideoAccess(userId: string, id: string) {
-    const video = await this.prisma.taskParticipationVideo.findFirst({
-      where: {
-        id, userId, completed: true,
-        step: { is: { participation: { is: { participantId: userId } } } },
-      },
+    const video = await this.prisma.taskParticipationVideo.findUnique({
+      where: { id }, include: { step: { include: {
+        participation: { include: { task: { select: { creatorId: true } } } },
+      } } },
     });
-    if (!video?.storageKey) throw new NotFoundException('Your saved video was not found.');
+    if (!video?.completed || !video.storageKey || !video.step) {
+      throw new NotFoundException('Saved video not found.');
+    }
+    const participation = video.step.participation;
+    const canReview = participation.task.creatorId === userId && participation.status !== 'DRAFT';
+    if (video.userId !== userId && !canReview) {
+      throw new NotFoundException('Saved video not found.');
+    }
     return video;
   }
 

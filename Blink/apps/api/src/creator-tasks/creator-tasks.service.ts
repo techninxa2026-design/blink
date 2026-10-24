@@ -179,6 +179,13 @@ export class CreatorTasksService {
     const profile = await this.professional(userId);
     const { title, description, groups, totalBp } = this.validate(input);
     const existing = id ? await this.mine(userId, id) : null;
+    if (existing) {
+      const locked = await this.prisma.taskParticipation.count({
+        where: { taskId: existing.id, status: { in: ['SUBMITTED', 'REVIEWED'] } },
+      });
+      if (locked) throw new ConflictException(
+        'Task has submitted answers. Editing or changing rewards is disabled to protect verified BP.');
+    }
     // Preserve checklist and item IDs on edits so saved participant responses
     // continue to refer to the same creator-defined checklist task.
     const oldGroups = existing ? await this.prisma.taskChecklist.findMany({
@@ -348,6 +355,12 @@ export class CreatorTasksService {
   async remove(userId: string, id: string) {
     await this.professional(userId);
     const task = await this.mine(userId, id);
+    const submitted = await this.prisma.taskParticipation.count({
+      where: { taskId: id, status: { in: ['SUBMITTED', 'REVIEWED'] } },
+    });
+    if (submitted) throw new ConflictException(
+      'Cannot delete a task with submitted or rewarded answers.');
+
     const images = await this.prisma.taskImage.findMany({
       where: { taskId: id }, select: { storageKey: true },
     });
