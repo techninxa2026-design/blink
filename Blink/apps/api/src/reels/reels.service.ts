@@ -104,10 +104,10 @@ export class ReelsService {
       if (desc.length > 1000) throw new BadRequestException('Caption cannot exceed 1000 characters.');
       const durationSeconds = Number(duration);
       const coverTimeSeconds = Number(coverTime);
-      if (!Number.isFinite(durationSeconds) || durationSeconds <= 0 || durationSeconds > 300 ||
+      if (!Number.isFinite(durationSeconds) || durationSeconds <= 0 ||
           !Number.isFinite(coverTimeSeconds) || coverTimeSeconds < 0 ||
           coverTimeSeconds > durationSeconds) {
-        throw new BadRequestException('Reels must be 1–300 seconds. Choose a valid thumbnail time.');
+        throw new BadRequestException('Provide a playable video and a valid thumbnail timestamp.');
       }
       // Unknown MIME, blank/empty or arbitrary shell files are never served as HTML.
       const row = await this.prisma.reel.create({
