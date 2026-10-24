@@ -277,6 +277,45 @@ export default function CreatorDashboardPage({
                     <h3>01 · Task information</h3>
                     <label>Task title<input value={title} maxLength={140} required onChange={(e) => setTitle(e.target.value)} placeholder="Enter a task title" /></label>
                     <label>Task description<textarea value={description} maxLength={4000} required rows={7} onChange={(e) => setDescription(e.target.value)} placeholder="Describe what participants should do" /></label>
+                    <div className="ct-bp-field">
+                      <label htmlFor="ct-task-bp">BP amount per task (maximum 5)</label>
+                      <div className="ct-bp-input-wrap">
+                        <input id="ct-task-bp" type="number" min="0" max="5" step="0.01" inputMode="decimal"
+                          value={rewardBp} onChange={(event) => setRewardBp(event.target.value)} />
+                        <span>BP</span>
+                      </div>
+                      <small>Examples: 1 BP, 0.5 BP, 2.75 BP. Amounts appear on tasks; payouts are not active yet.</small>
+                    </div>
+                    <div className="ct-image-uploader">
+                      <div className="ct-image-heading">
+                        <strong>Task images</strong><span>{existingImages.length + newImages.length}/8 images</span>
+                      </div>
+                      <p className="bm-muted">Add pictures beside the title and description.</p>
+                      <input ref={imageInput} type="file" accept="image/jpeg,image/png,image/webp,image/gif"
+                        multiple hidden onChange={(event) => { selectImages(event.target.files); event.target.value = ''; }} />
+                      <button className="bm-outline ct-add-image" type="button"
+                        disabled={busy || existingImages.length + newImages.length >= 8}
+                        onClick={() => imageInput.current?.click()}>＋ Add images</button>
+                      {(existingImages.length > 0 || newImages.length > 0) && (
+                        <div className="ct-image-grid">
+                          {existingImages.map((image) => (
+                            <div className="ct-image-cell" key={image.id}>
+                              <CreatorTaskImage image={image} alt="Task image" />
+                              <button type="button" aria-label="Remove image"
+                                onClick={() => setExistingImages((items) => items.filter((item) => item.id !== image.id))}>×</button>
+                            </div>
+                          ))}
+                          {newImages.map((file, index) => (
+                            <div className="ct-image-cell" key={index}>
+                              <CreatorNewImage file={file} />
+                              <button type="button" aria-label="Remove image"
+                                onClick={() => setNewImages((items) => items.filter((_, i) => i !== index))}>×</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {imageProgress && <p className="ct-image-upload-status" role="status">{imageProgress}</p>}
+                    </div>
                   </section>
                   <section className="bm-card ct-editor-card">
                     <h3>02 · Task video</h3>
@@ -315,6 +354,11 @@ export default function CreatorDashboardPage({
               {showPreview && <section className="bm-card ct-preview-task">
                 <span className="bm-eyebrow">TASK PREVIEW</span>
                 <h2>{title.trim() || 'Untitled task'}</h2>
+                <span className="ct-reward-pill">🟠 {rewardBp || 0} BP per task</span>
+                <div className="ct-image-grid ct-preview-images">
+                  {existingImages.map((image) => <CreatorTaskImage key={image.id} image={image} alt="Task picture" />)}
+                  {newImages.map((file, index) => <CreatorNewImage key={index} file={file} />)}
+                </div>
                 <p>{description || 'Your description will appear here.'}</p>
                 {videoPreview && <video src={videoPreview} controls playsInline />}
                 {groups.map((group) => <div key={group.key}>
