@@ -105,3 +105,60 @@
   .capture-music-list{max-height:140px;}
   .full-moment-view .moment-soundtrack{bottom:20px;}
 }
+
+/* 2026 Moments refresh: arrows stay CLEAR of the right-side action rail. */
+.full-moment-view .full-moment-controls {
+  padding-inline-start: clamp(12px, 2.6vw, 36px) !important;
+  padding-inline-end: max(106px, calc(80px + env(safe-area-inset-right))) !important;
+}
+.full-moment-view .full-moment-controls .moment-arrow {
+  width: 44px !important; height: 44px !important;
+  border-color: #ffffff80 !important;
+  background: #101014c9 !important;
+}
+.full-moment-view .full-moment-controls .moment-arrow:hover {
+  background: #fb6c00 !important;
+}
+.capture-filters {
+  border-color: rgba(255,149,69,.35);
+  background: linear-gradient(125deg,rgba(251,108,0,.11),rgba(172,78,195,.08));
+}
+.capture-filter-option {
+  border: 1px solid #ffffff2c;
+  border-radius: 17px;
+  min-height: 87px;
+  background: linear-gradient(160deg, #333240, #14141b);
+  box-shadow: inset 0 1px #ffffff19;
+}
+.capture-filter-option span {font-size:31px;filter:drop-shadow(0 4px 7px #0009);}
+.capture-filter-option small {font-size:11px;letter-spacing:.1px;}
+.capture-filter-option.selected {
+  background: linear-gradient(160deg,#783814,#321a2f);
+  border-color:#ffac66;
+  box-shadow:0 0 0 2px #fb6c0060,0 5px 14px #0005;
+}
+.capture-music-preview {
+  display:flex;align-items:center;flex-wrap:wrap;gap:10px;
+  padding:11px 13px;border-radius:12px;
+  border:1px solid #fb6c0055;background:#fb6c001b;
+}
+.capture-music-preview>span:not(.capture-playing-bars){font-size:12px;color:#ffe0c2;font-weight:750;}
+.capture-music-preview small {font-size:11px;color:#e8b695;}
+.capture-playing-bars {display:flex;align-items:flex-end;gap:3px;height:17px;}
+.capture-playing-bars i {
+  display:block;width:3px;height:9px;background:#ff9a42;border-radius:4px;
+  animation: blink-music-wave .65s ease-in-out infinite alternate;
+}
+.capture-playing-bars i:nth-child(2){height:15px;animation-delay:.18s;}
+.capture-playing-bars i:nth-child(3){height:11px;animation-delay:.36s;}
+.capture-playing-bars i:nth-child(4){height:16px;animation-delay:.12s;}
+@keyframes blink-music-wave {from{transform:scaleY(.45)}to{transform:scaleY(1)}}
+@media(max-width:700px){
+  .full-moment-view .full-moment-controls {
+    padding-inline-start:8px !important;
+    padding-inline-end:70px !important;
+  }
+  .full-moment-view .full-moment-controls .moment-arrow{width:37px !important;height:37px !important;}
+  .capture-filter-option{flex-basis:71px;min-height:79px;}
+}
+@media(prefers-reduced-motion:reduce){.capture-playing-bars i{animation:none}}
