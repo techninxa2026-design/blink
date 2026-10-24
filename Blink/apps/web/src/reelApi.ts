@@ -65,29 +65,23 @@ export async function videoCoverJpeg(videoFile: File, atSecond: number): Promise
       video.src = url;
       video.load();
     });
-    if (!Number.isFinite(video.duration) || !video.duration ||
-        !Number.isFinite(atSecond) || atSecond < 0 || atSecond > video.duration) {
-      throw new Error('Choose a valid cover frame.');
+    // Duration can be Infinity/NaN for freshly recorded WebM videos.
+    // A decodable frame is enough to create a thumbnail.
+    const target = Number.isFinite(atSecond) && atSecond > 0 ? atSecond : 0;
+    if (target > 0.01) {
+      await new Promise<void>((resolve) => {
+        const finish = () => { clearTimeout(timer); video.onseeked = null; resolve(); };
+        const timer = setTimeout(finish, 4000);
+        video.onseeked = finish;
+        try { video.currentTime = target; } catch { finish(); }
+      });
     }
-    const target = Math.min(atSecond, Math.max(0, video.duration - 0.05));
-    await new Promise<void>((resolve, reject) => {
-      const done = () => {
-        video.onseeked = null;
-        video.onloadeddata = null;
-        video.onerror = null;
-        resolve();
-      };
-      const fail = () => reject(new Error('Could not decode the selected cover frame.'));
-      video.onerror = fail;
-      if (target < 0.01) {
-        // Seeking to the already-current first frame need not fire 'seeked'.
-        if (video.readyState >= 2) done();
-        else video.onloadeddata = done;
-      } else {
-        video.onseeked = done;
-        video.currentTime = target;
-      }
-    });
+    if (video.readyState < 2) {
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(() => { video.onloadeddata = null; reject(new Error('Frame not decoded yet.')); }, 8000);
+        video.onloadeddata = () => { clearTimeout(timer); video.onloadeddata = null; resolve(); };
+      });
+    }
     const canvas = document.createElement('canvas');
     const naturalWidth = video.videoWidth || 720, naturalHeight = video.videoHeight || 1280;
     const scale = Math.min(1, 900 / Math.max(naturalWidth, naturalHeight));
@@ -108,14 +102,16 @@ export async function videoCoverJpeg(videoFile: File, atSecond: number): Promise
 }
 
 export async function uploadReel(video: File, cover: Blob, caption: string,
-  duration: number, coverTime: number): Promise<Reel> {
+  duration: number | null, coverTime: number): Promise<Reel> {
   const jwt = reelToken();
   if (!jwt) throw new Error('Sign in to publish a Reel.');
   const form = new FormData();
   form.append('video', video, video.name);
   form.append('thumbnail', cover, 'cover.jpg');
   form.append('caption', caption.trim());
-  form.append('duration', String(duration));
+  if (duration !== null && Number.isFinite(duration) && duration > 0) {
+    form.append('duration', String(duration));
+  }
   form.append('coverTime', String(coverTime));
   const response = await fetch(REELS_API + '/reels/upload', {
     method: 'POST', headers: { Authorization: 'Bearer ' + jwt }, body: form,
