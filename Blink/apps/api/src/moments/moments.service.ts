@@ -57,6 +57,76 @@ export class MomentsService {
     }));
   }
 
+async react(
+  userId: string,
+  momentId: string,
+  emoji: unknown,
+) {
+  const allowed = [
+    '❤️', '🧡', '😂', '😮', '🔥', '👏',
+  ];
+
+  if (
+    typeof emoji !== 'string' ||
+    !allowed.includes(emoji)
+  ) {
+    throw new BadRequestException(
+      'Invalid Moment reaction.',
+    );
+  }
+
+  await this.activePublicMoment(momentId);
+
+  const existing =
+    await this.prisma.momentReaction.findUnique({
+      where: {
+        momentId_userId: {
+          momentId,
+          userId,
+        },
+      },
+    });
+
+  // Clicking the same reaction again removes it.
+  if (existing?.emoji === emoji) {
+    await this.prisma.momentReaction.deleteMany({
+      where: {
+        momentId,
+        userId,
+        emoji,
+      },
+    });
+
+    return {
+      ok: true,
+      myReaction: null,
+    };
+  }
+
+  // First reaction or changing to a different emoji.
+  await this.prisma.momentReaction.upsert({
+    where: {
+      momentId_userId: {
+        momentId,
+        userId,
+      },
+    },
+    create: {
+      momentId,
+      userId,
+      emoji,
+    },
+    update: {
+      emoji,
+    },
+  });
+
+  return {
+    ok: true,
+    myReaction: emoji,
+  };
+}
+
   async findMine(userId: string) {
     const moments = await this.prisma.moment.findMany({
       where: { senderId: userId },
@@ -216,29 +286,98 @@ async getViews(userId: string, momentId: string) {
     return moment;
   }
 
-  async activity(userId: string, momentId: string) {
-    await this.activePublicMoment(momentId);
-    const [comments, commentCount, giftTotal, wallet] = await Promise.all([
-      this.prisma.momentComment.findMany({
-        where: { momentId },
-        orderBy: { createdAt: 'desc' },
-        take: 60,
-        include: { author: { select: { id: true, name: true, avatarKey: true } } },
-      }),
-      this.prisma.momentComment.count({ where: { momentId } }),
-      this.prisma.momentBpGift.aggregate({
-        where: { momentId },
-        _sum: { amount: true },
-      }),
-      this.prisma.user.findUnique({ where: { id: userId }, select: { blinkPoints: true } }),
-    ]);
-    return {
-      comments: comments.reverse().map(({ author, ...comment }) => ({ ...comment, author })),
-      commentCount,
-      bpTotal: giftTotal._sum.amount ?? 0,
-      myBalance: wallet?.blinkPoints ?? 0,
-    };
+  
+async activity(
+  userId: string,
+  momentId: string,
+) {
+  await this.activePublicMoment(momentId);
+
+  const [
+    comments,
+    commentCount,
+    giftTotal,
+    wallet,
+    reactionGroups,
+    myReaction,
+  ] = await Promise.all([
+    this.prisma.momentComment.findMany({
+      where: { momentId },
+      orderBy: { createdAt: 'desc' },
+      take: 60,
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            avatarKey: true,
+          },
+        },
+      },
+    }),
+
+    this.prisma.momentComment.count({
+      where: { momentId },
+    }),
+
+    this.prisma.momentBpGift.aggregate({
+      where: { momentId },
+      _sum: {
+        amount: true,
+      },
+    }),
+
+    this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        blinkPoints: true,
+      },
+    }),
+
+    this.prisma.momentReaction.groupBy({
+      by: ['emoji'],
+      where: { momentId },
+      _count: {
+        _all: true,
+      },
+    }),
+
+    this.prisma.momentReaction.findUnique({
+      where: {
+        momentId_userId: {
+          momentId,
+          userId,
+        },
+      },
+      select: {
+        emoji: true,
+      },
+    }),
+  ]);
+
+  const reactionCounts: Record<string, number> = {};
+
+  for (const group of reactionGroups) {
+    reactionCounts[group.emoji] = group._count._all;
   }
+
+  const reactionTotal = Object.values(
+    reactionCounts,
+  ).reduce((total, count) => total + count, 0);
+
+  return {
+    comments: comments.reverse(),
+    commentCount,
+
+    bpTotal: giftTotal._sum.amount ?? 0,
+    myBalance: Number(wallet?.blinkPoints ?? 0),
+
+    reactionCounts,
+    reactionTotal,
+    myReaction: myReaction?.emoji ?? null,
+  };
+}
+
 
   async comment(userId: string, momentId: string, body: unknown) {
     await this.activePublicMoment(momentId);

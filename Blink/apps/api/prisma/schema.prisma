@@ -63,21 +63,22 @@ model User {
   updatedAt    DateTime @updatedAt
 
   // Connections
-  businessChatMessages BusinessChatMessage[] @relation("BusinessChatSender")
-  businessMeetingsOrganized BusinessMeeting[] @relation("BusinessMeetingOrganizer")
-  businessMeetingsInvited BusinessMeeting[] @relation("BusinessMeetingAttendee")
-  sentRequests     FriendRequest[] @relation("SentRequests")
-  receivedRequests FriendRequest[] @relation("ReceivedRequests")
+  businessChatMessages      BusinessChatMessage[] @relation("BusinessChatSender")
+  businessMeetingsOrganized BusinessMeeting[]     @relation("BusinessMeetingOrganizer")
+  businessMeetingsInvited   BusinessMeeting[]     @relation("BusinessMeetingAttendee")
+  sentRequests              FriendRequest[]       @relation("SentRequests")
+  receivedRequests          FriendRequest[]       @relation("ReceivedRequests")
 
   friendshipsA Friendship[] @relation("FriendshipA")
   friendshipsB Friendship[] @relation("FriendshipB")
 
   // Moments
-  moments         Moment[]     @relation("MomentSender")
-  receivedMoments Moment[]     @relation("MomentRecipient")
+  moments         Moment[]         @relation("MomentSender")
+  receivedMoments Moment[]         @relation("MomentRecipient")
   momentViews     MomentView[]
   momentComments  MomentComment[]
   momentBpGifts   MomentBpGift[]
+  momentReactions MomentReaction[]
 
   // Main Inbox
   conversationMemberships ConversationMember[]
@@ -104,18 +105,22 @@ model User {
   exchangeThreadsStarted ExchangeThread[]      @relation("ExchangeThreadRequester")
   exchangeChatMessages   ExchangeChatMessage[] @relation("ExchangeChatSender")
 
-  // Blink Secrets + Heart (add inside existing model User; don't replace it)
+  // Blink Secrets and Hearts
   blinkPoints          Int                   @default(0)
   blinkSecretsCreated  BlinkSecret[]         @relation("BlinkSecretCreator")
   blinkSecretGuesses   BlinkSecretGuess[]
   blinkSecretRewards   BlinkSecretReward[]
   blinkSecretReactions BlinkSecretReaction[]
-  heartThreadsSent     BlinkHeartThread[]    @relation("BlinkHeartSender")
-  heartThreadsReceived BlinkHeartThread[]    @relation("BlinkHeartReceiver")
-  heartMessages        BlinkHeartMessage[]   @relation("BlinkHeartMessageAuthor")
+
+  heartThreadsSent     BlinkHeartThread[]  @relation("BlinkHeartSender")
+  heartThreadsReceived BlinkHeartThread[]  @relation("BlinkHeartReceiver")
+  heartMessages        BlinkHeartMessage[] @relation("BlinkHeartMessageAuthor")
+
   irlMessages IrlMessage[]
-  businessProfile BusinessProfile?
-  businessRequestsSent BusinessConnectionRequest[] @relation("BusinessRequestSender")
+
+  // Business Match
+  businessProfile          BusinessProfile?
+  businessRequestsSent     BusinessConnectionRequest[] @relation("BusinessRequestSender")
   businessRequestsReceived BusinessConnectionRequest[] @relation("BusinessRequestReceiver")
 }
 
@@ -169,16 +174,22 @@ model Moment {
   createdAt   DateTime   @default(now())
   expiresAt   DateTime?
 
-  sender    User         @relation("MomentSender", fields: [senderId], references: [id], onDelete: Cascade)
-  recipient User?        @relation("MomentRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  sender    User  @relation("MomentSender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient User? @relation("MomentRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
   views     MomentView[]
   comments  MomentComment[]
   bpGifts   MomentBpGift[]
+  reactions MomentReaction[]
 
   @@index([senderId, type, createdAt])
   @@index([recipientId, type, createdAt])
   @@index([expiresAt])
 }
+
+// ======================================================
+// MOMENT VIEWS
+// ======================================================
 
 model MomentView {
   id        String   @id @default(cuid())
@@ -194,6 +205,9 @@ model MomentView {
   @@index([viewerId, expiresAt])
 }
 
+// ======================================================
+// MOMENT COMMENTS
+// ======================================================
 
 model MomentComment {
   id        String   @id @default(cuid())
@@ -209,6 +223,10 @@ model MomentComment {
   @@index([authorId])
 }
 
+// ======================================================
+// MOMENT BP GIFTS
+// ======================================================
+
 model MomentBpGift {
   id        String   @id @default(cuid())
   momentId  String
@@ -221,6 +239,25 @@ model MomentBpGift {
 
   @@index([momentId, createdAt])
   @@index([senderId, createdAt])
+}
+
+// ======================================================
+// MOMENT REACTIONS — CORRECTED
+// ======================================================
+
+model MomentReaction {
+  id        String   @id @default(cuid())
+  momentId  String
+  userId    String
+  emoji     String   @db.VarChar(16)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  moment Moment @relation(fields: [momentId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([momentId, userId])
+  @@index([momentId, emoji])
 }
 
 // ======================================================
@@ -257,6 +294,10 @@ model ConversationMember {
   @@unique([conversationId, userId])
   @@index([userId])
 }
+
+// ======================================================
+// MESSAGES
+// ======================================================
 
 model Message {
   id              String    @id @default(cuid())
@@ -337,9 +378,6 @@ model UserBlock {
 // CHECK-INS
 // ======================================================
 
-// One current check-in per user.
-// An expired check-in can be replaced.
-
 model Checkin {
   id        String    @id @default(cuid())
   userId    String    @unique
@@ -360,8 +398,6 @@ model Checkin {
 // IRL PLANS
 // ======================================================
 
-// IRL remains separate from the main Blink Inbox.
-
 model IrlPlan {
   id          String   @id @default(cuid())
   creatorId   String
@@ -380,8 +416,8 @@ model IrlPlan {
 
   interests   IrlInterest[]
   invitations IrlInvitation[]
+  messages    IrlMessage[]
 
-  messages IrlMessage[]
   @@index([creatorId, startsAt])
   @@index([startsAt])
 }
@@ -458,10 +494,8 @@ model ExchangeMedia {
 }
 
 // ======================================================
-// EXISTING EXCHANGE RESPONSES
+// EXCHANGE RESPONSES
 // ======================================================
-
-// Retained for compatibility with existing Blink data.
 
 model ExchangeResponse {
   id             String    @id @default(cuid())
@@ -479,7 +513,7 @@ model ExchangeResponse {
 }
 
 // ======================================================
-// EXCHANGE PRIVATE CHAT THREADS
+// EXCHANGE THREADS
 // ======================================================
 
 model ExchangeThread {
@@ -489,25 +523,20 @@ model ExchangeThread {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // Exchange post
   post ExchangePost @relation(fields: [postId], references: [id], onDelete: Cascade)
 
-  // Interested customer
   requester User @relation("ExchangeThreadRequester", fields: [requesterId], references: [id], onDelete: Cascade)
 
-  // Private messages
   messages ExchangeChatMessage[]
 
-  // One service price offer per conversation
   priceOffer ExchangePriceOffer?
 
-  // One private thread per customer per post
   @@unique([postId, requesterId])
   @@index([requesterId, updatedAt])
 }
 
 // ======================================================
-// EXCHANGE PRIVATE CHAT MESSAGES
+// EXCHANGE CHAT MESSAGES
 // ======================================================
 
 model ExchangeChatMessage {
@@ -518,36 +547,21 @@ model ExchangeChatMessage {
   createdAt DateTime @default(now())
 
   thread ExchangeThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
-
-  sender User @relation("ExchangeChatSender", fields: [senderId], references: [id], onDelete: Cascade)
+  sender User           @relation("ExchangeChatSender", fields: [senderId], references: [id], onDelete: Cascade)
 
   @@index([threadId, createdAt])
 }
 
 // ======================================================
-// EXCHANGE PRICE OFFER
+// EXCHANGE PRICE OFFERS
 // ======================================================
-
-// Customer:
-// - Can offer a service price
-// - Can select a currency
-// - Can edit amount and currency while pending
-//
-// Provider (post author):
-// - Can accept an offer
-// - Can decline an offer
-//
-// One offer exists per private conversation.
-// Accepted or declined offers are locked by backend logic.
 
 model ExchangePriceOffer {
   id       String @id @default(cuid())
   threadId String @unique
 
-  // Money is stored as Decimal for accuracy.
   amount Decimal @db.Decimal(18, 2)
 
-  // ISO currency code, e.g. BDT, USD, EUR.
   currency String @db.VarChar(3)
 
   status ExchangeOfferStatus @default(PENDING)
@@ -561,7 +575,10 @@ model ExchangePriceOffer {
   @@index([status])
 }
 
-// ==================== BLINK SECRETS ====================
+// ======================================================
+// BLINK SECRETS
+// ======================================================
+
 enum BlinkSecretVisibility {
   ANONYMOUS
   NAMED
@@ -577,10 +594,12 @@ model BlinkSecret {
   revealAt     DateTime
   createdAt    DateTime              @default(now())
   editedAt     DateTime?
-  creator      User                  @relation("BlinkSecretCreator", fields: [creatorId], references: [id], onDelete: Cascade)
-  guesses      BlinkSecretGuess[]
-  rewards      BlinkSecretReward[]
-  reactions    BlinkSecretReaction[]
+
+  creator User @relation("BlinkSecretCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+
+  guesses   BlinkSecretGuess[]
+  rewards   BlinkSecretReward[]
+  reactions BlinkSecretReaction[]
 
   @@index([createdAt])
   @@index([revealAt])
@@ -588,13 +607,14 @@ model BlinkSecret {
 }
 
 model BlinkSecretGuess {
-  id            String      @id @default(cuid())
+  id            String   @id @default(cuid())
   secretId      String
   userId        String
   selectedIndex Int
-  createdAt     DateTime    @default(now())
-  secret        BlinkSecret @relation(fields: [secretId], references: [id], onDelete: Cascade)
-  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+
+  secret BlinkSecret @relation(fields: [secretId], references: [id], onDelete: Cascade)
+  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([secretId, userId])
   @@index([userId])
@@ -603,10 +623,11 @@ model BlinkSecretGuess {
 model BlinkSecretReward {
   secretId  String
   userId    String
-  points    Int         @default(10)
-  createdAt DateTime    @default(now())
-  secret    BlinkSecret @relation(fields: [secretId], references: [id], onDelete: Cascade)
-  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  points    Int      @default(10)
+  createdAt DateTime @default(now())
+
+  secret BlinkSecret @relation(fields: [secretId], references: [id], onDelete: Cascade)
+  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([secretId, userId])
   @@index([userId])
@@ -615,34 +636,38 @@ model BlinkSecretReward {
 model BlinkSecretReaction {
   secretId  String
   userId    String
-  emoji     String      @db.VarChar(16)
-  createdAt DateTime    @default(now())
-  secret    BlinkSecret @relation(fields: [secretId], references: [id], onDelete: Cascade)
-  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emoji     String   @db.VarChar(16)
+  createdAt DateTime @default(now())
+
+  secret BlinkSecret @relation(fields: [secretId], references: [id], onDelete: Cascade)
+  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([secretId, userId])
 }
 
-// ==================== BLINK HEART ====================
+// ======================================================
+// BLINK HEARTS
+// ======================================================
+
 enum BlinkHeartStatus {
   PENDING
   ACCEPTED
   DECLINED
 }
 
-// One thread per sender + receiver. A pending sender can add more Hearts;
-// a new Heart reopens a declined request. No read receipts are stored.
 model BlinkHeartThread {
-  id             String              @id @default(cuid())
+  id             String           @id @default(cuid())
   senderId       String
   receiverId     String
-  status         BlinkHeartStatus    @default(PENDING)
-  senderRevealed Boolean             @default(false)
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
-  sender         User                @relation("BlinkHeartSender", fields: [senderId], references: [id], onDelete: Cascade)
-  receiver       User                @relation("BlinkHeartReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
-  messages       BlinkHeartMessage[]
+  status         BlinkHeartStatus @default(PENDING)
+  senderRevealed Boolean          @default(false)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  sender   User @relation("BlinkHeartSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User @relation("BlinkHeartReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  messages BlinkHeartMessage[]
 
   @@unique([senderId, receiverId])
   @@index([receiverId, updatedAt])
@@ -650,34 +675,41 @@ model BlinkHeartThread {
 }
 
 model BlinkHeartMessage {
-  id        String           @id @default(cuid())
+  id        String    @id @default(cuid())
   threadId  String
   authorId  String
-  text      String           @db.VarChar(2000)
-  createdAt DateTime         @default(now())
+  text      String    @db.VarChar(2000)
+  createdAt DateTime  @default(now())
   editedAt  DateTime?
-  thread    BlinkHeartThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  author    User             @relation("BlinkHeartMessageAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  thread BlinkHeartThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  author User             @relation("BlinkHeartMessageAuthor", fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([threadId, createdAt])
 }
 
-// Phase 3: dedicated plan conversation, separate from main Blink messages.
+// ======================================================
+// IRL MESSAGES
+// ======================================================
+
 model IrlMessage {
   id        String   @id @default(cuid())
   planId    String
   senderId  String
   text      String   @db.VarChar(2000)
   createdAt DateTime @default(now())
-  plan      IrlPlan  @relation(fields: [planId], references: [id], onDelete: Cascade)
-  sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  plan   IrlPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  sender User    @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
   @@index([planId, createdAt])
   @@index([senderId])
 }
 
+// ======================================================
+// BUSINESS MATCH
+// ======================================================
 
-// Business Match is separate from social friendships, Inbox, and IRL.
 enum BusinessProfileType {
   PROFESSIONAL
   COMPANY
@@ -697,13 +729,17 @@ model BusinessProfile {
   active     Boolean             @default(false)
   createdAt  DateTime            @default(now())
   updatedAt  DateTime            @updatedAt
-  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([active, type])
   @@index([active, industry])
 }
 
-// BM-4: business relationships never touch Blink social FriendRequest/Friendship.
+// ======================================================
+// BUSINESS CONNECTION REQUESTS
+// ======================================================
+
 enum BusinessConnectionStatus {
   PENDING
   ACCEPTED
@@ -711,35 +747,46 @@ enum BusinessConnectionStatus {
 }
 
 model BusinessConnectionRequest {
-  id String @id @default(cuid())
-  senderId String
+  id         String                   @id @default(cuid())
+  senderId   String
   receiverId String
-  status BusinessConnectionStatus @default(PENDING)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  status     BusinessConnectionStatus @default(PENDING)
+  createdAt  DateTime                 @default(now())
+  updatedAt  DateTime                 @updatedAt
+
   messages BusinessChatMessage[]
   meetings BusinessMeeting[]
-  sender User @relation("BusinessRequestSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  sender   User @relation("BusinessRequestSender", fields: [senderId], references: [id], onDelete: Cascade)
   receiver User @relation("BusinessRequestReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
   @@unique([senderId, receiverId])
   @@index([receiverId, status, createdAt])
   @@index([senderId, status, createdAt])
 }
 
-// BM-5: Business chat is isolated from Blink Inbox and IRL messages.
+// ======================================================
+// BUSINESS CHAT MESSAGES
+// ======================================================
+
 model BusinessChatMessage {
-  id String @id @default(cuid())
+  id           String   @id @default(cuid())
   connectionId String
-  senderId String
-  text String @db.VarChar(2000)
-  createdAt DateTime @default(now())
+  senderId     String
+  text         String   @db.VarChar(2000)
+  createdAt    DateTime @default(now())
+
   connection BusinessConnectionRequest @relation(fields: [connectionId], references: [id], onDelete: Cascade)
-  sender User @relation("BusinessChatSender", fields: [senderId], references: [id], onDelete: Cascade)
+  sender     User                      @relation("BusinessChatSender", fields: [senderId], references: [id], onDelete: Cascade)
+
   @@index([connectionId, createdAt, id])
   @@index([senderId])
 }
 
-// BM-6: private meetings, independent of Blink IRL plans.
+// ======================================================
+// BUSINESS MEETINGS
+// ======================================================
+
 enum BusinessMeetingStatus {
   PENDING
   ACCEPTED
@@ -748,21 +795,23 @@ enum BusinessMeetingStatus {
 }
 
 model BusinessMeeting {
-  id String @id @default(cuid())
+  id           String                @id @default(cuid())
   connectionId String
-  organizerId String
-  attendeeId String
-  title String @db.VarChar(120)
-  agenda String @default("") @db.VarChar(1000)
-  location String @default("") @db.VarChar(300)
-  startsAt DateTime
-  endsAt DateTime
-  status BusinessMeetingStatus @default(PENDING)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  organizerId  String
+  attendeeId   String
+  title        String                @db.VarChar(120)
+  agenda       String                @default("") @db.VarChar(1000)
+  location     String                @default("") @db.VarChar(300)
+  startsAt     DateTime
+  endsAt       DateTime
+  status       BusinessMeetingStatus @default(PENDING)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
   connection BusinessConnectionRequest @relation(fields: [connectionId], references: [id], onDelete: Cascade)
-  organizer User @relation("BusinessMeetingOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
-  attendee User @relation("BusinessMeetingAttendee", fields: [attendeeId], references: [id], onDelete: Cascade)
+  organizer  User                      @relation("BusinessMeetingOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
+  attendee   User                      @relation("BusinessMeetingAttendee", fields: [attendeeId], references: [id], onDelete: Cascade)
+
   @@index([organizerId, startsAt])
   @@index([attendeeId, startsAt])
   @@index([connectionId, startsAt])

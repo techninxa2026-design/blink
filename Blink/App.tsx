@@ -4,16 +4,35 @@ import {
   useRef,
   useState,
   type FormEvent,
+  type ReactNode,
 } from 'react';
+
 import './App.css';
+
+import SecretsPage from './SecretsPage';
+import HeartPage from './HeartPage';
+import ExchangePage from './exchnagePage';
+import ExchangePostPage from './ExchangePostPage';
 import ProfilePage from './ProfilePage';
 import FriendsPage from './FriendsPage';
 import PublicProfilePage from './PublicProfilePage';
 import InboxPage from './InboxPage';
-import ExchangePage from './ExchangePage';
-import ExchangePostPage from './ExchangePostPage';
+import CheckinsPage from './CheckinsPage';
+import IrlPage from './IrlPage';
+import BusinessMatchPage from './BusinessMatchPage';
+import MomentActions from './MomentActions';
+import {
+  NotesRow,
+  useActiveCheckins,
+} from './CheckinPreview';
 
-const API_URL = 'http://localhost:3000';
+const API = (
+  import.meta.env.VITE_API_URL ||
+  'http://localhost:3000'
+).replace(/\/$/, '');
+
+type Theme = 'light' | 'dark';
+type MediaKind = 'photo' | 'video';
 
 type User = {
   id: string;
@@ -21,1726 +40,2912 @@ type User = {
   email: string;
   phoneNumber?: string;
   avatarKey?: string | null;
-  createdAt?: string;
 };
 
 type AuthResponse = {
-  message?: string | string[];
   accessToken?: string;
   user?: User;
+  message?: string | string[];
 };
 
-type Moment = {
-  id: string;
-  name: string;
-  initials: string;
-  time: string;
-  caption: string;
-  image: string;
-  kind: 'photo' | 'video';
-  duration?: string;
-  apiId?: string;
-  isMine?: boolean;
-  senderId?: string;
-};
 type ApiMoment = {
   id: string;
   senderId: string;
   mediaUrl: string;
-  mediaType: 'photo' | 'video';
+  mediaType: MediaKind;
   caption: string | null;
   createdAt: string;
-  sender: {
+  sender?: {
     id: string;
     name: string;
     avatarKey?: string | null;
   };
 };
 
-
 type MomentViewer = {
   viewerId: string;
   name: string;
-  avatarKey?: string | null;
   viewedAt: string;
+  avatarKey?: string | null;
 };
 
+type Route =
+  | 'home'
+  | 'profile'
+  | 'public-profile'
+  | 'connections'
+  | 'checkins'
+  | 'irl'
+  | 'secrets'
+  | 'hearts'
+  | 'business-match'
+  | 'settings'
+  | 'inbox'
+  | 'exchange'
+  | 'exchange-post'
+  | 'login'
+  | 'signup';
 
+const NAV = [
+  { label: 'Home', icon: '⌂', path: '/home' },
+  { label: 'Connections', icon: '♧', path: '/connections' },
+  { label: 'Capture', icon: '+', path: '' },
+  { label: 'Checkins', icon: '⌖', path: '/checkins' },
+  { label: 'IRL', icon: '▣', path: '/irl' },
+] as const;
 
+function token(): string | null {
+  return (
+    localStorage.getItem('blink-access-token') ||
+    sessionStorage.getItem('blink-access-token')
+  );
+}
 
-
-const demoMoments: Moment[] = [
-  {
-    id: '1',
-    name: 'Sarah Wilson',
-    initials: 'SW',
-    time: '2h ago',
-    caption: 'Chasing better sunsets 🧡',
-    image:
-      'https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?auto=format&fit=crop&w=1100&q=85',
-    kind: 'photo',
-  },
-  {
-    id: '2',
-    name: 'James Carter',
-    initials: 'JC',
-    time: '4h ago',
-    caption: 'Good friends. Great vibes. 🔥',
-    image:
-      'https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?auto=format&fit=crop&w=1100&q=85',
-    kind: 'video',
-    duration: '0:18',
-  },
-  {
-    id: '3',
-    name: 'Maya Ahmed',
-    initials: 'MA',
-    time: '5h ago',
-    caption: 'A little escape from the everyday 🌿',
-    image:
-      'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=1100&q=85',
-    kind: 'photo',
-  },
-];
-
-type NavItem = {
-  label: string;
-  symbol: string;
-};
-
-const navItems: NavItem[] = [
-  { label: 'Home', symbol: '⌂' },
-  { label: 'Connections', symbol: '♧' },
-  { label: 'Capture', symbol: '+' },
-  { label: 'Checkins', symbol: '⌖' },
-  { label: 'IRL', symbol: '▣' },
-];
-
-function readStoredUser(): User | null {
+function storedUser(): User | null {
   try {
-    const value =
+    const raw =
       sessionStorage.getItem('blink-user') ||
       localStorage.getItem('blink-user');
 
-    return value ? (JSON.parse(value) as User) : null;
+    return raw
+      ? (JSON.parse(raw) as User)
+      : null;
   } catch {
     return null;
   }
 }
 
-function readStoredToken(): string | null {
-  try {
-    return (
-      localStorage.getItem('blink-access-token') ||
-      sessionStorage.getItem('blink-access-token')
-    );
-  } catch {
-    return null;
-  }
+function asset(key?: string | null): string {
+  if (!key) return '';
+
+  return /^https?:\/\//i.test(key)
+    ? key
+    : `${API}${
+        key.startsWith('/')
+          ? key
+          : `/uploads/${encodeURIComponent(key)}`
+      }`;
 }
+
+function messageOf(
+  data: { message?: string | string[] } | null,
+  fallback: string,
+): string {
+  if (Array.isArray(data?.message)) {
+    return data.message.join(', ');
+  }
+
+  return data?.message || fallback;
+}
+
+function routeFromPath(path: string): Route {
+  if (/^\/profile\/user\/[^/]+$/.test(path)) {
+    return 'public-profile';
+  }
+
+  if (/^\/exchange\/[^/]+$/.test(path)) {
+    return 'exchange-post';
+  }
+
+  const map: Record<string, Route> = {
+    '/home': 'home',
+    '/profile': 'profile',
+    '/connections': 'connections',
+    '/checkins': 'checkins',
+    '/irl': 'irl',
+    '/secrets': 'secrets',
+    '/hearts': 'hearts',
+    '/business-match': 'business-match',
+    '/settings': 'settings',
+    '/inbox': 'inbox',
+    '/exchange': 'exchange',
+    '/login': 'login',
+    '/': 'signup',
+  };
+
+  return map[path] || 'signup';
+}
+
+const MOMENT_OVERLAY_CSS = `
+/* This file affects ONLY the full-screen moment viewer.
+   All Home, Secrets, Hearts, Check-ins and Exchange styling stays unchanged. */
+.blink-moment-classic {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  overflow: hidden;
+  background: #090909;
+  color: #fff;
+  isolation: isolate;
+}
+
+.blink-moment-classic > .full-moment-media {
+  position: absolute !important;
+  inset: 0 !important;
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  object-fit: contain !important;
+  background: #090909;
+  z-index: 0;
+}
+
+.blink-moment-classic > .full-moment-shade {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(180deg, #0008, transparent 21%, transparent 65%, #0009);
+  pointer-events: none;
+}
+
+.blink-moment-classic > .full-moment-header {
+  position: absolute;
+  z-index: 8;
+  top: max(20px, env(safe-area-inset-top));
+  left: clamp(15px, 3vw, 54px);
+  right: clamp(15px, 3vw, 54px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.blink-moment-classic .moment-author-profile-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  width: auto;
+  height: auto;
+  margin-left: 0;
+  border-radius: 0;
+  flex-shrink: 1;
+  color: #fff;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.blink-moment-classic .moment-author-profile-button .moment-avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 58px;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  background: #fb6c00;
+  color: #fff;
+  font-weight: 800;
+  font-size: 24px;
+}
+
+.blink-moment-classic .moment-author-profile-button .moment-author {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.blink-moment-classic .moment-author-profile-button .moment-author strong {
+  color: #fff;
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.blink-moment-classic .moment-author-profile-button .moment-author span {
+  color: #e6e6e6;
+  font-size: 13px;
+}
+
+.blink-moment-classic .moment-close {
+  flex: 0 0 56px;
+  display: grid;
+  place-items: center;
+  margin-left: auto;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 1px solid #ffffff70;
+  background: #06060670;
+  color: #fff;
+  font-size: 27px;
+  cursor: pointer;
+}
+
+.blink-moment-classic .full-moment-caption {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  right: auto;
+  bottom: 24%;
+  width: min(550px, calc(100% - 190px));
+  margin: 0;
+  transform: translateX(-50%);
+  color: #fff;
+  font-size: clamp(15px, 2vw, 20px);
+  font-weight: 700;
+  text-align: center;
+  text-shadow: 0 2px 8px #000b;
+  pointer-events: none;
+}
+
+.blink-moment-classic .moment-viewers-button {
+  position: absolute;
+  z-index: 8;
+  bottom: 15%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.blink-moment-classic .full-moment-controls {
+  position: absolute;
+  z-index: 8;
+  left: 50%;
+  right: auto;
+  bottom: max(65px, 8%);
+  transform: translateX(-50%);
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  white-space: nowrap;
+}
+
+.blink-moment-classic .moment-viewers-panel {
+  z-index: 30;
+}
+
+/* Keep the interaction buttons visible, especially on wide landscape photos. */
+.blink-moment-classic .bma-root {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.blink-moment-classic .bma-rail {
+  z-index: 4;
+  right: clamp(13px, 2vw, 30px);
+  bottom: max(95px, env(safe-area-inset-bottom));
+}
+
+/* Right-side drawer must remain above video controls and the viewer. */
+.blink-moment-classic .bma-backdrop {
+  z-index: 40;
+}
+
+.blink-moment-classic .bma-panel {
+  z-index: 41;
+}
+
+.blink-moment-classic .bma-message {
+  z-index: 30;
+}
+
+@media (max-width: 700px) {
+  .blink-moment-classic .moment-author-profile-button .moment-avatar {
+    width: 42px;
+    height: 42px;
+    flex-basis: 42px;
+    font-size: 17px;
+  }
+  .blink-moment-classic .moment-author-profile-button .moment-author strong {
+    font-size: 13px;
+  }
+  .blink-moment-classic .moment-author-profile-button .moment-author span {
+    font-size: 10px;
+  }
+  .blink-moment-classic .moment-close {
+    width: 42px;
+    height: 42px;
+    flex-basis: 42px;
+  }
+  .blink-moment-classic .full-moment-caption {
+    width: calc(100% - 130px);
+    bottom: 30%;
+    font-size: 15px;
+  }
+  .blink-moment-classic .moment-viewers-button {
+    bottom: 20%;
+  }
+  .blink-moment-classic .full-moment-controls {
+    bottom: 13%;
+    gap: 8px;
+  }
+  .blink-moment-classic .full-moment-controls button {
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+  .blink-moment-classic .bma-rail {
+    right: 8px;
+    bottom: 15%;
+  }
+  .blink-moment-classic .bma-panel { z-index: 41; }
+}
+
+`;
 
 export default function App() {
-  const [route, setRoute] = useState(() => {
-    const path = window.location.pathname;
-    if (/^\/exchange\/[^/]+$/.test(path)) return 'exchange-post';
-    if (path === '/exchange') return 'exchange';
-    if (/^\/profile\/user\/[^/]+$/.test(path)) return 'public-profile';
-    if (path === '/profile') return 'profile';
-    if (path === '/connections') return 'connections';
-    if (path === '/inbox') return 'inbox';
-    if (path === '/home') return 'home';
-    if (path === '/login') return 'login';
-    return 'signup';
-  });
+  // ROUTING
 
-  const [publicProfileId, setPublicProfileId] = useState<string | null>(() => {
-    const match = window.location.pathname.match(/^\/profile\/user\/([^/]+)$/);
-    return match ? decodeURIComponent(match[1]) : null;
-  });
+  const [route, setRoute] = useState<Route>(() =>
+    routeFromPath(window.location.pathname),
+  );
 
-  const [exchangePostId, setExchangePostId] = useState<string | null>(() => {
-    const match = window.location.pathname.match(/^\/exchange\/([^/]+)$/);
-    return match ? decodeURIComponent(match[1]) : null;
-  });
+  const [exchangePostId, setExchangePostId] =
+    useState<string | null>(() =>
+      window.location.pathname.match(
+        /^\/exchange\/([^/]+)$/,
+      )?.[1] ?? null,
+    );
 
+  const [publicProfileId, setPublicProfileId] =
+    useState<string | null>(() =>
+      window.location.pathname.match(
+        /^\/profile\/user\/([^/]+)$/,
+      )?.[1] ?? null,
+    );
 
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    try {
-      return localStorage.getItem('blink-theme') === 'dark'
-        ? 'dark'
-        : 'light';
-    } catch {
-      return 'light';
-    }
-  });
+  const [theme, setTheme] = useState<Theme>(() =>
+    localStorage.getItem('blink-theme') === 'dark'
+      ? 'dark'
+      : 'light',
+  );
 
-  const [, setUser] = useState<User | null>(readStoredUser);
-  
-const [momentViewers, setMomentViewers] = useState<MomentViewer[]>([]);
-const [showMomentViewers, setShowMomentViewers] = useState(false);
-const [loadingMomentViewers, setLoadingMomentViewers] = useState(false);
-const [momentViewersError, setMomentViewersError] = useState('');
+  const [user, setUser] =
+    useState<User | null>(storedUser);
+
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [notice, setNotice] = useState('');
+  const [selectedNav, setSelectedNav] =
+    useState('Home');
+
+  // MOMENTS
+
+  const [moments, setMoments] =
+    useState<ApiMoment[]>([]);
+
+  const [momentsLoading, setMomentsLoading] =
+    useState(false);
+
+  const [momentsError, setMomentsError] =
+    useState('');
+
+  const [visibleCount, setVisibleCount] =
+    useState(35);
+
+  const [selectedMomentId, setSelectedMomentId] =
+    useState<string | null>(null);
+
+  // VIEWERS
+
+  const [viewersOpen, setViewersOpen] =
+    useState(false);
+
+  const [viewers, setViewers] =
+    useState<MomentViewer[]>([]);
+
+  const [viewersLoading, setViewersLoading] =
+    useState(false);
+
+  const [viewersError, setViewersError] =
+    useState('');
+
+  // BLINK POINTS
+
+  const [bpBalance, setBpBalance] =
+    useState<number | null>(null);
+
+  // CHECK-INS
+
+  const {
+    items: checkins,
+    loading: checkinsLoading,
+  } = useActiveCheckins(route === 'home');
+
+  // AUTHENTICATION
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-
-  const [menuOpen, setMenuOpen] = useState(false);
-  
-  
-const [momentIndex, setMomentIndex] = useState(0);
-const [selectedNav, setSelectedNav] = useState('Home');
-const [fullMoment, setFullMoment] = useState(false);
-const [selectedMomentId, setSelectedMomentId] = useState<string | null>(null);
-const [visibleMomentCount, setVisibleMomentCount] = useState(35);
-const [notice, setNotice] = useState('');
-const [apiMoments, setApiMoments] = useState<ApiMoment[]>([]);
-const [, setIsLoadingMoments] = useState(false);
-const [, setMomentsError] = useState('');
-
-const [captureMode, setCaptureMode] = useState<'photo' | 'video'>('photo');
-const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
-const [capturedMedia, setCapturedMedia] = useState<string | null>(null);
-const [capturedType, setCapturedType] = useState<'photo' | 'video' | null>(null);
-const [isRecording, setIsRecording] = useState(false);
-const [cameraError, setCameraError] = useState('');
-const [isPostingDemo, setIsPostingDemo] = useState(false);
-
-const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
-const cameraCanvasRef = useRef<HTMLCanvasElement | null>(null);
-const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-const recordedChunksRef = useRef<Blob[]>([]);
-
-
-  // Demo-only flag until moment upload is connected to the backend.
-  const [hasPostedMoment, setHasPostedMoment] = useState(() => {
-    try {
-      return localStorage.getItem('blink-demo-first-moment') === 'true';
-    } catch {
-      return false;
-    }
-  });
-
-  const touchStart = useRef<{ x: number; y: number } | null>(null);
- const allMoments: Moment[] = [
-  ...apiMoments.map((moment) => ({
-    id: `api-${moment.id}`,
-    apiId: moment.id,
-    senderId: moment.senderId,
-    isMine: moment.senderId === readStoredUser()?.id,
-    name: moment.sender?.name ?? 'Blink user',
-    initials: (moment.sender?.name ?? 'B')
-      .split(' ')
-      .map((part) => part[0] ?? '')
-      .join('')
-      .slice(0, 2)
-      .toUpperCase(),
-    time: new Date(moment.createdAt).toLocaleString(),
-    caption: moment.caption ?? '',
-    image: moment.mediaUrl.startsWith('http')
-      ? moment.mediaUrl
-      : `${API_URL}${moment.mediaUrl}`,
-    kind: moment.mediaType,
-  })),
-  ...Array.from({ length: 105 }, (_, index) => {
-    const original = demoMoments[index % demoMoments.length];
-
-    return {
-      ...original,
-      id: `demo-${index + 1}`,
-      time: index < 3 ? original.time : `${index + 1}h ago`,
-    };
-  }),
-];
-
-const activeMoment =
-  allMoments.find((moment) => moment.id === selectedMomentId) ??
-  allMoments[momentIndex];
-
-  useEffect(() => {
-  document.documentElement.dataset.theme = theme;
-
-  try {
-    localStorage.setItem('blink-theme', theme);
-  } catch {
-    // Theme remains available for this session.
-  }
-}, [theme]);
-
-useEffect(() => {
-  if (selectedNav !== 'Capture' || capturedMedia) {
-    return;
-  }
-
-  let cancelled = false;
-  let activeStream: MediaStream | null = null;
-
-  async function openCamera() {
-    setCameraError('');
-
-    if (!navigator.mediaDevices?.getUserMedia) {
-      setCameraError(
-        'Camera access requires localhost or a secure HTTPS connection.'
-      );
-      return;
-    }
+  const [showPassword, setShowPassword] =
+    useState(false);
 
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' } },
-        audio: true,
-      });
-
-      if (cancelled) {
-        stream.getTracks().forEach((track) => track.stop());
-        return;
-      }
-
-      activeStream = stream;
-      setCameraStream(stream);
-    } catch {
-      if (!cancelled) {
-        setCameraError(
-          'Camera permission was denied or no camera is available.'
-        );
-      }
-    }
-  }
-
-
-
-
-  void openCamera();
-
-  return () => {
-    cancelled = true;
-
-    activeStream?.getTracks().forEach((track) => track.stop());
-  };
-}, [selectedNav, capturedMedia]);
-
-
-useEffect(() => {
-  const video = cameraVideoRef.current;
-
-  if (!video || !cameraStream || capturedMedia) {
-    return;
-  }
-
-  if (video.srcObject !== cameraStream) {
-    video.srcObject = cameraStream;
-  }
-
-  void video.play().catch(() => {
-    // The browser may delay playback until the video is ready.
-  });
-}, [cameraStream, capturedMedia, selectedNav]);
-
-
-
-async function loadApiMoments() {
-  const token = readStoredToken();
-
-  if (!token) {
-    setApiMoments([]);
-    return;
-  }
-
-  setIsLoadingMoments(true);
-  setMomentsError('');
-
-  try {
-    const response = await fetch(`${API_URL}/moments`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+  const [rememberMe, setRememberMe] =
+    useState(true);
 
-    if (!response.ok) {
-      throw new Error(`Could not load moments (${response.status})`);
-    }
+  const [authLoading, setAuthLoading] =
+    useState(false);
 
-    const data: ApiMoment[] = await response.json();
-    setApiMoments(data);
-  } catch (error) {
-    setMomentsError(
-      error instanceof Error
-        ? error.message
-        : 'Could not load moments.',
-    );
-  } finally {
-    setIsLoadingMoments(false);
-  }
-}
+  const [authError, setAuthError] =
+    useState('');
 
+  const [authSuccess, setAuthSuccess] =
+    useState('');
 
+  // CAMERA / CAPTURE
 
-async function recordMomentView(momentId: string) {
-  const token = readStoredToken();
+  const [captureOpen, setCaptureOpen] =
+    useState(false);
 
-  if (!token) return;
+  const [captureMode, setCaptureMode] =
+    useState<MediaKind>('photo');
 
-  try {
-    const response = await fetch(
-      `${API_URL}/moments/${encodeURIComponent(momentId)}/view`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    );
-
-    if (!response.ok) {
-      console.error(
-        'Could not record moment view:',
-        response.status,
-      );
-    }
-  } catch (error) {
-    console.error('Could not record moment view:', error);
-  }
-}
-
-
-async function openMomentViewers(momentId: string) {
-  setShowMomentViewers(true);
-  setMomentViewers([]);
-  setMomentViewersError('');
-  setLoadingMomentViewers(true);
-
-  try {
-    const viewers = await loadMomentViews(momentId);
-    setMomentViewers(viewers);
-  } catch (error) {
-    setMomentViewersError(
-      error instanceof Error
-        ? error.message
-        : 'Could not load moment viewers.',
-    );
-  } finally {
-    setLoadingMomentViewers(false);
-  }
-}
-
-
-
-
-
-async function loadMomentViews(momentId: string): Promise<MomentViewer[]> {
-  const token = readStoredToken();
-
-  if (!token) return [];
-
-  const response = await fetch(
-    `${API_URL}/moments/${encodeURIComponent(momentId)}/views`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    },
-  );
-
-  if (!response.ok) {
-    throw new Error(`Could not load viewers (${response.status})`);
-  }
-
-  return response.json();
-}
-
-
-
-
-
-useEffect(() => {
-  if (route === 'home' && readStoredToken()) {
-    void loadApiMoments();
-  }
-}, [route]);
-
-
-
-
-
-  useEffect(() => {
-    function handlePopState() {
-      const path = window.location.pathname;
-      const match = path.match(/^\/profile\/user\/([^/]+)$/);
-      const exchangeMatch = path.match(/^\/exchange\/([^/]+)$/);
-      setPublicProfileId(match ? decodeURIComponent(match[1]) : null);
-      setExchangePostId(exchangeMatch ? decodeURIComponent(exchangeMatch[1]) : null);
-
-      if (exchangeMatch) {
-        setRoute('exchange-post');
-        setSelectedNav('Blink Exchange');
-      } else if (path === '/exchange') {
-        setRoute('exchange');
-        setSelectedNav('Blink Exchange');
-      } else if (match) {
-        setRoute('public-profile');
-      } else if (path === '/profile') {
-        setRoute('profile');
-      } else if (path === '/connections') {
-        setRoute('connections');
-      } else if (path === '/inbox') {
-        setRoute('inbox');
-      } else if (path === '/home') {
-        setRoute('home');
-        setSelectedNav('Home');
-      } else if (path === '/login') {
-        setRoute('login');
-      } else {
-        setRoute('signup');
-      }
-
-      setMenuOpen(false);
-      setFullMoment(false);
-    }
-
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
-
-  function goTo(
-    path: '/home' | '/profile' | '/connections' | '/inbox' | '/exchange' | '/login' | '/',
-  ) {
-    window.history.pushState({}, '', path);
-
-    if (path === '/home') {
-      setRoute('home');
-      setSelectedNav('Home');
-    } else if (path === '/inbox') {
-      setRoute('inbox');
-    } else if (path === '/exchange') {
-      setRoute('exchange');
-      setSelectedNav('Blink Exchange');
-    } else if (path === '/profile') {
-      setRoute('profile');
-    } else if (path === '/connections') {
-      setRoute('connections');
-      setSelectedNav('Connections');
-    } else if (path === '/login') {
-      setRoute('login');
-    } else {
-      setRoute('signup');
-    }
-
-    setPublicProfileId(null);
-    setExchangePostId(null);
-    setMenuOpen(false);
-    setFullMoment(false);
-    window.scrollTo(0, 0);
-  }
-
-  function openExchangePost(postId: string) {
-    window.history.pushState({}, '', `/exchange/${encodeURIComponent(postId)}`);
-    setExchangePostId(postId);
-    setPublicProfileId(null);
-    setRoute('exchange-post');
-    setSelectedNav('Blink Exchange');
-    setMenuOpen(false);
-    setFullMoment(false);
-    window.scrollTo(0, 0);
-  }
-
-  function openPublicProfile(userId: string) {
-  setPublicProfileId(userId);
-  setExchangePostId(null);
-  window.history.pushState(
-    {},
-    '',
-    `/profile/user/${encodeURIComponent(userId)}`,
-  );
-  setRoute('public-profile');
-  setMenuOpen(false);
-  setFullMoment(false);
-  window.scrollTo(0, 0);
-}
-
-  function logout() {
-    try {
-      localStorage.removeItem('blink-access-token');
-      sessionStorage.removeItem('blink-access-token');
-      localStorage.removeItem('blink-user');
-      sessionStorage.removeItem('blink-user');
-    } catch {
-      // Continue to the login screen even if storage is unavailable.
-    }
-
-    setUser(null);
-    goTo('/login');
-  }
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError('');
-    setSuccess('');
-
-    if (password.length < 8 || password.length > 72) {
-      setError('Password must be between 8 and 72 characters.');
-      return;
-    }
-
-    if (route !== 'login') {
-      if (name.trim().length < 2 || name.trim().length > 80) {
-        setError('Your name must be between 2 and 80 characters.');
-        return;
-      }
-
-      if (!/^\+?[0-9]{10,15}$/.test(phoneNumber.trim())) {
-        setError('Enter a valid phone number with country code if needed.');
-        return;
-      }
-    }
-
-    setLoading(true);
-
-    try {
-      const endpoint = route === 'login' ? '/auth/login' : '/auth/register';
-      const payload =
-        route === 'login'
-          ? { email: email.trim(), password }
-          : {
-              name: name.trim(),
-              email: email.trim(),
-              phoneNumber: phoneNumber.trim(),
-              password,
-            };
-
-      const response = await fetch(`${API_URL}${endpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const data = (await response.json()) as AuthResponse;
-
-      if (!response.ok) {
-        const message = Array.isArray(data.message)
-          ? data.message.join(' ')
-          : data.message;
-
-        throw new Error(
-          message ||
-            (response.status === 401
-              ? 'Incorrect email or password.'
-              : 'Something went wrong. Please try again.'),
-        );
-      }
-
-      if (route === 'login') {
-        if (!data.accessToken) {
-          throw new Error(
-            'Login succeeded, but the server did not return an access token.',
-          );
-        }
-
-        try {
-          if (rememberMe) {
-            localStorage.setItem('blink-access-token', data.accessToken);
-            sessionStorage.removeItem('blink-access-token');
-          } else {
-            sessionStorage.setItem('blink-access-token', data.accessToken);
-            localStorage.removeItem('blink-access-token');
-          }
-
-          if (data.user) {
-            sessionStorage.setItem('blink-user', JSON.stringify(data.user));
-          }
-        } catch {
-          throw new Error(
-            'Your browser could not save the login session. Please enable site storage and try again.',
-          );
-        }
-
-        setUser(data.user ?? null);
-        goTo('/home');
-      } else {
-        setSuccess('Account created successfully! You can now sign in.');
-        setName('');
-        setEmail('');
-        setPhoneNumber('');
-        setPassword('');
-      }
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : 'Unable to connect to Blink. Check that the API is running.',
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function changeMoment(direction: number) {
-  const currentIndex = allMoments.findIndex(
+  const [stream, setStream] =
+    useState<MediaStream | null>(null);
+
+  const [capturedUrl, setCapturedUrl] =
+    useState<string | null>(null);
+
+  const [capturedKind, setCapturedKind] =
+    useState<MediaKind | null>(null);
+
+  const [galleryFile, setGalleryFile] =
+    useState<File | null>(null);
+
+  const [caption, setCaption] = useState('');
+  const [recording, setRecording] = useState(false);
+  const [cameraError, setCameraError] = useState('');
+  const [uploading, setUploading] = useState(false);
+
+  const videoRef =
+    useRef<HTMLVideoElement | null>(null);
+
+  const canvasRef =
+    useRef<HTMLCanvasElement | null>(null);
+
+  const cameraStreamRef =
+    useRef<MediaStream | null>(null);
+
+  const cameraRequestRef = useRef(0);
+
+  const recorderRef =
+    useRef<MediaRecorder | null>(null);
+
+  const chunksRef = useRef<Blob[]>([]);
+
+  const capturedUrlRef =
+    useRef<string | null>(null);
+
+  const cameraOpenRef = useRef(false);
+
+  const touchStart = useRef<{
+    x: number;
+    y: number;
+  } | null>(null);
+
+  // ACTIVE MOMENT
+
+  const selectedIndex = moments.findIndex(
     (moment) => moment.id === selectedMomentId,
   );
 
-  const baseIndex = currentIndex >= 0 ? currentIndex : momentIndex;
+  const currentIndex =
+    selectedIndex >= 0 ? selectedIndex : 0;
 
-  const nextIndex =
-    (baseIndex + direction + allMoments.length) % allMoments.length;
+  const activeMoment = selectedMomentId
+    ? moments.find(
+        (moment) => moment.id === selectedMomentId,
+      )
+    : null;
 
-  setMomentIndex(nextIndex);
-  setSelectedMomentId(allMoments[nextIndex].id);
-}
+  // THEME
 
-  // function handleTouchStart(event: TouchEvent<HTMLElement>) {
-  //   const touch = event.touches[0];
-  //   touchStart.current = { x: touch.clientX, y: touch.clientY };
-  // }
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem('blink-theme', theme);
+  }, [theme]);
 
-  // function handleTouchEnd(event: TouchEvent<HTMLElement>) {
-  //   if (!touchStart.current) return;
+  // BROWSER HISTORY
 
-  //   const touch = event.changedTouches[0];
-  //   const deltaX = touch.clientX - touchStart.current.x;
-  //   const deltaY = touch.clientY - touchStart.current.y;
-  //   touchStart.current = null;
+  useEffect(() => {
+    const onPop = () => {
+      const path = window.location.pathname;
 
-  //   if (Math.abs(deltaX) > 55 && Math.abs(deltaX) > Math.abs(deltaY)) {
-  //     changeMoment(deltaX < 0 ? 1 : -1);
-  //   }
-  // }
+      setRoute(routeFromPath(path));
 
-  // function handleFeedKeyDown(event: KeyboardEvent<HTMLElement>) {
-  //   if (event.key === 'ArrowRight') changeMoment(1);
-  //   if (event.key === 'ArrowLeft') changeMoment(-1);
-  //   if (event.key === 'Escape') setFullMoment(false);
-  // }
+      setExchangePostId(
+        path.match(/^\/exchange\/([^/]+)$/)?.[1] ??
+          null,
+      );
 
-  function demoPostMoment() {
-    try {
-      localStorage.setItem('blink-demo-first-moment', 'true');
-    } catch {
-      // The demo gate still updates in memory.
+      setPublicProfileId(
+        path.match(
+          /^\/profile\/user\/([^/]+)$/,
+        )?.[1] ?? null,
+      );
+
+      setMenuOpen(false);
+      setSelectedMomentId(null);
+      setCaptureOpen(false);
+    };
+
+    window.addEventListener('popstate', onPop);
+
+    return () =>
+      window.removeEventListener('popstate', onPop);
+  }, []);
+
+  function goTo(path: string) {
+    window.history.pushState({}, '', path);
+
+    setRoute(routeFromPath(path));
+
+    setExchangePostId(
+      path.match(/^\/exchange\/([^/]+)$/)?.[1] ??
+        null,
+    );
+
+    setPublicProfileId(
+      path.match(
+        /^\/profile\/user\/([^/]+)$/,
+      )?.[1] ?? null,
+    );
+
+    setMenuOpen(false);
+    setSelectedMomentId(null);
+    setCaptureOpen(false);
+
+    setSelectedNav(
+      path === '/home'
+        ? 'Home'
+        : path === '/connections'
+          ? 'Connections'
+          : path === '/checkins'
+            ? 'Checkins'
+            : path === '/irl'
+              ? 'IRL'
+              : 'Home',
+    );
+
+    window.scrollTo(0, 0);
+  }
+
+  function openPublicProfile(id: string) {
+    goTo(
+      `/profile/user/${encodeURIComponent(id)}`,
+    );
+  }
+
+  function openExchangePost(id: string) {
+    goTo(`/exchange/${encodeURIComponent(id)}`);
+  }
+
+  function toggleTheme() {
+    setTheme((current) =>
+      current === 'light' ? 'dark' : 'light',
+    );
+  }
+
+  function logout() {
+    ['blink-access-token', 'blink-user'].forEach(
+      (key) => {
+        localStorage.removeItem(key);
+        sessionStorage.removeItem(key);
+      },
+    );
+
+    setUser(null);
+    setMoments([]);
+    setBpBalance(null);
+
+    closeCapture();
+    goTo('/login');
+  }
+
+  // LOAD MOMENTS
+
+  async function loadMoments() {
+    const access = token();
+
+    if (!access) {
+      setMoments([]);
+      return;
     }
 
-    setHasPostedMoment(true);
-    setNotice('Your demo moment is posted! Friends’ moments are now visible.');
+    setMomentsLoading(true);
+    setMomentsError('');
+
+    try {
+      const res = await fetch(`${API}/moments`, {
+        headers: {
+          Authorization: `Bearer ${access}`,
+        },
+        cache: 'no-store',
+      });
+
+      const data: unknown = await res.json();
+
+      if (!res.ok || !Array.isArray(data)) {
+        throw new Error(
+          `Moments couldn't load (${res.status})`,
+        );
+      }
+
+      const realMoments = data as ApiMoment[];
+      setMoments(realMoments);
+
+      const sharedId = new URLSearchParams(window.location.search).get('moment');
+      if (sharedId && realMoments.some(item => item.id === sharedId)) {
+        setSelectedMomentId(sharedId);
+        window.history.replaceState({}, '', '/home');
+      }
+    } catch (err) {
+      setMomentsError(
+        err instanceof Error
+          ? err.message
+          : 'Unable to load moments.',
+      );
+    } finally {
+      setMomentsLoading(false);
+    }
   }
 
-function handleNav(label: string) {
-  setSelectedNav(label);
-  if (label === 'Connections') {
-  goTo('/connections');
-  return;
-}
+  // LOAD REAL BP BALANCE
 
-  if (label === 'Home') {
-    setCameraError('');
-    setCapturedMedia(null);
-    setCapturedType(null);
-    setIsRecording(false);
-    return;
+  async function loadWallet() {
+    const access = token();
+    if (!access) return;
+
+    try {
+      const res = await fetch(
+        `${API}/secrets/points`,
+        {
+          headers: {
+            Authorization: `Bearer ${access}`,
+          },
+          cache: 'no-store',
+        },
+      );
+
+      if (!res.ok) return;
+
+      const data = (await res.json()) as {
+        points: number | string;
+      };
+
+      if (Number.isFinite(Number(data.points))) {
+        setBpBalance(Number(data.points));
+      }
+    } catch {
+      // Retain last known balance.
+    }
   }
 
-  if (label === 'Capture') {
-    setCameraError('');
-    setCapturedMedia(null);
-    setCapturedType(null);
-    setCaptureMode('photo');
-    return;
+  // LOAD PROFILE
+
+  async function loadProfile() {
+    const access = token();
+    if (!access) return;
+
+    try {
+      const res = await fetch(`${API}/profile/me`, {
+        headers: {
+          Authorization: `Bearer ${access}`,
+        },
+        cache: 'no-store',
+      });
+
+      if (!res.ok) return;
+
+      const data = (await res.json()) as User;
+
+      setUser(data);
+
+      sessionStorage.setItem(
+        'blink-user',
+        JSON.stringify(data),
+      );
+    } catch {
+      // Retain the stored profile.
+    }
   }
 
-  setNotice(`${label} will be available when that page is built.`);
-}
+  useEffect(() => {
+    if (route === 'home' && token()) {
+      void loadMoments();
+      void loadWallet();
+      void loadProfile();
+    }
+  }, [route]);
+
+  // MOMENT VIEW TRACKING
+
+  async function recordView(id: string) {
+    const access = token();
+    if (!access) return;
+
+    try {
+      await fetch(
+        `${API}/moments/${encodeURIComponent(id)}/view`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${access}`,
+          },
+        },
+      );
+    } catch {
+      // Viewing should remain possible even if
+      // the view-tracking request fails.
+    }
+  }
+
+  async function openMoment(id: string) {
+    const moment = moments.find(
+      (item) => item.id === id,
+    );
+
+    if (!moment) return;
+
+    setSelectedMomentId(id);
+    setViewersOpen(false);
+
+    if (moment.senderId !== user?.id) {
+      await recordView(id);
+    }
+  }
+
+  function changeMoment(delta: number) {
+    if (moments.length === 0) return;
+
+    const next = moments[
+      (currentIndex + delta + moments.length) %
+        moments.length
+    ];
+
+    void openMoment(next.id);
+  }
+
+  // MOMENT VIEWERS
+
+  async function loadViewers(id: string) {
+    const access = token();
+    if (!access) return;
+
+    setViewersOpen(true);
+    setViewersLoading(true);
+    setViewersError('');
+    setViewers([]);
+
+    try {
+      const res = await fetch(
+        `${API}/moments/${encodeURIComponent(id)}/views`,
+        {
+          headers: {
+            Authorization: `Bearer ${access}`,
+          },
+        },
+      );
+
+      if (!res.ok) {
+        throw new Error(
+          `Unable to load viewers (${res.status})`,
+        );
+      }
+
+      setViewers(
+        (await res.json()) as MomentViewer[],
+      );
+    } catch (err) {
+      setViewersError(
+        err instanceof Error
+          ? err.message
+          : 'Viewers unavailable.',
+      );
+    } finally {
+      setViewersLoading(false);
+    }
+  }
+
+  // STOP CAMERA
+
+  function stopCamera() {
+    cameraRequestRef.current += 1;
+
+    cameraStreamRef.current
+      ?.getTracks()
+      .forEach((track) => track.stop());
+
+    cameraStreamRef.current = null;
+    setStream(null);
+  }
+
+  // START CAMERA
 
   async function startCamera() {
+    const requestId = ++cameraRequestRef.current;
+
     setCameraError('');
 
     if (!navigator.mediaDevices?.getUserMedia) {
       setCameraError(
-        'Camera access is unavailable. Use localhost or a secure HTTPS connection.'
+        'Camera access requires HTTPS or localhost.',
       );
       return;
     }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: 'environment' },
-        },
-        audio: true,
-      });
+      const video: MediaTrackConstraints = {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+      };
 
-      setCameraStream(stream);
+      let next: MediaStream;
 
-      if (cameraVideoRef.current) {
-        cameraVideoRef.current.srcObject = stream;
-        await cameraVideoRef.current.play().catch(() => {});
+      try {
+        next =
+          await navigator.mediaDevices.getUserMedia({
+            video,
+            audio: true,
+          });
+      } catch {
+        next =
+          await navigator.mediaDevices.getUserMedia({
+            video,
+            audio: false,
+          });
       }
+
+      if (
+        requestId !== cameraRequestRef.current ||
+        !cameraOpenRef.current
+      ) {
+        next.getTracks().forEach((track) =>
+          track.stop(),
+        );
+        return;
+      }
+
+      cameraStreamRef.current
+        ?.getTracks()
+        .forEach((track) => track.stop());
+
+      cameraStreamRef.current = next;
+      setStream(next);
     } catch {
-      setCameraError(
-        'Camera permission was denied or no camera is available. Check your browser permissions and try again.'
-      );
+      if (
+        requestId === cameraRequestRef.current
+      ) {
+        setCameraError(
+          'Camera unavailable. Allow permission or choose Gallery.',
+        );
+      }
     }
   }
 
-  function stopCamera() {
-    cameraStream?.getTracks().forEach((track) => track.stop());
-    setCameraStream(null);
+  useEffect(() => {
+    cameraOpenRef.current = captureOpen;
+
+    if (
+      route !== 'home' ||
+      !captureOpen ||
+      capturedUrl
+    ) {
+      stopCamera();
+      return;
+    }
+
+    void startCamera();
+
+    return () => {
+      stopCamera();
+    };
+  }, [route, captureOpen, capturedUrl]);
+
+  useEffect(() => {
+    if (
+      !videoRef.current ||
+      !stream ||
+      capturedUrl
+    ) {
+      return;
+    }
+
+    videoRef.current.srcObject = stream;
+
+    void videoRef.current.play().catch(() => {});
+  }, [stream, captureOpen, capturedUrl]);
+
+  useEffect(() => {
+    return () => {
+      cameraStreamRef.current
+        ?.getTracks()
+        .forEach((track) => track.stop());
+
+      if (
+        capturedUrlRef.current?.startsWith('blob:')
+      ) {
+        URL.revokeObjectURL(
+          capturedUrlRef.current,
+        );
+      }
+    };
+  }, []);
+
+  // PREVIEW CAPTURED MEDIA
+
+  function setPreview(url: string | null) {
+    if (
+      capturedUrlRef.current?.startsWith('blob:')
+    ) {
+      URL.revokeObjectURL(
+        capturedUrlRef.current,
+      );
+    }
+
+    capturedUrlRef.current = url;
+    setCapturedUrl(url);
+  }
+
+  function closeCapture() {
+    cameraOpenRef.current = false;
+
+    const rec = recorderRef.current;
+
+    if (rec && rec.state !== 'inactive') {
+      rec.onstop = null;
+      rec.stop();
+    }
+
+    recorderRef.current = null;
+
+    stopCamera();
+    setPreview(null);
+    setCaptureOpen(false);
+    setCapturedKind(null);
+    setGalleryFile(null);
+    setCaption('');
+    setCameraError('');
+    setRecording(false);
+    setCaptureMode('photo');
+    setSelectedNav('Home');
+  }
+
+  function discardCapture() {
+    setPreview(null);
+    setGalleryFile(null);
+    setCapturedKind(null);
+    setCameraError('');
+  }
+
+  function openCapture() {
+    setMenuOpen(false);
+    setSelectedMomentId(null);
+    setCaptureMode('photo');
+    setGalleryFile(null);
+    setCapturedKind(null);
+    setPreview(null);
+    setCaption('');
+    setCameraError('');
+    setSelectedNav('Capture');
+    setCaptureOpen(true);
   }
 
   function capturePhoto() {
-    const video = cameraVideoRef.current;
-    const canvas = cameraCanvasRef.current;
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
 
-    if (!video || !canvas || video.videoWidth === 0) {
-      setCameraError('The camera is not ready yet. Please try again.');
+    if (
+      !video ||
+      !canvas ||
+      video.videoWidth === 0
+    ) {
+      setCameraError('Camera is not ready.');
       return;
     }
 
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
 
-    const context = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d');
 
-    if (!context) {
-      setCameraError('Could not capture the photo. Please try again.');
+    if (!ctx) {
+      setCameraError(
+        'Unable to capture image.',
+      );
       return;
     }
 
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    setCapturedMedia(canvas.toDataURL('image/jpeg', 0.92));
-    setCapturedType('photo');
-    setCameraError('');
+    ctx.drawImage(video, 0, 0);
+
+    setPreview(
+      canvas.toDataURL('image/jpeg', 0.9),
+    );
+
+    setCapturedKind('photo');
     stopCamera();
   }
 
-  function startVideoRecording() {
-    if (!cameraStream) {
-      setCameraError('Please wait for the camera to start.');
-      return;
-    }
+  // VIDEO RECORDING
 
-    if (!window.MediaRecorder) {
-      setCameraError('Video recording is not supported by this browser.');
+  function startRecording() {
+    if (
+      !stream ||
+      !('MediaRecorder' in window)
+    ) {
+      setCameraError(
+        'Video recording is not supported.',
+      );
       return;
     }
 
     try {
-      const mimeType = [
-        'video/webm;codecs=vp9',
-        'video/webm;codecs=vp8',
+      const mime = [
+        'video/webm;codecs=vp8,opus',
         'video/webm',
-      ].find((type) => MediaRecorder.isTypeSupported(type));
+        'video/mp4',
+      ].find((type) =>
+        MediaRecorder.isTypeSupported(type),
+      );
 
-      const recorder = mimeType
-        ? new MediaRecorder(cameraStream, { mimeType })
-        : new MediaRecorder(cameraStream);
+      const rec = mime
+        ? new MediaRecorder(stream, {
+            mimeType: mime,
+          })
+        : new MediaRecorder(stream);
 
-      recordedChunksRef.current = [];
+      chunksRef.current = [];
 
-     recorder.ondataavailable = (event) => {
-  if (event.data.size > 0) {
-    console.log('Recorded video MIME type:', event.data.type);
-    recordedChunksRef.current.push(event.data);
-  }
-};
+      rec.ondataavailable = (event) => {
+        if (event.data.size) {
+          chunksRef.current.push(event.data);
+        }
+      };
 
-      recorder.onstop = () => {
-        const rawMimeType = recorder.mimeType.toLowerCase();
-const normalizedMimeType = rawMimeType.split(';')[0].trim();
+      rec.onstop = () => {
+        const type =
+          rec.mimeType.split(';')[0] ||
+          chunksRef.current[0]?.type.split(';')[0] ||
+          'video/webm';
 
-const blob = new Blob(recordedChunksRef.current, {
-  type: normalizedMimeType,
-});
+        const blob = new Blob(
+          chunksRef.current,
+          { type },
+        );
 
-        console.log('Final video MIME type:', blob.type);
-console.log('Final video size:', blob.size);
+        if (blob.size) {
+          setPreview(
+            URL.createObjectURL(blob),
+          );
 
-        if (blob.size > 0) {
-          setCapturedMedia(URL.createObjectURL(blob));
-          setCapturedType('video');
-          setCameraError('');
+          setCapturedKind('video');
         } else {
-          setCameraError('No video was recorded. Please try again.');
+          setCameraError(
+            'No video recorded. Please try again.',
+          );
         }
 
+        setRecording(false);
         stopCamera();
       };
 
-      mediaRecorderRef.current = recorder;
-      recorder.start();
-      setIsRecording(true);
-      setCameraError('');
+      recorderRef.current = rec;
+
+      rec.start(250);
+      setRecording(true);
     } catch {
-      setCameraError('Could not start recording. Please try again.');
+      setCameraError(
+        'Could not start recording.',
+      );
     }
   }
 
-  function stopVideoRecording() {
-    if (mediaRecorderRef.current?.state === 'recording') {
-      mediaRecorderRef.current.stop();
-    }
-
-    setIsRecording(false);
-  }
-
-  function handleCaptureAction() {
+  function captureAction() {
     if (captureMode === 'photo') {
       capturePhoto();
+    } else if (recording) {
+      if (
+        recorderRef.current?.state === 'recording'
+      ) {
+        recorderRef.current.stop();
+      }
+
+      setRecording(false);
+    } else {
+      startRecording();
+    }
+  }
+
+  // CHOOSE GALLERY FILE
+
+  function selectGallery(
+    file: File | undefined,
+  ) {
+    if (!file) return;
+
+    const kind: MediaKind | null =
+      /^image\/(jpeg|png|webp)$/.test(file.type)
+        ? 'photo'
+        : /^video\/(webm|mp4|quicktime)$/.test(
+            file.type,
+          )
+          ? 'video'
+          : null;
+
+    if (!kind) {
+      setCameraError(
+        'Please choose JPG, PNG, WebP, MP4, WebM or MOV.',
+      );
       return;
     }
 
-    if (isRecording) {
-      stopVideoRecording();
-    } else {
-      startVideoRecording();
-    }
-  }
-
-  function discardCapturedMedia() {
-    if (capturedMedia?.startsWith('blob:')) {
-      URL.revokeObjectURL(capturedMedia);
-    }
-
-    setCapturedMedia(null);
-    setCapturedType(null);
-    setCameraError('');
-    setIsRecording(false);
-    setSelectedNav('Home');
-  }
-
-  
-async function postCapturedMediaDemo() {
-  if (!capturedMedia || !capturedType) return;
-
-  const token = readStoredToken();
-
-  if (!token) {
-    setNotice('Please sign in again before posting.');
-    return;
-  }
-
-  setIsPostingDemo(true);
-  setCameraError('');
-
-  try {
-    const mediaResponse = await fetch(capturedMedia);
-    const mediaBlob = await mediaResponse.blob();
-
-    const baseMimeType = mediaBlob.type
-  .toLowerCase()
-  .split(';')[0]
-  .trim();
-
-const uploadBlob = mediaBlob.slice(
-  0,
-  mediaBlob.size,
-  baseMimeType,
-);
-
-    const extension =
-      capturedType === 'video'
-        ? mediaBlob.type.includes('webm')
-          ? 'webm'
-          : mediaBlob.type.includes('quicktime')
-            ? 'mov'
-            : 'mp4'
-        : mediaBlob.type.includes('png')
-          ? 'png'
-          : mediaBlob.type.includes('webp')
-            ? 'webp'
-            : 'jpg';
-
-    const formData = new FormData();
-    formData.append('file', uploadBlob, `moment.${extension}`);
-
-    const response = await fetch(`${API_URL}/moments/upload`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(
-        errorText || `Upload failed (${response.status})`,
+    if (file.size > 50 * 1024 * 1024) {
+      setCameraError(
+        'Maximum upload size is 50 MB.',
       );
+      return;
     }
 
-    if (capturedMedia.startsWith('blob:')) {
-      URL.revokeObjectURL(capturedMedia);
+    stopCamera();
+
+    setGalleryFile(file);
+    setCapturedKind(kind);
+    setPreview(
+      URL.createObjectURL(file),
+    );
+    setCameraError('');
+  }
+
+  // REAL MOMENT UPLOAD
+
+  async function publishMoment() {
+    if (
+      !capturedUrl ||
+      !capturedKind ||
+      uploading
+    ) {
+      return;
     }
 
-    setCapturedMedia(null);
-    setCapturedType(null);
-    await loadApiMoments();
-    setHasPostedMoment(true);
+    const access = token();
+
+    if (!access) {
+      setCameraError(
+        'Please sign in again.',
+      );
+      return;
+    }
+
+    setUploading(true);
+    setCameraError('');
 
     try {
-      localStorage.setItem('blink-demo-first-moment', 'true');
-    } catch {
-      // Posting still succeeds if browser storage is unavailable.
+      let file = galleryFile;
+
+      if (!file) {
+        const blob = await (
+          await fetch(capturedUrl)
+        ).blob();
+
+        if (!blob.size) {
+          throw new Error(
+            'Captured media is empty.',
+          );
+        }
+
+        const mime =
+          blob.type.split(';')[0] ||
+          (capturedKind === 'photo'
+            ? 'image/jpeg'
+            : 'video/webm');
+
+        const ext =
+          mime === 'image/png'
+            ? 'png'
+            : mime === 'image/webp'
+              ? 'webp'
+              : mime === 'video/mp4'
+                ? 'mp4'
+                : mime === 'video/quicktime'
+                  ? 'mov'
+                  : mime === 'video/webm'
+                    ? 'webm'
+                    : 'jpg';
+
+        file = new File(
+          [blob],
+          `moment-${Date.now()}.${ext}`,
+          { type: mime },
+        );
+      }
+
+      if (
+        file.size >
+        50 * 1024 * 1024
+      ) {
+        throw new Error(
+          'Maximum upload size is 50 MB.',
+        );
+      }
+
+      const form = new FormData();
+
+      form.append('file', file);
+      form.append(
+        'caption',
+        caption.trim(),
+      );
+
+      const res = await fetch(
+        `${API}/moments/upload`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${access}`,
+          },
+          body: form,
+        },
+      );
+
+      const result = (await res
+        .json()
+        .catch(() => null)) as {
+          earnedBp?: number;
+          message?: string | string[];
+        } | null;
+
+      if (!res.ok) {
+        throw new Error(
+          messageOf(
+            result,
+            `Upload failed (${res.status})`,
+          ),
+        );
+      }
+
+      closeCapture();
+
+      await Promise.all([
+        loadMoments(),
+        loadWallet(),
+      ]);
+
+      setNotice(
+        result?.earnedBp === 0.5
+          ? 'Moment published! +0.5 BP earned 🧡'
+          : 'Your moment was published.',
+      );
+    } catch (err) {
+      setCameraError(
+        err instanceof Error
+          ? err.message
+          : 'Unable to publish moment.',
+      );
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  // LOGIN / REGISTRATION
+
+  async function submitAuth(
+    event: FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+
+    setAuthError('');
+    setAuthSuccess('');
+
+    const isLogin = route === 'login';
+
+    if (
+      password.length < 8 ||
+      password.length > 72
+    ) {
+      setAuthError(
+        'Password must be 8–72 characters.',
+      );
+      return;
     }
 
-    setSelectedNav('Home');
-    setNotice('Your moment was uploaded successfully!');
-  } catch (error) {
-    setCameraError(
-      error instanceof Error
-        ? error.message
-        : 'Could not upload your moment. Please try again.',
-    );
-  } finally {
-    setIsPostingDemo(false);
-  }
-}
-// Blink Exchange feed: browsing, creating and editing posts.
-if (route === 'exchange') {
-  if (!readStoredToken()) {
-    return (
-      <main className="blink-home" style={{ padding: 32 }}>
-        <h1>Sign in to use Blink Exchange</h1>
-        <button type="button" onClick={() => goTo('/login')}>Sign in</button>
-      </main>
-    );
-  }
+    if (
+      !isLogin &&
+      (name.trim().length < 2 ||
+        name.trim().length > 80)
+    ) {
+      setAuthError(
+        'Name must be 2–80 characters.',
+      );
+      return;
+    }
 
-  return (
-    <ExchangePage
-      onBack={() => goTo('/home')}
-      onOpenPost={openExchangePost}
-      onOpenProfile={openPublicProfile}
-      theme={theme}
-      onToggleTheme={() => setTheme(current => current === 'light' ? 'dark' : 'light')}
-    />
-  );
-}
+    if (
+      !isLogin &&
+      !/^\+?[0-9]{10,15}$/.test(phone.trim())
+    ) {
+      setAuthError(
+        'Enter a valid phone number.',
+      );
+      return;
+    }
 
-// Individual Exchange post with its private conversation.
-if (route === 'exchange-post') {
-  if (!readStoredToken()) {
-    return (
-      <main className="blink-home" style={{ padding: 32 }}>
-        <h1>Sign in to view this exchange</h1>
-        <button type="button" onClick={() => goTo('/login')}>Sign in</button>
-      </main>
-    );
-  }
+    setAuthLoading(true);
 
-  if (!exchangePostId) {
-    return (
-      <main className="blink-home" style={{ padding: 32 }}>
-        <h1>Exchange post not found</h1>
-        <button type="button" onClick={() => goTo('/exchange')}>All exchanges</button>
-      </main>
-    );
-  }
+    try {
+      const res = await fetch(
+        `${API}${
+          isLogin
+            ? '/auth/login'
+            : '/auth/register'
+        }`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type':
+              'application/json',
+          },
+          body: JSON.stringify(
+            isLogin
+              ? {
+                  email: email.trim(),
+                  password,
+                }
+              : {
+                  name: name.trim(),
+                  email: email.trim(),
+                  phoneNumber: phone.trim(),
+                  password,
+                },
+          ),
+        },
+      );
 
-  return (
-    <ExchangePostPage
-      postId={exchangePostId}
-      onBack={() => goTo('/exchange')}
-      onOpenProfile={openPublicProfile}
-      theme={theme}
-      onToggleTheme={() => setTheme(current => current === 'light' ? 'dark' : 'light')}
-    />
-  );
-}
+      const data = (await res
+        .json()
+        .catch(() => null)) as AuthResponse | null;
 
-if (route === 'public-profile') {
-  if (!readStoredToken()) {
-    return (
-      <main className="blink-public-profile">
-        <div className="public-profile-container">
-          <h1>Sign in to view profiles</h1>
-          <button type="button" onClick={() => goTo('/login')}>
-            Sign in
-          </button>
-        </div>
-      </main>
-    );
-  }
-
-  if (!publicProfileId) {
-    return null;
-  }
-
-  return (
-    <PublicProfilePage
-      userId={publicProfileId}
-      onBack={() => goTo('/connections')}
-      onMyProfile={() => goTo('/profile')}
-      theme={theme}
-      onToggleTheme={() =>
-        setTheme((current) =>
-          current === 'light' ? 'dark' : 'light',
-        )
+      if (!res.ok) {
+        throw new Error(
+          messageOf(
+            data,
+            'Unable to authenticate.',
+          ),
+        );
       }
-    />
-  );
-}
 
-// NEW: Inbox page
-if (route === 'inbox') {
-  if (!readStoredToken()) {
-    return (
-      <main className="blink-inbox">
-        <div className="inbox-empty">
-          <h1>Sign in to view Inbox</h1>
-          <button type="button" onClick={() => goTo('/login')}>Sign in</button>
-        </div>
+      if (isLogin) {
+        if (!data?.accessToken) {
+          throw new Error(
+            'Login response has no access token.',
+          );
+        }
+
+        const storage = rememberMe
+          ? localStorage
+          : sessionStorage;
+
+        const otherStorage = rememberMe
+          ? sessionStorage
+          : localStorage;
+
+        storage.setItem(
+          'blink-access-token',
+          data.accessToken,
+        );
+
+        otherStorage.removeItem(
+          'blink-access-token',
+        );
+
+        if (data.user) {
+          sessionStorage.setItem(
+            'blink-user',
+            JSON.stringify(data.user),
+          );
+
+          setUser(data.user);
+        }
+
+        goTo('/home');
+      } else {
+        setAuthSuccess(
+          'Account created! You can now sign in.',
+        );
+
+        setName('');
+        setEmail('');
+        setPhone('');
+        setPassword('');
+      }
+    } catch (err) {
+      setAuthError(
+        err instanceof Error
+          ? err.message
+          : 'Unable to connect to Blink.',
+      );
+    } finally {
+      setAuthLoading(false);
+    }
+  }
+
+  // PROTECTED ROUTES
+
+  const protectedScreen = (
+    content: ReactNode,
+    title: string,
+  ) =>
+    token() ? (
+      content
+    ) : (
+      <main className="blink-guard">
+        <h1>Sign in to use {title}</h1>
+
+        <button
+          onClick={() => goTo('/login')}
+        >
+          Sign in →
+        </button>
       </main>
+    );
+
+  // PUBLIC PROFILE
+
+  if (route === 'public-profile') {
+    return protectedScreen(
+      publicProfileId ? (
+        <PublicProfilePage
+          userId={decodeURIComponent(
+            publicProfileId,
+          )}
+          onBack={() =>
+            goTo('/connections')
+          }
+          onMyProfile={() =>
+            goTo('/profile')
+          }
+          theme={theme}
+          onToggleTheme={toggleTheme}
+        />
+      ) : (
+        <main className="blink-guard">
+          Profile not found.
+        </main>
+      ),
+      'profiles',
     );
   }
 
-  return (
-    <InboxPage
-      onBack={() => goTo('/home')}
-      onOpenProfile={openPublicProfile}
-      theme={theme}
-      onToggleTheme={() =>
-        setTheme((current) =>
-          current === 'light' ? 'dark' : 'light',
-        )
-      }
-    />
-  );
-}
+  // BLINK SECRETS
 
-if (route === 'connections') {
-  if (!readStoredToken()) {
-    return (
-      <main className="blink-friends">
-        <div className="friends-container">
-          <h1>Sign in to view Connections</h1>
-          <button type="button" onClick={() => goTo('/login')}>
-            Sign in
-          </button>
-        </div>
-      </main>
+  if (route === 'secrets') {
+    return protectedScreen(
+      <SecretsPage
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        onBack={() => goTo('/home')}
+        onHearts={() => goTo('/hearts')}
+      />,
+      'Blink Secrets',
     );
   }
 
-  return (
-    <FriendsPage
-    onOpenProfile={openPublicProfile}
-      onBack={() => goTo('/home')}
-      theme={theme}
-      onToggleTheme={() =>
-        setTheme((current) =>
-          current === 'light' ? 'dark' : 'light',
-        )
-      }
-    />
-  );
-}
-if (route === 'profile') {
-  return (
-    <ProfilePage
-      onBack={() => goTo('/home')}
-      theme={theme}
-      onToggleTheme={() =>
-        setTheme((current) => 
-          current === 'light' ? 'dark' : 'light',)
-      }
-    />
-  );
-}
+  // BLINK HEARTS
 
+  if (route === 'hearts') {
+    return protectedScreen(
+      <HeartPage
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        onBack={() => goTo('/home')}
+        onSecrets={() => goTo('/secrets')}
+        onOpenProfile={openPublicProfile}
+      />,
+      'Blink Hearts',
+    );
+  }
 
+  // INBOX
+
+  if (route === 'inbox') {
+    return protectedScreen(
+      <InboxPage
+        onBack={() => goTo('/home')}
+        onOpenProfile={openPublicProfile}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+      />,
+      'Inbox',
+    );
+  }
+
+  // SETTINGS
+
+  if (route === 'settings') {
+    return protectedScreen(
+      <BusinessMatchPage
+        initialView="settings"
+        onBack={() => goTo('/home')}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+      />,
+      'settings',
+    );
+  }
+
+  // BUSINESS MATCH
+
+  if (route === 'business-match') {
+    return protectedScreen(
+      <BusinessMatchPage
+        onBack={() => goTo('/home')}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+      />,
+      'Business Match',
+    );
+  }
+
+  // IRL
+
+  if (route === 'irl') {
+    return protectedScreen(
+      <IrlPage
+        onBack={() => goTo('/home')}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+      />,
+      'IRL',
+    );
+  }
+
+  // CHECK-INS
+
+  if (route === 'checkins') {
+    return protectedScreen(
+      <CheckinsPage
+        onBack={() => goTo('/home')}
+        onOpenProfile={openPublicProfile}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+      />,
+      'Check-Ins',
+    );
+  }
+
+  // CONNECTIONS
+
+  if (route === 'connections') {
+    return protectedScreen(
+      <FriendsPage
+        onOpenProfile={openPublicProfile}
+        onBack={() => goTo('/home')}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+      />,
+      'Connections',
+    );
+  }
+
+  // MY PROFILE
+
+  if (route === 'profile') {
+    return protectedScreen(
+      <ProfilePage
+        onBack={() => goTo('/home')}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+      />,
+      'Profile',
+    );
+  }
+
+  // EXCHANGE POST DETAILS
+
+  if (route === 'exchange-post') {
+    return protectedScreen(
+      exchangePostId ? (
+        <ExchangePostPage
+          postId={decodeURIComponent(
+            exchangePostId,
+          )}
+          onBack={() => goTo('/exchange')}
+          onOpenProfile={openPublicProfile}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+        />
+      ) : (
+        <main className="blink-guard">
+          Exchange post not found.
+        </main>
+      ),
+      'Blink Exchange',
+    );
+  }
+
+  // BLINK EXCHANGE
+
+  if (route === 'exchange') {
+    return protectedScreen(
+      <ExchangePage
+        onBack={() => goTo('/home')}
+        onOpenPost={openExchangePost}
+        onOpenProfile={openPublicProfile}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+      />,
+      'Blink Exchange',
+    );
+  }
+
+  // HOMEPAGE
 
   if (route === 'home') {
-    const hasToken = Boolean(readStoredToken());
-
-    if (!hasToken) {
-      return (
-        <main className="auth-page">
-          <header className="site-header">
-            <a className="brand" href="/" onClick={(e) => { e.preventDefault(); goTo('/'); }}>
-              <img className="brand-logo" src="/blink-logo.png" alt="Blink" />
-            </a>
-            <button className="theme-toggle" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
-              {theme === 'light' ? '☾ Dark mode' : '☀ Light mode'}
-            </button>
-          </header>
-          <section className="home-signin-required">
-            <span className="home-lock">⌑</span>
-            <h1>Welcome to Blink</h1>
-            <p>Sign in to see your friends’ moments and stay connected.</p>
-            <button className="submit-button" onClick={() => goTo('/login')}>Sign in to continue →</button>
-          </section>
-        </main>
+    if (!token()) {
+      return protectedScreen(
+        <></>,
+        'Blink',
       );
     }
 
     return (
-      <main className={`blink-home ${fullMoment ? 'moment-expanded' : ''}`}>
+      <main className="blink-home">
+        {/* HEADER */}
+
         <header className="home-header">
           <button
+            type="button"
             className="icon-button menu-button"
             aria-label="Open menu"
             aria-expanded={menuOpen}
-            onClick={() => setMenuOpen((open) => !open)}
+            onClick={() =>
+              setMenuOpen((open) => !open)
+            }
           >
             <span />
             <span />
             <span />
           </button>
 
-          <a className="home-brand" href="/home" onClick={(e) => e.preventDefault()}>
-            <img src="/blink-logo.png" alt="Blink" />
+          <a
+            className="home-brand"
+            href="/home"
+            onClick={(event) => {
+              event.preventDefault();
+              goTo('/home');
+            }}
+          >
+            <img
+              src="/blink-logo.png"
+              alt="Blink"
+            />
           </a>
 
-          <button
-  type="button"
-  onClick={() => goTo('/inbox')}
->
-  💬 Inbox
-</button>
+          <div className="home-header-right">
+            {bpBalance !== null && (
+              <span className="home-bp-pill">
+                🟠 {bpBalance.toFixed(1)} BP
+              </span>
+            )}
+
+            <button
+              type="button"
+              className="home-profile-button"
+              aria-label="My profile"
+              onClick={() =>
+                goTo('/profile')
+              }
+            >
+              {user?.avatarKey ? (
+                <img
+                  src={asset(user.avatarKey)}
+                  alt=""
+                />
+              ) : (
+                <span>
+                  {(user?.name || 'B')
+                    .slice(0, 1)
+                    .toUpperCase()}
+                </span>
+              )}
+            </button>
+          </div>
         </header>
+
+        {/* SIDEBAR */}
 
         {menuOpen && (
           <>
-            <button className="menu-backdrop" aria-label="Close menu" onClick={() => setMenuOpen(false)} />
-            <aside className="home-drawer">
+            <button
+              type="button"
+              className="menu-backdrop"
+              aria-label="Close menu"
+              onClick={() =>
+                setMenuOpen(false)
+              }
+            />
+
+            <aside
+              className="home-drawer"
+              aria-label="Blink menu"
+            >
               <div className="drawer-heading">
-                <img src="/blink-logo.png" alt="Blink" />
-                <button className="drawer-close" onClick={() => setMenuOpen(false)} aria-label="Close menu">×</button>
+                <img
+                  src="/blink-logo.png"
+                  alt="Blink"
+                />
+
+                <button
+                  type="button"
+                  className="drawer-close"
+                  onClick={() =>
+                    setMenuOpen(false)
+                  }
+                >
+                  ×
+                </button>
               </div>
-              <p className="drawer-label">YOUR SPACE</p>
-              <button type="button" onClick={() => goTo('/exchange')}>
-                🤝 <span>Blink Exchange</span>
+
+              <p className="drawer-label">
+                EXPLORE BLINK
+              </p>
+
+              <button
+                onClick={() =>
+                  goTo('/profile')
+                }
+              >
+                👤 <span>My profile</span>
               </button>
-             <button onClick={() => goTo('/profile')}>
-  ◉ <span>My profile</span>
-</button>
-              <button onClick={() => { setMenuOpen(false); setNotice('Settings will be available soon.'); }}>⚙ <span>Settings</span></button>
-              <button onClick={() => { setMenuOpen(false); setTheme(theme === 'light' ? 'dark' : 'light'); }}>◐ <span>{theme === 'light' ? 'Dark mode' : 'Light mode'}</span></button>
+
+              <button
+                onClick={() =>
+                  goTo('/exchange')
+                }
+              >
+                💱 <span>Blink Exchange</span>
+              </button>
+
+              <button
+                onClick={() =>
+                  goTo('/secrets')
+                }
+              >
+                🤫 <span>Blink Secrets</span>
+              </button>
+
+              <button
+                onClick={() =>
+                  goTo('/hearts')
+                }
+              >
+                💖 <span>Blink Hearts</span>
+              </button>
+
+              <button
+                onClick={() =>
+                  goTo('/business-match')
+                }
+              >
+                🤝 <span>Business Match</span>
+              </button>
+
+              <p className="drawer-label drawer-section-label">
+                YOUR SPACE
+              </p>
+
+              <button
+                onClick={() =>
+                  goTo('/settings')
+                }
+              >
+                ⚙️ <span>Settings</span>
+              </button>
+
+              <button onClick={toggleTheme}>
+                🌓
+                <span>
+                  {theme === 'light'
+                    ? 'Dark mode'
+                    : 'Light mode'}
+                </span>
+              </button>
+
               <div className="drawer-spacer" />
-              <button className="drawer-logout" onClick={logout}>↪ <span>Log out</span></button>
-              <p className="drawer-footnote">More Blink features are coming soon.</p>
+
+              <button
+                className="drawer-logout"
+                onClick={logout}
+              >
+                ↪ <span>Log out</span>
+              </button>
+
+              <p className="drawer-footnote">
+                Your people. Your moments. Your Blink.
+              </p>
             </aside>
           </>
         )}
 
-        
-<section className="home-feed" aria-label="Friends' moments feed">
-  <div className="feed-heading">
-    <div>
-      <p className="feed-eyebrow">YOUR PEOPLE, YOUR MOMENTS</p>
-      <h1>
-        Moments <span className="feed-spark">✦</span>
-      </h1>
-    </div>
-    <span className="feed-count">
-      {Math.min(visibleMomentCount, allMoments.length)} moments
-    </span>
-  </div>
+        {/* COMPACT CHECK-INS */}
 
-  {!hasPostedMoment && (
-    <div className="grid-gate">
-      <span className="gate-icon">✦</span>
-      <h2>Moments are better when shared.</h2>
-      <p>Post your first moment to unlock your friends' photos and videos.</p>
-      <button className="gate-button" onClick={demoPostMoment}>
-        <span>＋</span> Post your first moment
-      </button>
-      <small>Demo preview · Upload will be connected later</small>
-    </div>
-  )}
+        <section
+          className="blink-ci-preview blink-ci-slim"
+          aria-label="Friends' Check-Ins"
+        >
+          <div className="blink-ci-preview-head">
+            <div className="blink-ci-title">
+              <h2>🧡 Check-Ins</h2>
+              <p>What's happening now?</p>
+            </div>
 
-  <div
-    className={`moment-grid ${!hasPostedMoment ? 'moment-grid-locked' : ''}`}
-    aria-label="Moments gallery"
-  >
-    {allMoments.slice(0, visibleMomentCount).map((moment, index) => (
-      
-<button
-  key={moment.id}
-  type="button"
-  className="moment-grid-card"
-  aria-label={`Open ${moment.name}'s ${moment.kind} moment`}
- onClick={() => {
-  if (!hasPostedMoment && !moment.apiId) {
-    demoPostMoment();
-    return;
-  }
+            <button
+              type="button"
+              className="blink-ci-write"
+              onClick={() =>
+                goTo('/checkins')
+              }
+            >
+              + Write note
+            </button>
 
-  setSelectedMomentId(moment.id);
-  if (moment.apiId && !moment.isMine) {
-  void recordMomentView(moment.apiId);
-}
-  setMomentIndex(index);
-  setFullMoment(true);
-}}
->
-  
-{moment.kind === 'video' ? (
-  <video
-    className="moment-tile-image"
-    src={moment.image}
-    muted
-    playsInline
-    preload="metadata"
-  />
-) : (
-  <img
-    className="moment-tile-image"
-    src={moment.image}
-    alt={`${moment.name}'s moment`}
-    loading="lazy"
-  />
-)}
+            <button
+              type="button"
+              className="blink-ci-seeall"
+              onClick={() =>
+                goTo('/checkins')
+              }
+            >
+              <strong>
+                {checkins.length} active
+              </strong>
+              <span> · See all →</span>
+            </button>
+          </div>
 
+          {checkinsLoading ? (
+            <p className="blink-ci-preview-empty">
+              Loading Check-Ins…
+            </p>
+          ) : checkins.length > 0 ? (
+            <div className="blink-ci-notes-preview">
+              <NotesRow
+                items={checkins.slice(0, 8)}
+                ownId={user?.id}
+                showEmpty={false}
+                onOpenProfile={(id) =>
+                  id === user?.id
+                    ? goTo('/profile')
+                    : openPublicProfile(id)
+                }
+              />
+            </div>
+          ) : null}
+        </section>
 
-  <span className="grid-card-shade" />
+        {/* MOMENTS GALLERY */}
 
-  <span className="grid-card-indicator">
-    {moment.kind === 'video' ? '▶' : '▧'}
-  </span>
+        <section
+          className="home-feed"
+          aria-label="Moments feed"
+        >
+          <div className="feed-heading">
+            <div>
+              <p className="feed-eyebrow">
+                YOUR PEOPLE, YOUR MOMENTS
+              </p>
 
-  <span className="grid-card-caption">
-    {moment.name}
-  </span>
+              <h1>
+                Moments{' '}
+                <span className="feed-spark">
+                  ✦
+                </span>
+              </h1>
+            </div>
 
-  {!hasPostedMoment && (
-    <span className="grid-card-lock">✦</span>
-  )}
-</button>
+            <div className="feed-heading-actions">
+              <span className="feed-count">
+                {moments.length} moments
+              </span>
 
-    ))}
-  </div>
+              <button
+                type="button"
+                className="feed-create-button"
+                onClick={openCapture}
+              >
+                + Create
+              </button>
+            </div>
+          </div>
 
-  {visibleMomentCount < allMoments.length && (
-    <button
-      className="load-more-moments"
-      onClick={() =>
-        setVisibleMomentCount((count) =>
-          Math.min(count + 35, allMoments.length)
-        )
-      }
-    >
-      Load more moments
-    </button>
-  )}
+          {momentsLoading &&
+          moments.length === 0 ? (
+            <div className="blink-moments-state">
+              <span>🧡</span>
+              <h2>Loading moments…</h2>
+            </div>
+          ) : momentsError &&
+            moments.length === 0 ? (
+            <div className="blink-moments-state">
+              <span>⚠️</span>
+              <h2>Couldn't load moments</h2>
+              <p>{momentsError}</p>
 
-  <p className="swipe-hint">
-    Tap any moment to open it
-  </p>
-</section>
+              <button
+                onClick={() =>
+                  void loadMoments()
+                }
+              >
+                Try again
+              </button>
+            </div>
+          ) : moments.length === 0 ? (
+            <div className="blink-moments-state">
+              <span>📷</span>
+              <h2>No moments yet</h2>
 
+              <p>
+                Be the first to share a real
+                photo or video on Blink.
+              </p>
 
-        <nav className="home-bottom-nav" aria-label="Main navigation">
-       
-        {selectedNav === 'Capture' && (
-          <section className="capture-screen" aria-label="Create a moment">
+              <button onClick={openCapture}>
+                + Share a moment
+              </button>
+
+              <small>
+                Earn 0.5 BP per published Moment
+              </small>
+            </div>
+          ) : (
+            <>
+              <div className="moment-grid">
+                {moments
+                  .slice(0, visibleCount)
+                  .map((moment) => (
+                    <button
+                      key={moment.id}
+                      type="button"
+                      className="moment-grid-card"
+                      onClick={() =>
+                        void openMoment(moment.id)
+                      }
+                      aria-label={`Open ${
+                        moment.sender?.name ||
+                        'Blink user'
+                      }'s moment`}
+                    >
+                      {moment.mediaType ===
+                      'video' ? (
+                        <video
+                          className="moment-tile-image"
+                          src={asset(
+                            moment.mediaUrl,
+                          )}
+                          muted
+                          playsInline
+                          preload="metadata"
+                        />
+                      ) : (
+                        <img
+                          className="moment-tile-image"
+                          src={asset(
+                            moment.mediaUrl,
+                          )}
+                          alt=""
+                          loading="lazy"
+                        />
+                      )}
+
+                      <span className="grid-card-shade" />
+
+                      <span className="grid-card-indicator">
+                        {moment.mediaType ===
+                        'video'
+                          ? '▶'
+                          : '▧'}
+                      </span>
+
+                      <span className="grid-card-caption">
+                        {moment.sender?.name ||
+                          'Blink user'}
+                      </span>
+                    </button>
+                  ))}
+              </div>
+
+              {visibleCount < moments.length && (
+                <button
+                  className="load-more-moments"
+                  onClick={() =>
+                    setVisibleCount(
+                      (count) => count + 35,
+                    )
+                  }
+                >
+                  Load more moments
+                </button>
+              )}
+
+              <p className="swipe-hint">
+                Select a moment to view it
+              </p>
+            </>
+          )}
+        </section>
+
+        {/* BOTTOM NAVIGATION */}
+
+        <nav
+          className="home-bottom-nav"
+          aria-label="Main navigation"
+        >
+          {NAV.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              className={`bottom-nav-item ${
+                selectedNav === item.label
+                  ? 'selected'
+                  : ''
+              } ${
+                item.label === 'Capture'
+                  ? 'capture-nav'
+                  : ''
+              }`}
+              aria-label={item.label}
+              onClick={() =>
+                item.label === 'Capture'
+                  ? openCapture()
+                  : goTo(item.path)
+              }
+            >
+              <span className="nav-symbol">
+                {item.icon}
+              </span>
+
+              <span className="nav-label">
+                {item.label}
+              </span>
+            </button>
+          ))}
+        </nav>
+
+        {/* FLOATING INBOX */}
+
+        {!captureOpen && !activeMoment && (
+          <button
+            type="button"
+            className="home-floating-inbox"
+            onClick={() => goTo('/inbox')}
+            aria-label="Open Inbox"
+            title="Inbox"
+          >
+            💬
+          </button>
+        )}
+
+        {/* NOTIFICATIONS */}
+
+        {notice && (
+          <div
+            className="home-toast"
+            role="status"
+          >
+            {notice}
+
+            <button
+              type="button"
+              onClick={() => setNotice('')}
+              aria-label="Dismiss"
+            >
+              ×
+            </button>
+          </div>
+        )}
+
+        {/* ORIGINAL MOMENT VIEWER + REAL COMMENTS, REACTIONS, BP AND SHARE */}
+        {activeMoment && (
+          <div
+            className="full-moment-view blink-moment-classic"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Blink Moment viewer"
+          >
+            <style>{MOMENT_OVERLAY_CSS}</style>
+            {activeMoment.mediaType === 'video' ? (
+              <video
+                key={activeMoment.id}
+                className="full-moment-media"
+                src={asset(activeMoment.mediaUrl)}
+                controls
+                autoPlay
+                playsInline
+                loop
+              />
+            ) : (
+              <img
+                className="full-moment-media"
+                src={asset(activeMoment.mediaUrl)}
+                alt={`${activeMoment.sender?.name || 'Blink user'}'s Moment`}
+              />
+            )}
+
+            <div className="full-moment-shade" aria-hidden="true" />
+
+            <div className="full-moment-header">
+              <button
+                type="button"
+                className="moment-author-profile-button"
+                onClick={() => {
+                  if (activeMoment.senderId === user?.id) goTo('/profile');
+                  else openPublicProfile(activeMoment.senderId);
+                }}
+                aria-label={`Open ${activeMoment.sender?.name || 'Blink user'}'s profile`}
+              >
+                <span className="moment-avatar">
+                  {(activeMoment.sender?.name || 'B').slice(0, 1).toUpperCase()}
+                </span>
+                <span className="moment-author">
+                  <strong>{activeMoment.sender?.name || 'Blink user'}</strong>
+                  <span>{new Date(activeMoment.createdAt).toLocaleString()}</span>
+                </span>
+              </button>
+              <button
+                type="button"
+                className="moment-close"
+                onClick={() => {
+                  setSelectedMomentId(null);
+                  setViewersOpen(false);
+                }}
+                aria-label="Close Moment"
+              >
+                ×
+              </button>
+            </div>
+
+            {activeMoment.caption && (
+              <p className="full-moment-caption">{activeMoment.caption}</p>
+            )}
+
+            {activeMoment.senderId === user?.id && (
+              <button
+                type="button"
+                className="moment-viewers-button"
+                onClick={() => void loadViewers(activeMoment.id)}
+              >
+                Viewers
+              </button>
+            )}
+
+            <div className="full-moment-controls">
+              <button type="button" onClick={() => changeMoment(-1)}>
+                ← Previous
+              </button>
+              <button type="button" onClick={() => changeMoment(1)}>
+                Next →
+              </button>
+            </div>
+
+            {viewersOpen && (
+              <div className="moment-viewers-panel">
+                <div className="moment-viewers-heading">
+                  <strong>People who viewed this Moment</strong>
+                  <button
+                    type="button"
+                    onClick={() => setViewersOpen(false)}
+                    aria-label="Close viewers"
+                  >
+                    ×
+                  </button>
+                </div>
+                {viewersLoading ? (
+                  <p>Loading viewers…</p>
+                ) : viewersError ? (
+                  <p role="alert">{viewersError}</p>
+                ) : viewers.length === 0 ? (
+                  <p>No views yet.</p>
+                ) : (
+                  viewers.map((viewer) => (
+                    <div className="moment-viewer-row" key={viewer.viewerId}>
+                      <span className="moment-viewer-avatar">
+                        {viewer.name.slice(0, 1).toUpperCase()}
+                      </span>
+                      <span>{viewer.name}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+
+            {/* Mount the EXISTING server-backed interaction component.
+                Its CSS (.bma-*) creates the reaction rail and comments drawer. */}
+            <MomentActions
+              key={activeMoment.id}
+              momentId={activeMoment.id}
+              caption={activeMoment.caption ?? ''}
+              currentUserId={user?.id}
+              momentOwnerId={activeMoment.senderId}
+              onBpTransferred={() => void loadWallet()}
+              onOpenProfile={(id) => {
+                if (id === user?.id) goTo('/profile');
+                else openPublicProfile(id);
+              }}
+            />
+          </div>
+        )}
+
+        {/* CAPTURE MODAL */}
+
+        {captureOpen && (
+          <div
+            className="capture-screen"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Create a Moment"
+          >
             <div className="capture-topbar">
               <button
+                type="button"
                 className="capture-close"
-                onClick={() => handleNav('Home')}
+                onClick={closeCapture}
                 aria-label="Close camera"
               >
                 ×
               </button>
 
-              <h2>{capturedMedia ? 'Preview your moment' : 'Create a moment'}</h2>
+              <div className="capture-title">
+                <h2>
+                  {capturedUrl
+                    ? 'Preview your Moment'
+                    : 'Create a Moment'}
+                </h2>
+
+                <p>
+                  Share something worth remembering
+                </p>
+              </div>
 
               <span className="capture-mode-label">
-                {capturedType === 'video' ? 'VIDEO' : captureMode.toUpperCase()}
+                {capturedKind?.toUpperCase() ||
+                  captureMode.toUpperCase()}
               </span>
             </div>
 
-            <div
-              className="capture-stage"
-              
-onTouchStart={(event) => {
-  touchStart.current = {
-    x: event.touches[0]?.clientX ?? 0,
-    y: event.touches[0]?.clientY ?? 0,
-  };
-}}
-onTouchEnd={(event) => {
-  const start = touchStart.current;
-  const end = event.changedTouches[0];
+            <div className="capture-workspace">
+              <div
+                className="capture-stage"
+                onTouchStart={(event) => {
+                  touchStart.current = {
+                    x:
+                      event.touches[0]
+                        ?.clientX ?? 0,
+                    y:
+                      event.touches[0]
+                        ?.clientY ?? 0,
+                  };
+                }}
+                onTouchEnd={(event) => {
+                  const start =
+                    touchStart.current;
 
-  if (
-    start &&
-    end &&
-    Math.abs(end.clientX - start.x) > 55 &&
-    Math.abs(end.clientX - start.x) >
-      Math.abs(end.clientY - start.y) &&
-    !capturedMedia &&
-    !isRecording
-  ) {
-    setCaptureMode(end.clientX < start.x ? 'video' : 'photo');
-  }
+                  const end =
+                    event.changedTouches[0];
 
-  touchStart.current = null;
-}}
-            >
-              {capturedMedia ? (
-  capturedType === 'photo' ? (
-    <img
-      className="capture-preview"
-      src={capturedMedia}
-      alt="Captured moment preview"
-    />
-  ) : (
-    
-<video
-  key={capturedMedia}
-  className="capture-preview"
-  src={capturedMedia}
-  controls
-  muted
-  autoPlay
-  playsInline
-  loop
-  preload="auto"
-  onLoadedMetadata={(event) => {
-    const video = event.currentTarget;
-    console.log('Preview video metadata:', {
-      width: video.videoWidth,
-      height: video.videoHeight,
-      duration: video.duration,
-      source: video.currentSrc,
-    });
-
-    if (video.duration > 0.2) {
-      video.currentTime = 0.1;
-    }
-  }}
-  onLoadedData={() => {
-    console.log('Preview video frame loaded');
-  }}
-  onError={(event) => {
-    console.error(
-      'Preview video error:',
-      event.currentTarget.error,
-    );
-  }}
-/>
-
-  )
-) : (
-  <video
-    ref={cameraVideoRef}
-    className="capture-live-video"
-    autoPlay
-    muted
-    playsInline
-  />
-)}
-
-              <canvas ref={cameraCanvasRef} hidden />
-
-              {!capturedMedia && !cameraError && !cameraStream && (
-                <p className="capture-status">Starting camera…</p>
-              )}
-
-              {cameraError && (
-                <div className="capture-error" role="alert">
-                  <p>{cameraError}</p>
-                  {!capturedMedia && (
-                    <button onClick={() => void startCamera()}>
-                      Try camera again
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {isRecording && (
-                <div className="recording-indicator">
-                  <span />
-                  Recording
-                </div>
-              )}
-            </div>
-
-            {capturedMedia ? (
-              <div className="capture-review">
-                <p>Would you like to post this moment?</p>
-                <div className="capture-review-actions">
-                  <button
-                    className="capture-discard"
-                    onClick={discardCapturedMedia}
-                    disabled={isPostingDemo}
-                  >
-                    Discard
-                  </button>
-                  <button
-                    className="capture-post"
-                    onClick={postCapturedMediaDemo}
-                    disabled={isPostingDemo}
-                  >
-                    {isPostingDemo ? 'Please wait…' : 'Post moment'}
-                  </button>
-                </div>
-                <p className="capture-demo-note">
-                   Your moment will be uploaded and shared with Blink.
-                </p>
-              </div>
-            ) : (
-              <div className="capture-controls">
-                <div className="capture-mode-switch" aria-label="Capture mode">
-                  <button
-                    className={captureMode === 'photo' ? 'active' : ''}
-                    onClick={() => setCaptureMode('photo')}
-                    disabled={isRecording}
-                  >
-                    Photo
-                  </button>
-                  <button
-                    className={captureMode === 'video' ? 'active' : ''}
-                    onClick={() => setCaptureMode('video')}
-                    disabled={isRecording}
-                  >
-                    Video
-                  </button>
-                </div>
-
-                <button
-                  className={`capture-shutter ${captureMode === 'video' ? 'video-mode' : ''} ${isRecording ? 'recording' : ''}`}
-                  onClick={handleCaptureAction}
-                  aria-label={
-                    captureMode === 'photo'
-                      ? 'Take photo'
-                      : isRecording
-                        ? 'Stop recording'
-                        : 'Start recording'
+                  if (
+                    start &&
+                    end &&
+                    !capturedUrl &&
+                    !recording &&
+                    Math.abs(
+                      end.clientX -
+                        start.x,
+                    ) > 55 &&
+                    Math.abs(
+                      end.clientX -
+                        start.x,
+                    ) >
+                      Math.abs(
+                        end.clientY -
+                          start.y,
+                      )
+                  ) {
+                    setCaptureMode(
+                      end.clientX <
+                        start.x
+                        ? 'video'
+                        : 'photo',
+                    );
                   }
-                  disabled={!cameraStream && !isRecording}
-                >
-                  <span />
-                </button>
 
-                <p className="capture-instruction">
-                  {captureMode === 'photo'
-                    ? 'Tap to take a photo'
-                    : isRecording
-                      ? 'Tap again to stop recording'
-                      : 'Tap to start recording'}
-                </p>
-                <p className="capture-swipe-hint">
-                  Swipe left for video · Swipe right for photo
-                </p>
+                  touchStart.current =
+                    null;
+                }}
+              >
+                {capturedUrl ? (
+                  capturedKind ===
+                  'photo' ? (
+                    <img
+                      className="capture-preview"
+                      src={capturedUrl}
+                      alt="Captured photo"
+                    />
+                  ) : (
+                    <video
+                      className="capture-preview"
+                      key={capturedUrl}
+                      src={capturedUrl}
+                      controls
+                      playsInline
+                      autoPlay
+                      loop
+                    />
+                  )
+                ) : (
+                  <video
+                    ref={videoRef}
+                    className="capture-live-video"
+                    autoPlay
+                    muted
+                    playsInline
+                  />
+                )}
+
+                <canvas
+                  ref={canvasRef}
+                  hidden
+                />
+
+                {!capturedUrl &&
+                  !stream &&
+                  !cameraError && (
+                    <p className="capture-status">
+                      Starting camera…
+                    </p>
+                  )}
+
+                {cameraError && (
+                  <div
+                    className="capture-error"
+                    role="alert"
+                  >
+                    <p>{cameraError}</p>
+
+                    {!capturedUrl && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void startCamera()
+                        }
+                      >
+                        Retry camera
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {recording && (
+                  <span className="recording-indicator">
+                    ● Recording
+                  </span>
+                )}
+
+                <span className="capture-corner tl" />
+                <span className="capture-corner tr" />
+                <span className="capture-corner bl" />
+                <span className="capture-corner br" />
               </div>
-            )}
-          </section>
-        )}
 
-          {navItems.map((item) => (
-            <button
-              key={item.label}
-              className={`bottom-nav-item ${selectedNav === item.label ? 'selected' : ''} ${item.label === 'Capture' ? 'capture-nav' : ''}`}
-              aria-label={item.label}
-              aria-current={selectedNav === item.label ? 'page' : undefined}
-              onClick={() => handleNav(item.label)}
-            >
-              <span className="nav-symbol">{item.symbol}</span>
-            </button>
-          ))}
-        </nav>
+              {capturedUrl ? (
+                <div className="capture-review">
+                  <label htmlFor="moment-caption">
+                    Caption (optional)
+                  </label>
 
-        {notice && (
-          <div className="home-toast" role="status">
-            <span>{notice}</span>
-            <button onClick={() => setNotice('')} aria-label="Dismiss">×</button>
-          </div>
-        )}
+                  <textarea
+                    id="moment-caption"
+                    maxLength={500}
+                    rows={2}
+                    value={caption}
+                    placeholder="What's happening in this moment?"
+                    onChange={(event) =>
+                      setCaption(
+                        event.target.value,
+                      )
+                    }
+                  />
 
-        {fullMoment &&
-  (hasPostedMoment ||
-    apiMoments.some((moment) => `api-${moment.id}` === selectedMomentId)) && (
-          <div className="full-moment-view">
-            {activeMoment.kind === 'video' ? (
-  <video
-    className="full-moment-media"
-    src={activeMoment.image}
-    controls
-    autoPlay
-    playsInline
-    loop
-  />
-) : (
-  <img
-    className="full-moment-media"
-    src={activeMoment.image}
-    alt={`${activeMoment.name}'s full-screen moment`}
-  />
-)}
-            <div className="full-moment-shade" />
-            
-<div className="full-moment-header">
-  {activeMoment.senderId ? (
-    <button
-      type="button"
-      className="moment-author-profile-button"
-      onClick={() => {
-        const currentUserId = readStoredUser()?.id;
+                  <div className="capture-review-actions">
+                    <button
+                      type="button"
+                      className="capture-discard"
+                      disabled={uploading}
+                      onClick={discardCapture}
+                    >
+                      ↻ Retake
+                    </button>
 
-        if (activeMoment.senderId === currentUserId) {
-          goTo('/profile');
-        } else {
-          openPublicProfile(activeMoment.senderId!);
-        }
-      }}
-      aria-label={`View ${activeMoment.name}'s profile`}
-    >
-      <span className="moment-avatar">
-        {activeMoment.initials}
-      </span>
+                    <button
+                      type="button"
+                      className="capture-post"
+                      disabled={uploading}
+                      onClick={() =>
+                        void publishMoment()
+                      }
+                    >
+                      {uploading
+                        ? 'Publishing…'
+                        : 'Publish Moment →'}
+                    </button>
+                  </div>
 
-      <span className="moment-author">
-        <strong>{activeMoment.name}</strong>
-        <span>{activeMoment.time}</span>
-      </span>
-    </button>
-  ) : (
-    <div className="moment-author-profile-static">
-      <span className="moment-avatar">
-        {activeMoment.initials}
-      </span>
+                  <p className="capture-reward-note">
+                    ✦ Earn +0.5 BP when a Moment
+                    is published successfully
+                  </p>
+                </div>
+              ) : (
+                <div className="capture-controls">
+                  <div className="capture-mode-switch">
+                    <button
+                      className={
+                        captureMode ===
+                        'photo'
+                          ? 'active'
+                          : ''
+                      }
+                      disabled={recording}
+                      onClick={() =>
+                        setCaptureMode(
+                          'photo',
+                        )
+                      }
+                    >
+                      📷 Photo
+                    </button>
 
-      <span className="moment-author">
-        <strong>{activeMoment.name}</strong>
-        <span>{activeMoment.time}</span>
-      </span>
-    </div>
-  )}
+                    <button
+                      className={
+                        captureMode ===
+                        'video'
+                          ? 'active'
+                          : ''
+                      }
+                      disabled={recording}
+                      onClick={() =>
+                        setCaptureMode(
+                          'video',
+                        )
+                      }
+                    >
+                      🎥 Video
+                    </button>
+                  </div>
 
-  <button
-    type="button"
-    onClick={() => setFullMoment(false)}
-    aria-label="Close full-screen moment"
-  >
-    ×
-  </button>
-</div>
+                  <div className="capture-action-row">
+                    <label className="capture-gallery-button">
+                      🖼️ Gallery
 
-            <p className="full-moment-caption">{activeMoment.caption}</p>
-            
-{activeMoment.apiId && activeMoment.isMine && (
-  <button
-    type="button"
-    className="moment-viewers-button"
-    onClick={() => void openMomentViewers(activeMoment.apiId!)}
-  >
-    Viewers
-  </button>
-)}
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"
+                        disabled={recording}
+                        hidden
+                        onChange={(event) => {
+                          selectGallery(
+                            event.target.files?.[0],
+                          );
 
-            <div className="full-moment-controls">
-              <button onClick={() => changeMoment(-1)}>← Previous</button>
-              <button onClick={() => changeMoment(1)}>Next →</button>
+                          event.target.value =
+                            '';
+                        }}
+                      />
+                    </label>
+
+                    <button
+                      className={`capture-shutter ${
+                        captureMode ===
+                        'video'
+                          ? 'video-mode'
+                          : ''
+                      } ${
+                        recording
+                          ? 'recording'
+                          : ''
+                      }`}
+                      type="button"
+                      disabled={
+                        !stream &&
+                        !recording
+                      }
+                      onClick={
+                        captureAction
+                      }
+                      aria-label={
+                        recording
+                          ? 'Stop recording'
+                          : captureMode ===
+                              'photo'
+                            ? 'Take photo'
+                            : 'Start recording'
+                      }
+                    >
+                      <span />
+                    </button>
+
+                    <span className="capture-side-placeholder" />
+                  </div>
+
+                  <p className="capture-instruction">
+                    {captureMode ===
+                    'photo'
+                      ? 'Tap to take a photo'
+                      : recording
+                        ? 'Tap to finish recording'
+                        : 'Tap to record a video'}
+                  </p>
+
+                  <p className="capture-swipe-hint">
+                    Swipe to switch modes
+                  </p>
+                </div>
+              )}
             </div>
-            
-{showMomentViewers && (
-  <div className="moment-viewers-panel">
-    <div className="moment-viewers-heading">
-      <strong>People who viewed this moment</strong>
-      <button
-        type="button"
-        onClick={() => setShowMomentViewers(false)}
-        aria-label="Close viewers"
-      >
-        ×
-      </button>
-    </div>
-
-    {loadingMomentViewers ? (
-      <p>Loading viewers…</p>
-    ) : momentViewersError ? (
-      <p role="alert">{momentViewersError}</p>
-    ) : momentViewers.length === 0 ? (
-      <p>No views yet.</p>
-    ) : (
-      <>
-        <p>{momentViewers.length} viewer(s)</p>
-        {momentViewers.map((viewer) => (
-          <div className="moment-viewer-row" key={viewer.viewerId}>
-            <span className="moment-viewer-avatar">
-              {viewer.name.slice(0, 1).toUpperCase()}
-            </span>
-            <span>{viewer.name}</span>
-          </div>
-        ))}
-      </>
-    )}
-  </div>
-)}
-
           </div>
         )}
       </main>
     );
   }
 
+  // LOGIN AND REGISTRATION PAGE
+
   const isLogin = route === 'login';
 
   return (
-    <main className={`auth-page ${isLogin ? 'login-page' : 'signup-page'}`}>
+    <main
+      className={`auth-page ${
+        isLogin
+          ? 'login-page'
+          : 'signup-page'
+      }`}
+    >
       <header className="site-header">
-        <a className="brand" href="/" aria-label="Blink home" onClick={(event) => { event.preventDefault(); goTo('/'); }}>
-          <img className="brand-logo" src="/blink-logo.png" alt="Blink" />
+        <a
+          className="brand"
+          href="/"
+          onClick={(event) => {
+            event.preventDefault();
+            goTo('/');
+          }}
+        >
+          <img
+            className="brand-logo"
+            src="/blink-logo.png"
+            alt="Blink"
+          />
         </a>
-        <button className="theme-toggle" type="button" onClick={() => setTheme((current) => current === 'light' ? 'dark' : 'light')}>
-          {theme === 'light' ? '☾  Dark mode' : '☀  Light mode'}
+
+        <button
+          className="theme-toggle"
+          type="button"
+          onClick={toggleTheme}
+        >
+          {theme === 'light'
+            ? '☾ Dark mode'
+            : '☀ Light mode'}
         </button>
       </header>
 
       <div className="auth-layout">
         <section className="auth-hero">
-          <p className="eyebrow"><span className="eyebrow-dot" /> YOUR MOMENTS. YOUR PEOPLE.</p>
-          <h1>{isLogin ? <>Welcome back<br />to <span>Blink.</span></> : <>Life moves<br />fast. <span>Blink it.</span></>}</h1>
+          <p className="eyebrow">
+            <span className="eyebrow-dot" />
+            YOUR MOMENTS. YOUR PEOPLE.
+          </p>
+
+          <h1>
+            {isLogin ? (
+              <>
+                Welcome back
+                <br />
+                to <span>Blink.</span>
+              </>
+            ) : (
+              <>
+                Life moves
+                <br />
+                fast. <span>Blink it.</span>
+              </>
+            )}
+          </h1>
+
           <p className="hero-description">
             {isLogin
-              ? 'Log in to continue sharing moments, reconnecting with your people, and being part of something special.'
+              ? 'Log in to continue sharing moments and reconnecting with your people.'
               : 'A little moment can mean everything. Connect with your people and share the moments worth remembering.'}
           </p>
-          <div className="hero-art" aria-hidden="true">
+
+          <div
+            className="hero-art"
+            aria-hidden="true"
+          >
             <div className="art-orbit" />
-            <div className="moment-card moment-card-back"><div className="moment-sun" /><div className="moment-mountains" /></div>
-            <div className="moment-card moment-card-front">
-              <div className="moment-scene"><span className="person person-one" /><span className="person person-two" /><span className="person person-three" /><span className="person person-four" /></div>
-              <span className="moment-caption">Good vibes, together</span>
+
+            <div className="moment-card moment-card-back">
+              <div className="moment-sun" />
+              <div className="moment-mountains" />
             </div>
-            <span className="art-spark spark-one">✦</span><span className="art-spark spark-two">✳</span>
+
+            <div className="moment-card moment-card-front">
+              <div className="moment-scene">
+                <span className="person person-one" />
+                <span className="person person-two" />
+                <span className="person person-three" />
+                <span className="person person-four" />
+              </div>
+
+              <span className="moment-caption">
+                Good vibes, together
+              </span>
+            </div>
+
+            <span className="art-spark spark-one">
+              ✦
+            </span>
+
+            <span className="art-spark spark-two">
+              ✳
+            </span>
           </div>
-          <p className="hero-footer"><span className="eyebrow-dot" /> Be present. Stay connected.</p>
+
+          <p className="hero-footer">
+            <span className="eyebrow-dot" />
+            Be present. Stay connected.
+          </p>
         </section>
 
         <section className="auth-panel">
           <div className="auth-card">
-            <p className="form-eyebrow">{isLogin ? 'LOG IN TO BLINK' : "LET'S GET STARTED"}</p>
-            <h2>{isLogin ? 'Welcome back' : 'Create your account'}</h2>
-            <p className="form-description">{isLogin ? 'Enter your details to sign in to your account.' : 'Your next favorite moment starts here.'}</p>
+            <p className="form-eyebrow">
+              {isLogin
+                ? 'LOG IN TO BLINK'
+                : "LET'S GET STARTED"}
+            </p>
 
-            <form onSubmit={handleSubmit} noValidate>
-              {!isLogin && <div className="form-field"><label htmlFor="name">Full name</label><input id="name" autoComplete="name" placeholder="What should we call you?" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} required /></div>}
-              <div className="form-field"><label htmlFor="email">Email address</label><input id="email" type="email" autoComplete="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required /></div>
-              {!isLogin && <div className="form-field"><label htmlFor="phoneNumber">Phone number</label><input id="phoneNumber" type="tel" autoComplete="tel" placeholder="+8801XXXXXXXXX" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} maxLength={16} required /><small>Include your country code, if needed.</small></div>}
+            <h2>
+              {isLogin
+                ? 'Welcome back'
+                : 'Create your account'}
+            </h2>
+
+            <p className="form-description">
+              {isLogin
+                ? 'Enter your details to sign in.'
+                : 'Your next favorite moment starts here.'}
+            </p>
+
+            <form
+              onSubmit={submitAuth}
+              noValidate
+            >
+              {!isLogin && (
+                <div className="form-field">
+                  <label htmlFor="name">
+                    Full name
+                  </label>
+
+                  <input
+                    id="name"
+                    value={name}
+                    onChange={(event) =>
+                      setName(
+                        event.target.value,
+                      )
+                    }
+                    placeholder="What should we call you?"
+                    autoComplete="name"
+                    maxLength={80}
+                    required
+                  />
+                </div>
+              )}
+
               <div className="form-field">
-                <label htmlFor="password">Password</label>
+                <label htmlFor="email">
+                  Email address
+                </label>
+
+                <input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(event) =>
+                    setEmail(
+                      event.target.value,
+                    )
+                  }
+                  required
+                />
+              </div>
+
+              {!isLogin && (
+                <div className="form-field">
+                  <label htmlFor="phone">
+                    Phone number
+                  </label>
+
+                  <input
+                    id="phone"
+                    autoComplete="tel"
+                    type="tel"
+                    placeholder="+8801XXXXXXXXX"
+                    value={phone}
+                    onChange={(event) =>
+                      setPhone(
+                        event.target.value,
+                      )
+                    }
+                    required
+                  />
+                </div>
+              )}
+
+              <div className="form-field">
+                <label htmlFor="password">
+                  Password
+                </label>
+
                 <div className="password-wrap">
-                  <input id="password" type={showPassword ? 'text' : 'password'} autoComplete={isLogin ? 'current-password' : 'new-password'} placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={8} maxLength={72} required />
-                  <button className="show-password" type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Hide password' : 'Show password'}>{showPassword ? 'Hide' : 'Show'}</button>
+                  <input
+                    id="password"
+                    type={
+                      showPassword
+                        ? 'text'
+                        : 'password'
+                    }
+                    autoComplete={
+                      isLogin
+                        ? 'current-password'
+                        : 'new-password'
+                    }
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(event) =>
+                      setPassword(
+                        event.target.value,
+                      )
+                    }
+                    minLength={8}
+                    maxLength={72}
+                    required
+                  />
+
+                  <button
+                    className="show-password"
+                    type="button"
+                    onClick={() =>
+                      setShowPassword(
+                        (value) => !value,
+                      )
+                    }
+                  >
+                    {showPassword
+                      ? 'Hide'
+                      : 'Show'}
+                  </button>
                 </div>
               </div>
 
-              {isLogin && <div className="login-options"><label className="remember-option"><input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} /><span>Remember me</span></label><button className="text-link" type="button" onClick={() => setError('Password reset is not available yet.')}>Forgot password?</button></div>}
-              {error && <p className="form-message form-error" role="alert">{error}</p>}
-              {success && <p className="form-message form-success" role="status">{success}</p>}
-              <button className="submit-button" type="submit" disabled={loading}>{loading ? 'Please wait…' : isLogin ? 'Sign in  →' : 'Create account  →'}</button>
-              <div className="form-divider"><span /><span>OR</span><span /></div>
-              <button className="secondary-button" type="button" onClick={() => goTo(isLogin ? '/' : '/login')}>{isLogin ? 'Create a new account' : 'I already have an account'}</button>
+              {isLogin && (
+                <div className="login-options">
+                  <label className="remember-option">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(event) =>
+                        setRememberMe(
+                          event.target.checked,
+                        )
+                      }
+                    />
+                    Remember me
+                  </label>
+
+                  <button
+                    className="text-link"
+                    type="button"
+                    onClick={() =>
+                      setAuthError(
+                        'Password reset is not available yet.',
+                      )
+                    }
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              )}
+
+              {authError && (
+                <p
+                  className="form-message form-error"
+                  role="alert"
+                >
+                  {authError}
+                </p>
+              )}
+
+              {authSuccess && (
+                <p
+                  className="form-message form-success"
+                  role="status"
+                >
+                  {authSuccess}
+                </p>
+              )}
+
+              <button
+                className="submit-button"
+                type="submit"
+                disabled={authLoading}
+              >
+                {authLoading
+                  ? 'Please wait…'
+                  : isLogin
+                    ? 'Sign in →'
+                    : 'Create account →'}
+              </button>
+
+              <div className="form-divider">
+                <span />
+                <span>OR</span>
+                <span />
+              </div>
+
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() =>
+                  goTo(
+                    isLogin
+                      ? '/'
+                      : '/login',
+                  )
+                }
+              >
+                {isLogin
+                  ? 'Create a new account'
+                  : 'I already have an account'}
+              </button>
             </form>
 
-            <p className="legal-copy">By continuing, you agree to our<br /><a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>.</p>
+            <p className="legal-copy">
+              By continuing, you agree to our
+              <br />
+              <a href="/terms">
+                Terms of Service
+              </a>{' '}
+              and{' '}
+              <a href="/privacy">
+                Privacy Policy
+              </a>.
+            </p>
           </div>
         </section>
       </div>

@@ -1,0 +1,300 @@
+/* ============================================
+   BLINK MOMENT VIEWER
+   Existing full-screen photo/video design
+============================================ */
+
+.blink-moment-classic {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  overflow: hidden;
+  background: #090909;
+  color: #ffffff;
+  isolation: isolate;
+}
+
+/* MEDIA */
+
+.blink-moment-classic > .full-moment-media {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  display: block;
+  object-fit: contain !important;
+  background: #090909;
+  z-index: 0;
+}
+
+.blink-moment-classic > .full-moment-shade {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    180deg,
+    #0008,
+    transparent 22%,
+    transparent 68%,
+    #0009
+  );
+  pointer-events: none;
+}
+
+/* USER DETAILS */
+
+.blink-moment-classic > .full-moment-header {
+  position: absolute;
+  top: max(20px, env(safe-area-inset-top));
+  left: 35px;
+  right: 35px;
+  z-index: 8;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.blink-moment-classic .moment-author-profile-button {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: white;
+  cursor: pointer;
+}
+
+.blink-moment-classic .moment-author-profile-button
+.moment-avatar {
+  width: 58px;
+  height: 58px;
+  flex-shrink: 0;
+
+  display: grid;
+  place-items: center;
+
+  border: 3px solid white;
+  border-radius: 50%;
+
+  background: #fb6c00;
+  color: white;
+
+  font-size: 23px;
+  font-weight: 800;
+}
+
+.blink-moment-classic .moment-author {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  color: white;
+}
+
+.blink-moment-classic .moment-author strong {
+  color: white;
+  font-size: 18px;
+}
+
+.blink-moment-classic .moment-author span {
+  color: #eeeeee;
+  font-size: 13px;
+}
+
+/* CLOSE */
+
+.blink-moment-classic .moment-close {
+  width: 55px;
+  height: 55px;
+  flex-shrink: 0;
+
+  display: grid;
+  place-items: center;
+
+  border: 1px solid #ffffff70;
+  border-radius: 50%;
+
+  background: #00000060;
+  color: white;
+
+  font-size: 27px;
+  cursor: pointer;
+}
+
+.blink-moment-classic .moment-close:hover {
+  background: #fb6c00;
+}
+
+/* CAPTION */
+
+.blink-moment-classic .full-moment-caption {
+  position: absolute;
+  z-index: 5;
+
+  left: 50%;
+  right: auto;
+  bottom: 25%;
+
+  width: min(550px, calc(100% - 190px));
+  margin: 0;
+
+  transform: translateX(-50%);
+
+  color: white;
+  font-size: clamp(15px, 2vw, 20px);
+  font-weight: 700;
+  text-align: center;
+
+  text-shadow: 0 2px 10px #000b;
+  pointer-events: none;
+}
+
+/* VIEWERS */
+
+.blink-moment-classic .moment-viewers-button {
+  position: absolute;
+  z-index: 8;
+  left: 50%;
+  bottom: 15%;
+  transform: translateX(-50%);
+}
+
+.blink-moment-classic .moment-viewers-panel {
+  z-index: 30;
+}
+
+/* PREVIOUS / NEXT */
+
+.blink-moment-classic .full-moment-controls {
+  position: absolute;
+  z-index: 8;
+
+  left: 50%;
+  right: auto;
+  bottom: max(60px, 8%);
+
+  transform: translateX(-50%);
+
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+
+  white-space: nowrap;
+}
+
+/* ============================================
+   INTERACTION CONTROLS
+   Uses existing MomentActions.css
+============================================ */
+
+.blink-moment-classic .bma-root {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+
+/* RIGHT REACTION BAR */
+
+.blink-moment-classic .bma-rail {
+  position: absolute;
+  z-index: 4;
+
+  right: 22px;
+  bottom: 110px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  pointer-events: auto;
+}
+
+/* ACTION BUTTON HOVER */
+
+.blink-moment-classic .bma-action {
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.blink-moment-classic .bma-action:hover {
+  background: #fb6c00;
+  transform: translateY(-2px);
+}
+
+/* COMMENTS DRAWER */
+
+.blink-moment-classic .bma-backdrop {
+  z-index: 40;
+}
+
+.blink-moment-classic .bma-panel {
+  z-index: 41;
+}
+
+.blink-moment-classic .bma-message {
+  z-index: 30;
+}
+
+/* MOBILE */
+
+@media (max-width: 700px) {
+  .blink-moment-classic > .full-moment-header {
+    left: 14px;
+    right: 14px;
+    top: 16px;
+  }
+
+  .blink-moment-classic .moment-author-profile-button
+  .moment-avatar {
+    width: 42px;
+    height: 42px;
+    font-size: 17px;
+  }
+
+  .blink-moment-classic .moment-author strong {
+    font-size: 13px;
+  }
+
+  .blink-moment-classic .moment-author span {
+    font-size: 10px;
+  }
+
+  .blink-moment-classic .moment-close {
+    width: 42px;
+    height: 42px;
+    font-size: 22px;
+  }
+
+  .blink-moment-classic .full-moment-caption {
+    bottom: 30%;
+    width: calc(100% - 130px);
+    font-size: 15px;
+  }
+
+  .blink-moment-classic .moment-viewers-button {
+    bottom: 20%;
+  }
+
+  .blink-moment-classic .full-moment-controls {
+    bottom: 13%;
+    gap: 8px;
+  }
+
+  .blink-moment-classic .full-moment-controls button {
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+
+  .blink-moment-classic .bma-rail {
+    right: 8px;
+    bottom: 15%;
+  }
+
+  .blink-moment-classic .bma-panel {
+    z-index: 41;
+  }
+}

@@ -40,6 +40,19 @@ interface AuthenticatedRequest extends Request {
 @UseGuards(JwtAuthGuard)
 export class MomentsController {
   constructor(private readonly momentsService: MomentsService) {}
+  
+@Post(':id/react')
+react(
+  @Req() req: AuthenticatedRequest,
+  @Param('id') id: string,
+  @Body('emoji') emoji: unknown,
+) {
+  return this.momentsService.react(
+    req.user.userId,
+    id,
+    emoji,
+  );
+}
 
   @Post('upload')
   @UseInterceptors(
