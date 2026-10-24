@@ -121,6 +121,8 @@ model User {
   // Blink Business
   creatorTasks            CreatorTask[]
   creatorTaskImages       TaskImage[]
+  taskParticipations     TaskParticipation[]
+  taskParticipationImages TaskParticipationImage[]
   taskVideoUploads        TaskVideoUpload[]
   businessProfile          BusinessProfile?
   businessRequestsSent     BusinessConnectionRequest[] @relation("BusinessRequestSender")
@@ -855,6 +857,7 @@ model CreatorTask {
   videoUpload  TaskVideoUpload? @relation(fields: [videoUploadId], references: [id], onDelete: SetNull)
   checklists   TaskChecklist[]
   images       TaskImage[]
+  participations TaskParticipation[]
 
   @@index([status, publishedAt])
   @@index([creatorId, updatedAt])
@@ -916,5 +919,39 @@ model TaskImage {
   task CreatorTask? @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   @@index([taskId, position])
+  @@index([userId, createdAt])
+}
+
+model TaskParticipation {
+  id String @id @default(cuid())
+  taskId String
+  participantId String
+  explanation String @default("") @db.Text
+  checkedItems Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  task CreatorTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  participant User @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  images TaskParticipationImage[]
+
+  @@unique([taskId, participantId])
+  @@index([participantId, updatedAt])
+}
+
+model TaskParticipationImage {
+  id String @id @default(cuid())
+  userId String
+  participationId String?
+  storageKey String @unique
+  mimeType String @db.VarChar(40)
+  fileSize Int
+  position Int @default(0)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  participation TaskParticipation? @relation(fields: [participationId], references: [id], onDelete: Cascade)
+
+  @@index([participationId, position])
   @@index([userId, createdAt])
 }

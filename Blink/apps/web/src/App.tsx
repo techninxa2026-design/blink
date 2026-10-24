@@ -24,6 +24,7 @@ import BusinessMatchPage from './BusinessMatchPage';
 import BusinessDashboardPage from './BusinessDashboardPage';
 import CreatorDashboardPage from './CreatorDashboardPage';
 import CreatorTasksPage from './CreatorTasksPage';
+import TaskParticipationPage from './TaskParticipationPage';
 import { NotesRow, useActiveCheckins } from './CheckinPreview';
 
 const API = (
@@ -82,6 +83,7 @@ type Route =
   | 'business-dashboard'
   | 'tasks'
   | 'task-detail'
+  | 'task-participate'
   | 'settings'
   | 'inbox'
   | 'Exchange'
@@ -140,6 +142,7 @@ function messageOf(
 }
 
 function routeFromPath(path: string): Route {
+  if (/^\/tasks\/[^/]+\/participate$/.test(path)) return 'task-participate';
   if (/^\/tasks\/[^/]+$/.test(path)) return 'task-detail';
   if (/^\/profile\/user\/[^/]+$/.test(path)) {
     return 'public-profile';
@@ -1233,6 +1236,22 @@ export default function App() {
     );
   }
 
+  if (route === 'task-participate') {
+    const taskId = window.location.pathname.match(/^\/tasks\/([^/]+)\/participate$/)?.[1];
+    if (taskId) {
+      return protectedScreen(
+        <TaskParticipationPage
+          taskId={decodeURIComponent(taskId)}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          onBack={() => goTo('/tasks/' + taskId)}
+          onBrowse={() => goTo('/tasks')}
+        />,
+        'Task Participation',
+      );
+    }
+  }
+
   if (route === 'tasks' || route === 'task-detail') {
     return protectedScreen(
       <CreatorTasksPage
@@ -1244,6 +1263,8 @@ export default function App() {
         onBack={() => goTo('/home')}
         onBrowse={() => goTo('/tasks')}
         onOpenTask={(id) => goTo('/tasks/' + encodeURIComponent(id))}
+        onParticipate={(id) => goTo('/tasks/' + encodeURIComponent(id) + '/participate')}
+        currentUserId={user?.id}
       />,
       'Blink Tasks',
     );
