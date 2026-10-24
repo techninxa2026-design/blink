@@ -34,7 +34,7 @@ jobs:
         run: pnpm --dir apps/api exec prisma validate
       - name: Generate Prisma client
         run: pnpm --dir apps/api exec prisma generate
-      - name: Compile NestJS API
-        run: pnpm --dir apps/api run build
       - name: Compile Vite React frontend
         run: pnpm --dir apps/web run build
+      - name: Compile NestJS API
+        run: pnpm --dir apps/api run build
