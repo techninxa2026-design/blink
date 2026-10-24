@@ -319,3 +319,84 @@
   .bma-toggle-replies { margin-left: 24px; }
   .bma-compose { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
 }
+
+/* Approved six-action compact rail: one column, zero overlap. */
+.bma-root .bma-rail {
+  position:absolute;
+  top:50%;
+  bottom:auto;
+  right:max(12px,env(safe-area-inset-right));
+  transform:translateY(-50%);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:9px;
+  width:57px;
+  z-index:4;
+  pointer-events:auto;
+  isolation:isolate;
+}
+.bma-root .bma-action {
+  display:flex;
+  flex:0 0 51px;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  width:53px;
+  min-height:51px;
+  max-height:51px;
+  margin:0;
+  padding:4px 3px;
+  gap:4px;
+  line-height:1;
+  border:1px solid #ffffff4b;
+  border-radius:14px;
+  background:#1d1d24e8;
+  color:#fff;
+  box-shadow:0 5px 18px #0008;
+  transition:border-color .15s,background .15s,transform .15s;
+}
+.bma-root .bma-action:hover,
+.bma-root .bma-action:focus-visible {background:#fb6c00;border-color:#ffb177;transform:scale(1.03);}
+.bma-root .bma-action.active {border-color:#ff9d56;}
+.bma-root .bma-action .bma-icon{display:grid;place-items:center;font-size:23px;height:25px;line-height:1;}
+.bma-root .bma-action .bma-icon svg{display:block;width:24px;height:24px;}
+.bma-root .bma-action small{font-size:10px;font-weight:780;line-height:1;color:#fff;}
+.bma-root .bma-rail .bma-viewers-action {
+  border-color:#fb6c00;background:#463020;
+}
+.bma-root .bma-reaction-wrap {width:53px;position:relative;flex:0 0 51px;display:flex;align-items:center;justify-content:center;}
+.bma-root .bma-emojis {
+  right:62px;
+  top:0;
+  z-index:7;
+  white-space:nowrap;
+  max-width:calc(100vw - 88px);
+}
+.bma-root .bma-emojis button{flex:0 0 36px;}
+.bma-root .bma-panel {z-index:8;}
+.bma-root .bma-message{right:86px;bottom:70px;z-index:7;}
+@media(max-width:700px){
+  .bma-root .bma-rail{right:max(7px,env(safe-area-inset-right));width:48px;gap:7px;}
+  .bma-root .bma-action{width:46px;min-height:45px;max-height:45px;flex-basis:45px;border-radius:12px;}
+  .bma-root .bma-reaction-wrap{width:46px;flex-basis:45px;}
+  .bma-root .bma-action .bma-icon{font-size:21px;height:23px;}
+  .bma-root .bma-action .bma-icon svg{width:21px;height:21px;}
+  .bma-root .bma-action small{font-size:9px;}
+  .bma-root .bma-emojis{right:52px;padding:5px;gap:0;}
+  .bma-root .bma-emojis button{width:32px;flex-basis:32px;}
+}
+@media(max-height:560px){
+  .bma-root .bma-rail{gap:5px;}
+  .bma-root .bma-action{flex-basis:40px;width:44px;min-height:40px;max-height:40px;padding:2px;border-radius:11px;}
+  .bma-root .bma-reaction-wrap{flex-basis:40px;width:44px;}
+  .bma-root .bma-action .bma-icon{height:20px;font-size:19px;}
+  .bma-root .bma-action .bma-icon svg{width:19px;height:19px;}
+}
+@media(max-height:320px){
+  .bma-root .bma-rail {
+    top:55%;max-height:calc(100dvh - 40px);
+    overflow-y:auto;justify-content:flex-start;scrollbar-width:none;
+  }
+}
