@@ -97,6 +97,7 @@ react(
     @Req() req: AuthenticatedRequest,
     @UploadedFile() file: Express.Multer.File | undefined,
     @Body('caption') caption?: string,
+    @Body('musicTrackId') musicTrackId?: string,
   ) {
     if (!file) {
       throw new BadRequestException('Please select a photo or video.');
@@ -110,7 +111,7 @@ react(
       throw new BadRequestException('Caption cannot exceed 500 characters.');
     }
 
-    return this.momentsService.create(req.user.userId, file, caption);
+    return this.momentsService.create(req.user.userId, file, caption, musicTrackId);
   }
 
   @Get()
