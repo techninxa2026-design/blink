@@ -120,6 +120,7 @@ model User {
 
   // Blink Business
   creatorTasks            CreatorTask[]
+  creatorTaskImages       TaskImage[]
   taskVideoUploads        TaskVideoUpload[]
   businessProfile          BusinessProfile?
   businessRequestsSent     BusinessConnectionRequest[] @relation("BusinessRequestSender")
@@ -843,6 +844,7 @@ model CreatorTask {
   creatorId    String
   title        String            @db.VarChar(140)
   description  String            @db.Text
+  rewardBp     Decimal           @default(0) @db.Decimal(4, 2)
   status       CreatorTaskStatus @default(DRAFT)
   videoUploadId String?          @unique
   createdAt    DateTime          @default(now())
@@ -852,6 +854,7 @@ model CreatorTask {
   creator      User             @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   videoUpload  TaskVideoUpload? @relation(fields: [videoUploadId], references: [id], onDelete: SetNull)
   checklists   TaskChecklist[]
+  images       TaskImage[]
 
   @@index([status, publishedAt])
   @@index([creatorId, updatedAt])
@@ -896,5 +899,22 @@ model TaskVideoUpload {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   task CreatorTask?
 
+  @@index([userId, createdAt])
+}
+
+model TaskImage {
+  id         String   @id @default(cuid())
+  userId     String
+  taskId     String?
+  storageKey String   @unique
+  mimeType   String   @db.VarChar(40)
+  fileSize   Int
+  position   Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task CreatorTask? @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId, position])
   @@index([userId, createdAt])
 }

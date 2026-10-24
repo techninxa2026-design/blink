@@ -1,7 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   ArrayMaxSize, IsArray, IsEnum, IsInt, IsNotEmpty, IsOptional,
-  IsString, MaxLength, Min, ValidateNested,
+  IsString, IsNumber, Max, MaxLength, Min, ValidateNested,
 } from 'class-validator';
 import { CreatorTaskStatus } from '@prisma/client';
 
@@ -28,6 +28,18 @@ export class SaveTaskDto {
   @IsNotEmpty()
   @MaxLength(4000)
   description!: string;
+
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(5)
+  rewardBp?: number;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(8)
+  @IsString({ each: true })
+  imageIds?: string[];
 
   @IsEnum(CreatorTaskStatus)
   status!: CreatorTaskStatus;
