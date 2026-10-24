@@ -155,14 +155,14 @@ export default function ReelsUploader({ onBack, onPublished, theme, onToggleThem
 
   async function publish() {
     if (publishing || !file) return;
-    if (!Number.isFinite(duration) || duration <= 0) {
-      setError('The selected video has no valid duration. Please choose a playable video.');
-      return;
-    }
+    // Some valid WebM recordings return Infinity/NaN for duration.
+    // Metadata is optional; do not block uploading an otherwise selected file.
     setError(''); setPublishing(true);
     try {
-      const cover = await videoCoverJpeg(file, coverTime);
-      const reel = await uploadReel(file, cover, caption, duration, coverTime);
+      const coverPosition = Number.isFinite(coverTime) && coverTime >= 0 ? coverTime : 0;
+      const cover = await videoCoverJpeg(file, coverPosition);
+      const knownDuration = Number.isFinite(duration) && duration > 0 ? duration : null;
+      const reel = await uploadReel(file, cover, caption, knownDuration, coverPosition);
       onPublished(reel);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Reel publishing failed.');
@@ -214,15 +214,25 @@ export default function ReelsUploader({ onBack, onPublished, theme, onToggleThem
             <video className="br-upload-preview" src={previewUrl} ref={videoRef} controls playsInline preload="auto"
               onLoadedMetadata={(event) => {
                 const value = event.currentTarget.duration;
-                if (!Number.isFinite(value) || value <= 0) {
-                  setError('Unable to read the video duration. Choose a playable video.');
-                  setDuration(0); return;
-                }
-                setDuration(value);
-                event.currentTarget.currentTime = Math.min(0.1, value / 2);
+                const known = Number.isFinite(value) && value > 0 ? value : 0;
+                setDuration(known);
+                if (known > 0) event.currentTarget.currentTime = Math.min(0.1, known / 2);
               }}
-              onSeeked={() => { pendingCoverRef.current++; refreshCover(); }}/>
-            <p className="br-hint">{file.name} · {(file.size/1024/1024).toFixed(1)} MB · {formatClock(duration)}</p>
+              onLoadedData={() => refreshCover()}
+              onPause={(event) => {
+                if (!duration && Number.isFinite(event.currentTarget.currentTime)) {
+                  setCoverTime(Math.max(0, event.currentTarget.currentTime));
+                  refreshCover();
+                }
+              }}
+              onSeeked={(event) => {
+                pendingCoverRef.current++;
+                if (!duration && Number.isFinite(event.currentTarget.currentTime)) {
+                  setCoverTime(Math.max(0, event.currentTarget.currentTime));
+                }
+                refreshCover();
+              }}/>
+            <p className="br-hint">{file.name} · {(file.size/1024/1024).toFixed(1)} MB{duration > 0 ? ' · ' + formatClock(duration) : ''}</p>
             <label className="br-label">Caption
               <textarea rows={4} maxLength={1000} value={caption}
                 onChange={(event) => setCaption(event.target.value)}
@@ -241,8 +251,10 @@ export default function ReelsUploader({ onBack, onPublished, theme, onToggleThem
               <input type="range" min={0} max={duration || 1} step=".1"
                 value={coverTime} disabled={!duration} onChange={(event) => seekCover(Number(event.target.value))}/>
             </label>
-            <p className="br-hint">Drag anywhere in the video timeline to choose a custom thumbnail.</p>
-            <button type="button" className="br-primary" disabled={!duration || publishing}
+            <p className="br-hint">{duration > 0
+              ? 'Drag anywhere in the video timeline to choose a custom thumbnail.'
+              : 'You can publish without duration metadata. Use the preview controls to choose a frame when available.'}</p>
+            <button type="button" className="br-primary" disabled={publishing}
               onClick={() => void publish()}>{publishing ? 'Publishing video and cover…' : 'Publish Reel →'}</button>
           </section>
         </div>}
