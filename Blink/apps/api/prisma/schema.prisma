@@ -880,6 +880,7 @@ model TaskChecklistItem {
   id          String @id @default(cuid())
   checklistId String
   text        String @db.VarChar(240)
+  rewardBp    Decimal @default(0) @db.Decimal(4, 2)
   position    Int
 
   checklist TaskChecklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
