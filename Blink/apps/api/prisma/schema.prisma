@@ -123,6 +123,7 @@ model User {
   creatorTaskImages       TaskImage[]
   taskParticipations     TaskParticipation[]
   taskParticipationImages TaskParticipationImage[]
+  taskParticipationVideos TaskParticipationVideo[]
   taskVideoUploads        TaskVideoUpload[]
   businessProfile          BusinessProfile?
   businessRequestsSent     BusinessConnectionRequest[] @relation("BusinessRequestSender")
@@ -934,6 +935,7 @@ model TaskParticipation {
   task CreatorTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
   participant User @relation(fields: [participantId], references: [id], onDelete: Cascade)
   images TaskParticipationImage[]
+  steps TaskParticipationStep[]
 
   @@unique([taskId, participantId])
   @@index([participantId, updatedAt])
@@ -943,6 +945,7 @@ model TaskParticipationImage {
   id String @id @default(cuid())
   userId String
   participationId String?
+  stepId String?
   storageKey String @unique
   mimeType String @db.VarChar(40)
   fileSize Int
@@ -951,7 +954,48 @@ model TaskParticipationImage {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   participation TaskParticipation? @relation(fields: [participationId], references: [id], onDelete: Cascade)
+  step TaskParticipationStep? @relation(fields: [stepId], references: [id], onDelete: Cascade)
 
   @@index([participationId, position])
+  @@index([stepId, position])
   @@index([userId, createdAt])
+}
+
+
+// Each checklist item has its own editable explanation, photos and video.
+// checklistItemId is a snapshot key because creator checklist edits replace item IDs.
+model TaskParticipationStep {
+  id String @id @default(cuid())
+  participationId String
+  checklistItemId String
+  explanation String @default("") @db.Text
+  videoUploadId String? @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  participation TaskParticipation @relation(fields: [participationId], references: [id], onDelete: Cascade)
+  videoUpload TaskParticipationVideo? @relation(fields: [videoUploadId], references: [id], onDelete: SetNull)
+  images TaskParticipationImage[]
+
+  @@unique([participationId, checklistItemId])
+  @@index([participationId, updatedAt])
+}
+
+model TaskParticipationVideo {
+  id String @id @default(cuid())
+  userId String
+  originalName String @db.VarChar(255)
+  mimeType String @db.VarChar(70)
+  totalBytes BigInt
+  chunkBytes Int
+  nextChunk Int @default(0)
+  completed Boolean @default(false)
+  storageKey String? @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  step TaskParticipationStep?
+
+  @@index([userId, updatedAt])
 }
