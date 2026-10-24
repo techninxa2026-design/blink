@@ -91,7 +91,7 @@ export default function CreatorTasksPage({
                 <h1 className="ct-detail-title">{task.title}</h1>
                 <div className="ct-task-detail-meta">
                   <p className="ct-creator">👤 {task.creator.name}</p>
-                  <span className="ct-reward-pill">🟠 {Number(task.rewardBp ?? 0).toFixed(2)} BP per task</span>
+                  <span className="ct-reward-pill">🟠 {Number(task.rewardBp ?? 0).toFixed(2)} BP total</span>
                 </div>
                 <p className="ct-task-description">{task.description}</p>
                 {task.creatorId !== currentUserId ? (
@@ -125,7 +125,8 @@ export default function CreatorTasksPage({
                           checked={Boolean(checked[item.id])}
                           onChange={(event) => setChecked((prev) => ({ ...prev, [item.id]: event.target.checked }))}
                         />
-                        <span>{item.text}</span>
+                        <span className="ct-item-text">{item.text}</span>
+                        <strong className="ct-item-bp-badge">{Number(item.rewardBp ?? 0).toFixed(2)} BP</strong>
                       </label>
                     ))}
                   </div>
@@ -162,7 +163,7 @@ export default function CreatorTasksPage({
                   </button>
                   <p className="ct-excerpt">{item.description}</p>
                   <div className="ct-card-bottom">
-                    <span className="ct-reward-pill">🟠 {Number(item.rewardBp ?? 0).toFixed(2)} BP</span>
+                    <span className="ct-reward-pill">🟠 {Number(item.rewardBp ?? 0).toFixed(2)} BP total</span>
                     <p className="ct-meta">☑ {item.checklists.length} checklist(s) · {taskSteps(item)} steps</p>
                   </div>
                 </div>

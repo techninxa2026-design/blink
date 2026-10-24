@@ -3,7 +3,7 @@ import './BusinessMatchPage.css';
 import './CreatorTasks.css';
 import './TaskParticipationPage.css';
 import { CreatorNewImage, CreatorTaskImage } from './CreatorTaskImages';
-import { TASK_API, taskRequest, taskSteps, type CreatorTask } from './creatorTaskApi';
+import { TASK_API, taskRequest, type CreatorTask } from './creatorTaskApi';
 import ParticipationPhoto from './ParticipationPhoto';
 import {
   participationRequest, uploadEvidence, uploadParticipationVideo, videoPlaybackUrl,
@@ -17,7 +17,7 @@ type Props = {
   onBack: () => void;
   onBrowse: () => void;
 };
-type TaskItem = { id: string; text: string; group: string };
+type TaskItem = { id: string; text: string; group: string; rewardBp: number };
 type PhotoDraft = { file: File; id?: string };
 
 export default function TaskParticipationPage({
@@ -49,7 +49,7 @@ export default function TaskParticipationPage({
 
   const items: TaskItem[] = task
     ? task.checklists.flatMap((group) => group.items.map((item) => ({
-        id: item.id, text: item.text, group: group.name,
+        id: item.id, text: item.text, group: group.name, rewardBp: item.rewardBp ?? 0,
       }))) : [];
   const selected = items.find((item) => item.id === selectedId);
   const response = saved?.steps.find((step) => step.checklistItemId === selectedId);
@@ -252,7 +252,7 @@ export default function TaskParticipationPage({
           <div className="tp-summary">
             <div><strong>{savedCount}/{items.length}</strong><span>Responses saved</span></div>
             <div><strong>{completedCount}/{items.length}</strong><span>Items checked</span></div>
-            <div><strong>{Number(task.rewardBp ?? 0).toFixed(2)} BP</strong><span>Task BP amount, not yet awarded</span></div>
+            <div><strong>{Number(task.rewardBp ?? 0).toFixed(2)} BP</strong><span>Total of all item rewards; not yet awarded</span></div>
           </div>
           <div className="tp-layout">
             <aside className="tp-reference">
@@ -272,6 +272,7 @@ export default function TaskParticipationPage({
                           aria-current={selectedId === item.id ? 'step' : undefined}
                           onClick={() => selectItem(item.id)}>
                           <span className="tp-picker-title">{item.text}</span>
+                          <strong className="tp-item-reward">{Number(item.rewardBp ?? 0).toFixed(2)} BP</strong>
                           <small>{isSaved ? 'Response saved' : 'Add response'} →</small>
                         </button>
                       </div>;
@@ -310,7 +311,10 @@ export default function TaskParticipationPage({
                 <section className="bm-card tp-card tp-selected-card">
                   <span className="bm-eyebrow">SELECTED CHECKLIST ITEM</span>
                   <h2>{selected.text}</h2>
-                  <p>{selected.group}</p>
+                  <div className="tp-selected-meta">
+                    <p>{selected.group}</p>
+                    <span className="ct-reward-pill">🟠 {Number(selected.rewardBp ?? 0).toFixed(2)} BP for this item</span>
+                  </div>
                   {currentStep && !editing ? (
                     <div className="tp-saved-response">
                       <span className="tp-draft-badge">Saved for this item</span>

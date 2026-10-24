@@ -97,3 +97,7 @@
 .tp-legacy {border-style:dashed;}
 .tp-legacy h2 {font-size:16px;}
 @media(max-width:650px){.tp-summary {grid-template-columns:1fr 1fr;}.tp-summary>div:last-child {grid-column:1/-1;}.tp-picker-row{padding:4px;}.tp-picker-button {flex-wrap:wrap;}.tp-picker-button small {width:100%;}.tp-item-editor .tp-savebar {align-items:stretch;}.tp-item-editor .tp-actions {width:100%;}}
+
+.tp-item-reward {font-size:11px;background:#fff0dd;color:#a84a00;border-radius:10px;padding:6px 8px;white-space:nowrap;}
+.tp-selected-meta {display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.tp-selected-meta>p {margin:0;color:var(--home-muted,#777);font-size:13px;}
