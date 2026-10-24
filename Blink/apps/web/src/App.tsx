@@ -8,6 +8,9 @@ import {
 } from 'react';
 
 import './App.css';
+import './MomentCreative.css';
+import { FACE_FILTERS, loadFaceLandmarker, paintFaceFilter, type FaceFilter, type FacePoint } from './MomentFaceFilters';
+import { MUSIC_TRACKS, makeMusicUrl, musicTrack } from './MomentMusic';
 import MomentActions from './MomentActions';
 
 import SecretsPage from './SecretsPage';
@@ -55,6 +58,7 @@ type ApiMoment = {
   mediaUrl: string;
   mediaType: MediaKind;
   caption: string | null;
+  musicTrackId?: string | null;
   createdAt: string;
   sender?: {
     id: string;
@@ -274,6 +278,16 @@ export default function App() {
   );
 
   const [caption, setCaption] = useState('');
+  const [faceFilter, setFaceFilter] = useState<FaceFilter>('none');
+  const [faceFilterError, setFaceFilterError] = useState('');
+  const faceOverlayRef = useRef<HTMLCanvasElement | null>(null);
+  const lastFaceRef = useRef<FacePoint[] | null>(null);
+  const [musicChoice, setMusicChoice] = useState('');
+  const [captureMusicUrl, setCaptureMusicUrl] = useState('');
+  const [viewerMusicUrl, setViewerMusicUrl] = useState('');
+  const [musicPlaying, setMusicPlaying] = useState(false);
+  const captureMusicRef = useRef<HTMLAudioElement | null>(null);
+  const viewerMusicRef = useRef<HTMLAudioElement | null>(null);
   const [recording, setRecording] = useState(false);
   const [cameraError, setCameraError] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -635,7 +649,7 @@ export default function App() {
 
     try {
       const video: MediaTrackConstraints = {
-        facingMode: { ideal: 'environment' },
+        facingMode: { ideal: captureMode === 'photo' ? 'user' : 'environment' },
         width: { ideal: 1280 },
         height: { ideal: 720 },
       };
@@ -645,7 +659,7 @@ export default function App() {
       try {
         next = await navigator.mediaDevices.getUserMedia({
           video,
-          audio: true,
+          audio: captureMode === 'video',
         });
       } catch {
         next = await navigator.mediaDevices.getUserMedia({
@@ -694,7 +708,7 @@ export default function App() {
     return () => {
       stopCamera();
     };
-  }, [route, captureOpen, capturedUrl]);
+  }, [route, captureOpen, capturedUrl, captureMode]);
 
   useEffect(() => {
     if (!videoRef.current || !stream || capturedUrl) return;
@@ -703,6 +717,82 @@ export default function App() {
 
     void videoRef.current.play().catch(() => {});
   }, [stream, captureOpen, capturedUrl]);
+
+  // Face landmark effects are only active for live photo capture.
+  useEffect(() => {
+    const overlay = faceOverlayRef.current;
+    const video = videoRef.current;
+    if (!overlay || !video || !stream || !captureOpen || capturedUrl ||
+        captureMode !== 'photo' || faceFilter === 'none') {
+      lastFaceRef.current = null;
+      overlay?.getContext('2d')?.clearRect(0, 0, overlay.width, overlay.height);
+      return;
+    }
+    let alive = true;
+    let request = 0;
+    let lastFrame = -1;
+    setFaceFilterError('');
+    void loadFaceLandmarker().then((detector) => {
+      if (!alive) return;
+      const frame = () => {
+        if (!alive) return;
+        request = requestAnimationFrame(frame);
+        if (video.readyState < 2 || !video.videoWidth || !video.videoHeight) return;
+        overlay.width = video.videoWidth;
+        overlay.height = video.videoHeight;
+        const ctx = overlay.getContext('2d');
+        if (!ctx) return;
+        if (video.currentTime !== lastFrame) {
+          lastFrame = video.currentTime;
+          try {
+            lastFaceRef.current = detector.detectForVideo(video, performance.now()).faceLandmarks[0] ?? null;
+          } catch {
+            lastFaceRef.current = null;
+          }
+        }
+        ctx.clearRect(0, 0, overlay.width, overlay.height);
+        paintFaceFilter(ctx, lastFaceRef.current, faceFilter, overlay.width, overlay.height);
+      };
+      request = requestAnimationFrame(frame);
+    }).catch(() => {
+      if (alive) setFaceFilterError('Face tracking needs an internet connection for its first model download. Choose Original to capture without a filter.');
+    });
+    return () => {
+      alive = false;
+      cancelAnimationFrame(request);
+      overlay.getContext('2d')?.clearRect(0, 0, overlay.width, overlay.height);
+      lastFaceRef.current = null;
+    };
+  }, [stream, captureOpen, capturedUrl, captureMode, faceFilter]);
+
+  useEffect(() => {
+    let alive = true;
+    setCaptureMusicUrl('');
+    if (!musicChoice || !captureOpen) return;
+    void makeMusicUrl(musicChoice).then((url) => { if (alive) setCaptureMusicUrl(url); });
+    return () => { alive = false; };
+  }, [musicChoice, captureOpen]);
+
+  useEffect(() => {
+    let alive = true;
+    setViewerMusicUrl('');
+    setMusicPlaying(false);
+    if (!activeMoment?.musicTrackId) return;
+    void makeMusicUrl(activeMoment.musicTrackId).then((url) => {
+      if (alive) setViewerMusicUrl(url);
+    });
+    return () => { alive = false; };
+  }, [activeMoment?.id, activeMoment?.musicTrackId]);
+
+  // Audio plays as a sidecar, preserving the video and its original soundtrack.
+  useEffect(() => {
+    const audio = viewerMusicRef.current;
+    if (!audio || !viewerMusicUrl || !activeMoment) return;
+    audio.currentTime = 0;
+    void audio.play().then(() => setMusicPlaying(true)).catch(() => setMusicPlaying(false));
+    return () => { audio.pause(); };
+  }, [viewerMusicUrl, activeMoment?.id]);
+
 
   useEffect(() => {
     return () => {
@@ -747,6 +837,11 @@ export default function App() {
     setCameraError('');
     setRecording(false);
     setCaptureMode('photo');
+    setFaceFilter('none');
+    setFaceFilterError('');
+    setMusicChoice('');
+    setCaptureMusicUrl('');
+    captureMusicRef.current?.pause();
     setSelectedNav('Home');
   }
 
@@ -765,6 +860,9 @@ export default function App() {
     setCapturedKind(null);
     setPreview(null);
     setCaption('');
+    setFaceFilter('none');
+    setFaceFilterError('');
+    setMusicChoice('');
     setCameraError('');
     setSelectedNav('Capture');
     setCaptureOpen(true);
@@ -789,9 +887,21 @@ export default function App() {
       return;
     }
 
+    context.save();
+    // Photo mode uses the front camera and matches its mirrored preview.
+    context.translate(canvas.width, 0);
+    context.scale(-1, 1);
     context.drawImage(video, 0, 0);
+    context.restore();
 
-    setPreview(canvas.toDataURL('image/jpeg', 0.9));
+    if (faceFilter !== 'none') {
+      if (!lastFaceRef.current) {
+        setCameraError('Move your face into the frame to apply this filter, or choose Original.');
+        return;
+      }
+      paintFaceFilter(context, lastFaceRef.current, faceFilter, canvas.width, canvas.height, true);
+    }
+    setPreview(canvas.toDataURL('image/jpeg', 0.93));
     setCapturedKind('photo');
 
     stopCamera();
@@ -897,6 +1007,8 @@ export default function App() {
     }
 
     stopCamera();
+    setFaceFilter('none');
+    setFaceFilterError('');
 
     setGalleryFile(file);
     setCapturedKind(kind);
@@ -968,6 +1080,7 @@ export default function App() {
 
       form.append('file', file);
       form.append('caption', caption.trim());
+      if (musicChoice) form.append('musicTrackId', musicChoice);
 
       const response = await fetch(
         `${API}/moments/upload`,
