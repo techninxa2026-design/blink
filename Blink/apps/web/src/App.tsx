@@ -8,6 +8,7 @@ import {
 } from 'react';
 
 import './App.css';
+import MomentActions from './MomentActions';
 
 import SecretsPage from './SecretsPage';
 import HeartPage from './HeartPage';
@@ -1859,6 +1860,23 @@ export default function App() {
                 )}
               </div>
             )}
+
+            {/* Real reactions, comments, Blink Points and Inbox sharing */}
+            <MomentActions
+              key={activeMoment.id}
+              momentId={activeMoment.id}
+              caption={activeMoment.caption ?? ''}
+              currentUserId={user?.id}
+              momentOwnerId={activeMoment.senderId}
+              onOpenProfile={(id) => {
+                if (id === user?.id) {
+                  goTo('/profile');
+                } else {
+                  openPublicProfile(id);
+                }
+              }}
+              onBpTransferred={() => void loadWallet()}
+            />
           </div>
         )}
 

@@ -1,3 +1,4 @@
+
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
@@ -9,8 +10,8 @@ async function bootstrap() {
     AppModule,
   );
 
-  // Set CORS_ORIGINS=https://your-frontend-domain.com in production.
-  // Do not use wildcard origins for an authenticated social application.
+  // Allowed frontend origins.
+  // In production, configure CORS_ORIGINS with your frontend URL.
   const allowedOrigins = new Set([
     'http://localhost:5173',
     'http://127.0.0.1:5173',
@@ -21,19 +22,39 @@ async function bootstrap() {
       .map((origin) => origin.trim().replace(/\/$/, ''))
       .filter(Boolean),
   ]);
+
+  // CORS configuration
   app.enableCors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.has(origin)) callback(null, true);
-      else callback(new Error('Origin not allowed by CORS'), false);
+      if (!origin || allowedOrigins.has(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Origin not allowed by CORS'), false);
+      }
     },
-    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+
+    // PUT added for Business Profile save/update
+    methods: [
+      'GET',
+      'POST',
+      'PUT',
+      'PATCH',
+      'DELETE',
+      'OPTIONS',
+    ],
+
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+    ],
   });
 
+  // Static uploads
   app.useStaticAssets(join(__dirname, '..', 'uploads'), {
     prefix: '/uploads',
   });
 
+  // Global validation
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -42,6 +63,7 @@ async function bootstrap() {
     }),
   );
 
+  // Start API server
   await app.listen(process.env.PORT ?? 3000);
 }
 
