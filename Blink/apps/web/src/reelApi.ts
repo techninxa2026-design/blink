@@ -51,48 +51,82 @@ export async function reelRequest<T>(
   return value as T;
 }
 
-/** Extract a selected frame from any point in the uploaded video. */
+/**
+ * Capture a video frame when the browser can decode one. Duration metadata is
+ * optional (recorded WebM may report Infinity). If frame decoding is unavailable
+ * locally, still upload the Reel with a branded fallback cover.
+ */
 export async function videoCoverJpeg(videoFile: File, atSecond: number): Promise<Blob> {
   const url = URL.createObjectURL(videoFile);
   const video = document.createElement('video');
+  const canvas = document.createElement('canvas');
   video.muted = true;
   video.playsInline = true;
   video.preload = 'auto';
   try {
-    await new Promise<void>((resolve, reject) => {
-      video.onloadedmetadata = () => resolve();
-      video.onerror = () => reject(new Error('Unable to read the video for thumbnail.'));
-      video.src = url;
-      video.load();
-    });
-    // Duration can be Infinity/NaN for freshly recorded WebM videos.
-    // A decodable frame is enough to create a thumbnail.
-    const target = Number.isFinite(atSecond) && atSecond > 0 ? atSecond : 0;
-    if (target > 0.01) {
-      await new Promise<void>((resolve) => {
-        const finish = () => { clearTimeout(timer); video.onseeked = null; resolve(); };
-        const timer = setTimeout(finish, 4000);
-        video.onseeked = finish;
-        try { video.currentTime = target; } catch { finish(); }
-      });
-    }
-    if (video.readyState < 2) {
+    try {
       await new Promise<void>((resolve, reject) => {
-        const timer = setTimeout(() => { video.onloadeddata = null; reject(new Error('Frame not decoded yet.')); }, 8000);
-        video.onloadeddata = () => { clearTimeout(timer); video.onloadeddata = null; resolve(); };
+        const timer = window.setTimeout(() => settle(false), 9000);
+        const settle = (success: boolean) => {
+          window.clearTimeout(timer);
+          video.onloadeddata = null;
+          video.onerror = null;
+          if (success) resolve();
+          else reject(new Error('Video frame not available for cover.'));
+        };
+        video.onloadeddata = () => settle(true);
+        video.onerror = () => settle(false);
+        video.src = url;
+        video.load();
       });
+
+      const target = Number.isFinite(atSecond) && atSecond > 0 ? atSecond : 0;
+      if (target > 0.01 && video.seekable.length > 0) {
+        await new Promise<void>((resolve) => {
+          const finish = () => {
+            window.clearTimeout(timer);
+            video.onseeked = null;
+            resolve();
+          };
+          const timer = window.setTimeout(finish, 3000);
+          video.onseeked = finish;
+          try { video.currentTime = target; } catch { finish(); }
+        });
+      }
+
+      const naturalWidth = video.videoWidth || 720;
+      const naturalHeight = video.videoHeight || 1280;
+      const scale = Math.min(1, 900 / Math.max(naturalWidth, naturalHeight));
+      canvas.width = Math.max(1, Math.round(naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(naturalHeight * scale));
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('Canvas unavailable.');
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    } catch {
+      // An unsupported local decoder should not block video upload.
+      canvas.width = 540;
+      canvas.height = 960;
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('Cannot create a Reel cover in this browser.');
+      const background = context.createLinearGradient(0, 0, 540, 960);
+      background.addColorStop(0, '#ff782a');
+      background.addColorStop(0.48, '#bf3a50');
+      background.addColorStop(1, '#191529');
+      context.fillStyle = background;
+      context.fillRect(0, 0, 540, 960);
+      context.textAlign = 'center';
+      context.fillStyle = '#ffffff';
+      context.font = '900 80px sans-serif';
+      context.fillText('blink.', 270, 430);
+      context.font = '700 36px sans-serif';
+      context.fillText('REEL', 270, 498);
+      context.font = '24px sans-serif';
+      context.fillText('Tap to watch', 270, 555);
     }
-    const canvas = document.createElement('canvas');
-    const naturalWidth = video.videoWidth || 720, naturalHeight = video.videoHeight || 1280;
-    const scale = Math.min(1, 900 / Math.max(naturalWidth, naturalHeight));
-    canvas.width = Math.max(1, Math.round(naturalWidth * scale));
-    canvas.height = Math.max(1, Math.round(naturalHeight * scale));
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('Thumbnail processing is unavailable.');
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    return await new Promise<Blob>((resolve, reject) =>
-      canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Could not generate JPG cover.')),
-        'image/jpeg', .85));
+    return await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((blob) => blob ? resolve(blob) :
+        reject(new Error('Could not generate the thumbnail image.')), 'image/jpeg', .85);
+    });
   } finally {
     video.pause();
     video.removeAttribute('src');
