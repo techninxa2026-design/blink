@@ -282,12 +282,23 @@ export class CreatorTasksService {
       where: { taskId: id }, select: { storageKey: true },
     });
     const participationImages = await this.prisma.taskParticipationImage.findMany({
-      where: { participation: { taskId: id } },
+      where: { OR: [
+        { participation: { taskId: id } },
+        { step: { participation: { taskId: id } } },
+      ] },
+      select: { storageKey: true },
+    });
+    const participationVideos = await this.prisma.taskParticipationVideo.findMany({
+      where: { step: { participation: { taskId: id } } },
       select: { storageKey: true },
     });
     await this.prisma.creatorTask.deleteMany({ where: { id, creatorId: userId } });
     await Promise.all(participationImages.map((image) =>
       unlink(join(VIDEO_ROOT, 'participation-evidence', image.storageKey)).catch(() => {}),
+    ));
+    await Promise.all(participationVideos.map((video) => video.storageKey
+      ? unlink(join(VIDEO_ROOT, 'participation-videos', 'ready', video.storageKey)).catch(() => {})
+      : Promise.resolve(),
     ));
     // Keep unrelated tasks' media safe; video uploads are unique per task.
     await Promise.all(images.map((image) => unlink(join(IMAGES, image.storageKey)).catch(() => {})));
