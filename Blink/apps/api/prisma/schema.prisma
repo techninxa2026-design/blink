@@ -177,6 +177,7 @@ model Moment {
   recipientId String?
   type        MomentType
   mediaKey    String
+  musicTrackId String?   @db.VarChar(40)
   caption     String?    @db.VarChar(500)
   createdAt   DateTime   @default(now())
   expiresAt   DateTime?
