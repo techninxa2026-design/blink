@@ -94,3 +94,50 @@
 .ct-preview-task p { white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6; }
 .ct-preview-task video { display:block;max-width:540px;width:100%;max-height:300px;margin:12px 0;background:#111;border-radius:12px; }
 .ct-preview-task h3 { margin-top:20px;font-size:16px; }
+
+/* Task images and decimal BP reward */
+.ct-bp-field, .ct-image-uploader { display:grid;gap:11px;padding:15px;border:1px solid var(--home-border,#e4e4e4);border-radius:14px; }
+.ct-bp-field>label {font-size:13px;font-weight:800;}
+.ct-bp-input-wrap {display:flex;align-items:center;gap:10px;}
+.ct-bp-input-wrap input {max-width:150px;}
+.ct-bp-input-wrap span {font-size:15px;font-weight:900;color:#fb6c00;}
+.ct-bp-field small {line-height:1.6;color:var(--home-muted,#777);}
+.ct-image-heading {display:flex;justify-content:space-between;gap:12px;align-items:center;}
+.ct-image-heading span {font-size:12px;color:var(--home-muted,#777);}
+.ct-image-uploader>p {font-size:13px;margin:0;}
+.ct-image-grid {display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;}
+.ct-image-cell {position:relative;min-width:0;aspect-ratio:1;border:1px solid var(--home-border,#ddd);border-radius:12px;overflow:hidden;background:var(--home-bg,#f8f8f8);}
+.ct-image-cell>img,.ct-image-cell>.ct-image-placeholder {display:block;width:100%;height:100%;object-fit:cover;}
+.ct-image-cell>button {position:absolute;top:5px;right:5px;width:29px;height:29px;padding:0;border:0;border-radius:50%;color:white;background:#2a211de6;cursor:pointer;font-size:22px;line-height:1;}
+.ct-image-cell>button:hover {background:#c63831;}
+.ct-image-placeholder {display:grid;place-items:center;background:var(--home-bg,#eee);font-size:30px;}
+.ct-add-image {justify-self:start;}
+.ct-image-upload-status {color:#fb6c00;font-size:12px;font-weight:750;}
+.ct-preview-images:empty {display:none;}
+.ct-preview-images>img {width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;}
+.ct-reward-pill {display:inline-flex;align-items:center;gap:5px;width:max-content;max-width:100%;padding:7px 11px;border:1px solid #ffb477;border-radius:999px;background:#fff0df;color:#a64b00;font-size:12px;font-weight:850;white-space:nowrap;}
+.ct-dashboard-thumb {width:100%;height:100%;object-fit:cover;}
+.ct-task-icon {overflow:hidden;}
+.ct-detail-images {display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:12px;margin:18px 0;}
+.ct-detail-images>img {width:100%;height:170px;object-fit:cover;border-radius:12px;border:1px solid var(--home-border,#ddd);}
+.ct-task-detail-meta {display:flex;flex-wrap:wrap;align-items:center;gap:12px;}
+/* Dedicated CTA fixes low-contrast / missing View Task button in shared theme. */
+.ct-page .ct-public-card {display:flex;flex-direction:column;min-height:370px;}
+.ct-page .ct-public-body {display:flex;flex:1;flex-direction:column;gap:12px;padding:18px;min-height:0;}
+.ct-page .ct-public-body h2 {color:var(--home-text,#202020);font-weight:850;line-height:1.4;overflow-wrap:anywhere;}
+.ct-page .ct-thumbnail>img {width:100%;height:100%;display:block;object-fit:cover;}
+.ct-page .ct-public-body .ct-view-task-button {
+  display:flex;align-items:center;justify-content:space-between;gap:12px;position:relative;
+  width:100%;min-height:46px;flex-shrink:0;padding:11px 16px;border:1px solid #e26200;
+  border-radius:12px;background:#fb6c00;color:#fff;opacity:1;visibility:visible;
+  font:inherit;font-size:14px;font-weight:850;text-align:left;cursor:pointer;
+  box-shadow:0 4px 12px rgba(251,108,0,.2);
+}
+.ct-page .ct-public-body .ct-view-task-button:hover {background:#d95600;border-color:#d95600;transform:translateY(-1px);}
+.ct-page .ct-public-body .ct-view-task-button:focus-visible {outline:3px solid #fb6c0099;outline-offset:3px;}
+.ct-card-bottom {display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-top:auto;}
+.ct-card-bottom .ct-meta {margin:0;}
+@media(max-width:650px) {
+  .ct-detail-images {grid-template-columns:repeat(2,minmax(0,1fr));}
+  .ct-image-grid {grid-template-columns:repeat(3,minmax(0,1fr));}
+}

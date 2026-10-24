@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import './BusinessMatchPage.css';
 import './CreatorTasks.css';
 import { TASK_API, taskRequest, taskSteps, type CreatorTask } from './creatorTaskApi';
+import { CreatorTaskImage } from './CreatorTaskImages';
 
 type Props = {
   theme: 'light' | 'dark';
@@ -86,8 +87,18 @@ export default function CreatorTasksPage({
               <section>
                 <span className="bm-eyebrow">BLINK COMMUNITY TASK</span>
                 <h1 className="ct-detail-title">{task.title}</h1>
-                <p className="ct-creator">👤 {task.creator.name}</p>
+                <div className="ct-task-detail-meta">
+                  <p className="ct-creator">👤 {task.creator.name}</p>
+                  <span className="ct-reward-pill">🟠 {Number(task.rewardBp ?? 0).toFixed(2)} BP per task</span>
+                </div>
                 <p className="ct-task-description">{task.description}</p>
+                {task.images?.length > 0 && (
+                  <div className="ct-detail-images">
+                    {task.images.map((image, index) => (
+                      <CreatorTaskImage key={image.id} image={image} alt={'Task image ' + (index + 1)} />
+                    ))}
+                  </div>
+                )}
               </section>
               <section className="bm-card ct-checklist-detail">
                 <div className="ct-heading"><h2>Task checklists</h2><span className="ct-progress-badge">{done}/{taskSteps(task)}</span></div>
@@ -124,16 +135,23 @@ export default function CreatorTasksPage({
             {tasks.map((item) => (
               <article className="ct-public-card" key={item.id}>
                 <div className="ct-thumbnail">
-                  {item.videoUrl ? <video muted preload="metadata" playsInline src={TASK_API + item.videoUrl} />
-                  : <span aria-hidden="true">🎬</span>}
+                  {item.images?.[0]
+                    ? <CreatorTaskImage image={item.images[0]} alt={'Image for ' + item.title} />
+                    : item.videoUrl ? <video muted preload="metadata" playsInline src={TASK_API + item.videoUrl} />
+                    : <span aria-hidden="true">🎬</span>}
                   <span className="ct-play-icon" aria-hidden="true">▶</span>
                 </div>
                 <div className="ct-public-body">
                   <h2>{item.title}</h2>
                   <p className="ct-creator">by {item.creator.name}</p>
+                  <button className="ct-view-task-button" type="button" onClick={() => onOpenTask(item.id)}>
+                    <span>View Task</span><span aria-hidden="true">→</span>
+                  </button>
                   <p className="ct-excerpt">{item.description}</p>
-                  <p className="ct-meta">☑ {item.checklists.length} checklist(s) · {taskSteps(item)} steps</p>
-                  <button className="bm-primary" type="button" onClick={() => onOpenTask(item.id)}>View Task →</button>
+                  <div className="ct-card-bottom">
+                    <span className="ct-reward-pill">🟠 {Number(item.rewardBp ?? 0).toFixed(2)} BP</span>
+                    <p className="ct-meta">☑ {item.checklists.length} checklist(s) · {taskSteps(item)} steps</p>
+                  </div>
                 </div>
               </article>
             ))}
