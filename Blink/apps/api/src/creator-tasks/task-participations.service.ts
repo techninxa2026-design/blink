@@ -44,15 +44,26 @@ export class TaskParticipationsService {
   private display(record: {
     id: string; taskId: string; explanation: string; checkedItems: unknown;
     createdAt: Date; updatedAt: Date; images: { id: string }[];
-    steps: { id: string; checklistItemId: string; explanation: string; videoUploadId: string | null; updatedAt: Date; images: { id: string }[] }[];
+    status: 'DRAFT' | 'SUBMITTED' | 'REVIEWED';
+    submittedAt: Date | null; reviewedAt: Date | null; earnedBp: unknown;
+    steps: { id: string; checklistItemId: string; explanation: string; videoUploadId: string | null;
+      updatedAt: Date; reviewStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
+      reviewNote: string | null; rewardBpSnapshot: unknown;
+      images: { id: string }[] }[];
   }) {
     return {
       id: record.id, taskId: record.taskId, explanation: record.explanation,
       checkedItemIds: Array.isArray(record.checkedItems)
         ? record.checkedItems.filter((item): item is string => typeof item === 'string') : [],
       images: record.images.map((image) => ({ id: image.id })),
-      steps: record.steps.map((step) => ({ id: step.id, checklistItemId: step.checklistItemId, explanation: step.explanation, videoUploadId: step.videoUploadId, images: step.images.map((image) => ({ id: image.id })), updatedAt: step.updatedAt })),
-      status: 'DRAFT' as const,
+      steps: record.steps.map((step) => ({
+        id: step.id, checklistItemId: step.checklistItemId, explanation: step.explanation,
+        videoUploadId: step.videoUploadId, images: step.images.map((image) => ({ id: image.id })),
+        updatedAt: step.updatedAt, reviewStatus: step.reviewStatus,
+        reviewNote: step.reviewNote, rewardBpSnapshot: Number(step.rewardBpSnapshot),
+      })),
+      status: record.status, submittedAt: record.submittedAt,
+      reviewedAt: record.reviewedAt, earnedBp: Number(record.earnedBp),
       createdAt: record.createdAt, updatedAt: record.updatedAt,
     };
   }
@@ -68,6 +79,13 @@ export class TaskParticipationsService {
 
   async save(userId: string, taskId: string, input: SaveParticipationDto) {
     const task = await this.publishedTask(taskId, userId);
+    const existingStatus = await this.prisma.taskParticipation.findUnique({
+      where: { taskId_participantId: { taskId, participantId: userId } },
+      select: { status: true },
+    });
+    if (existingStatus && existingStatus.status !== 'DRAFT') {
+      throw new ConflictException('This submission is locked for review.');
+    }
     const explanation = input.explanation.trim();
     const checked = input.checkedItemIds;
     const imageIds = input.imageIds;
@@ -219,6 +237,13 @@ export class TaskParticipationsService {
     if (checked.some((id) => typeof id !== 'string' || !valid.has(id))) {
       throw new BadRequestException('A selected checklist item does not belong to the task.');
     }
+    const existingStatus = await this.prisma.taskParticipation.findUnique({
+      where: { taskId_participantId: { taskId, participantId: userId } },
+      select: { status: true },
+    });
+    if (existingStatus && existingStatus.status !== 'DRAFT') {
+      throw new ConflictException('Submitted answers cannot be modified.');
+    }
     const updated = await this.prisma.taskParticipation.upsert({
       where: { taskId_participantId: { taskId, participantId: userId } },
       create: { taskId, participantId: userId, checkedItems: checked },
@@ -242,6 +267,9 @@ export class TaskParticipationsService {
       where: { taskId_participantId: { taskId, participantId: userId } },
       include: { steps: { where: { checklistItemId: itemId }, select: { id: true, videoUploadId: true } } },
     });
+    if (existing && existing.status !== 'DRAFT') {
+      throw new ConflictException('Submitted answers cannot be modified.');
+    }
     const oldStep = existing?.steps[0];
     if (imageIds.length) {
       const count = await this.prisma.taskParticipationImage.count({
@@ -269,6 +297,11 @@ export class TaskParticipationsService {
         create: { taskId, participantId: userId },
         update: {},
       });
+      const lock = await tx.taskParticipation.updateMany({
+        where: { id: participation.id, status: 'DRAFT' },
+        data: { updatedAt: new Date() },
+      });
+      if (lock.count !== 1) throw new ConflictException('This submission is locked.');
       const step = await tx.taskParticipationStep.upsert({
         where: { participationId_checklistItemId: { participationId: participation.id, checklistItemId: itemId } },
         create: { participationId: participation.id, checklistItemId: itemId, explanation, videoUploadId: videoId },
