@@ -10,11 +10,13 @@ type Props = {
   onBack: () => void;
   onBrowse: () => void;
   onOpenTask: (id: string) => void;
+  onParticipate: (id: string) => void;
+  currentUserId?: string;
   taskId: string | null;
 };
 
 export default function CreatorTasksPage({
-  theme, onToggleTheme, onBack, onBrowse, onOpenTask, taskId,
+  theme, onToggleTheme, onBack, onBrowse, onOpenTask, onParticipate, currentUserId, taskId,
 }: Props) {
   const [tasks, setTasks] = useState<CreatorTask[]>([]);
   const [task, setTask] = useState<CreatorTask | null>(null);
@@ -92,6 +94,17 @@ export default function CreatorTasksPage({
                   <span className="ct-reward-pill">🟠 {Number(task.rewardBp ?? 0).toFixed(2)} BP per task</span>
                 </div>
                 <p className="ct-task-description">{task.description}</p>
+                {task.creatorId !== currentUserId ? (
+                  <div className="ct-participate-callout">
+                    <div>
+                      <strong>Ready to join this task?</strong>
+                      <p>Add your own explanation, checklist progress, and supporting photos. You can save and edit your work later.</p>
+                    </div>
+                    <button className="ct-participate-button" type="button" onClick={() => onParticipate(task.id)}>
+                      <span>✋ Participate</span><span aria-hidden="true">→</span>
+                    </button>
+                  </div>
+                ) : <p className="ct-owner-message">This is your own creator task. Participants will see the Participate button here.</p>}
                 {task.images?.length > 0 && (
                   <div className="ct-detail-images">
                     {task.images.map((image, index) => (

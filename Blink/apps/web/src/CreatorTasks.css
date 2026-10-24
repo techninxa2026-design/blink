@@ -141,3 +141,12 @@
   .ct-detail-images {grid-template-columns:repeat(2,minmax(0,1fr));}
   .ct-image-grid {grid-template-columns:repeat(3,minmax(0,1fr));}
 }
+
+/* Entry to the new dedicated participation page */
+.ct-participate-callout {margin:25px 0 12px;padding:22px;border:1px solid #fac59d;border-radius:17px;background:rgba(251,108,0,.06);display:grid;gap:17px;}
+.ct-participate-callout strong {font-size:16px;}
+.ct-participate-callout p {margin:8px 0 0;color:var(--home-muted,#666);font-size:13px;line-height:1.6;}
+.ct-page .ct-participate-button {display:flex;align-items:center;justify-content:space-between;gap:20px;width:100%;min-height:50px;padding:13px 19px;border:1px solid #e36200;border-radius:12px;background:#fb6c00;color:#fff;box-shadow:0 6px 18px rgba(251,108,0,.18);font:inherit;font-weight:850;font-size:15px;cursor:pointer;}
+.ct-page .ct-participate-button:hover {background:#d95700;}
+.ct-page .ct-participate-button:focus-visible {outline:3px solid #fa8f3980;outline-offset:3px;}
+.ct-owner-message {font-size:13px;color:var(--home-muted,#777);}
