@@ -17,7 +17,7 @@ type Props = {
 };
 let nextItemKey = 0;
 function makeChecklist(): DraftChecklist {
-  return { key: ++nextItemKey, name: 'Task completion checklist', items: [{ key: ++nextItemKey, text: '' }] };
+  return { key: ++nextItemKey, name: 'Task completion checklist', items: [{ key: ++nextItemKey, text: '', rewardBp: '0' }] };
 }
 export default function CreatorDashboardPage({
   theme, onToggleTheme, onBack, onBrowse, onOpenTask,
@@ -30,7 +30,6 @@ export default function CreatorDashboardPage({
   const [showPreview, setShowPreview] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [rewardBp, setRewardBp] = useState('0');
   const [existingImages, setExistingImages] = useState<CreatorTask['images']>([]);
   const [newImages, setNewImages] = useState<File[]>([]);
   const [uploadedImages, setUploadedImages] = useState<{ file: File; id: string }[]>([]);
@@ -82,7 +81,6 @@ export default function CreatorDashboardPage({
     setShowPreview(false);
     setTitle('');
     setDescription('');
-    setRewardBp('0');
     setExistingImages([]);
     setNewImages([]);
     setUploadedImages([]);
@@ -100,15 +98,15 @@ export default function CreatorDashboardPage({
     setShowPreview(false);
     setTitle(task.title);
     setDescription(task.description);
-    setRewardBp(String(task.rewardBp ?? 0));
     setExistingImages(task.images ?? []);
     setNewImages([]);
     setUploadedImages([]);
     setImageProgress('');
     setGroups(task.checklists.length
       ? task.checklists.map((g) => ({
-        key: ++nextItemKey, name: g.name,
-        items: g.items.map((i) => ({ key: ++nextItemKey, text: i.text })),
+        key: ++nextItemKey, id: g.id, name: g.name,
+        items: g.items.map((i) => ({ key: ++nextItemKey, id: i.id, text: i.text,
+          rewardBp: String(i.rewardBp ?? 0) })),
       }))
       : [makeChecklist()]);
     setVideoAttached(task.hasVideo);
@@ -147,14 +145,22 @@ export default function CreatorDashboardPage({
   async function saveTask(status: 'DRAFT' | 'PUBLISHED') {
     if (busy) return;
     if (!title.trim() || !description.trim()) { setError('Task title and description are required.'); return; }
-    const amount = Number(rewardBp);
-    if (!rewardBp.trim() || !Number.isFinite(amount) || amount < 0 || amount > 5 ||
-        Math.abs(amount * 100 - Math.round(amount * 100)) > 0.000001) {
-      setError('Task BP must be 0–5, using whole numbers or up to two decimal places.');
+    const checklists = groups.filter((g) => g.name.trim() || g.items.some((i) => i.text.trim()))
+      .map((g) => ({
+        ...(g.id ? { id: g.id } : {}),
+        name: g.name.trim(),
+        items: g.items.filter((i) => i.text.trim()).map((i) => ({
+          ...(i.id ? { id: i.id } : {}),
+          text: i.text.trim(), rewardBp: Number(i.rewardBp),
+        })),
+      }));
+    if (groups.some((g) => g.items.some((i) => i.text.trim() &&
+        (!i.rewardBp.trim() || !Number.isFinite(Number(i.rewardBp)) ||
+         Number(i.rewardBp) < 0 || Number(i.rewardBp) > 5 ||
+         Math.abs(Number(i.rewardBp) * 100 - Math.round(Number(i.rewardBp) * 100)) > 0.000001)))) {
+      setError('Each checklist item needs its own BP value from 0 to 5 (max two decimals).');
       return;
     }
-    const checklists = groups.filter((g) => g.name.trim() || g.items.some((i) => i.text.trim()))
-      .map((g) => ({ name: g.name.trim(), items: g.items.map((i) => i.text.trim()).filter(Boolean) }));
     if (checklists.some((g) => !g.name)) { setError('Enter a name for every checklist.'); return; }
     if (status === 'PUBLISHED' && !checklists.some((g) => g.items.length)) {
       setError('Add at least one checklist step before publishing.'); return;
@@ -190,7 +196,7 @@ export default function CreatorDashboardPage({
       const url = editingId ? '/' + encodeURIComponent(editingId) : '';
       const result = await taskRequest<{ id: string; status: string }>(url, editingId ? 'PUT' : 'POST', {
         title: title.trim(), description: description.trim(), status, checklists,
-        rewardBp: amount, imageIds,
+        imageIds,
         ...(currentVideo ? { videoUploadId: currentVideo } : {}),
       });
       setTasks(await taskRequest<CreatorTask[]>('/mine'));
@@ -212,6 +218,11 @@ export default function CreatorDashboardPage({
     finally { setBusy(false); }
   }
   const published = tasks.filter((task) => task.status === 'PUBLISHED').length;
+  const totalBp = groups.reduce((sum, group) =>
+    sum + group.items.filter((item) => item.text.trim()).reduce((part, item) => {
+      const amount = Number(item.rewardBp);
+      return part + (Number.isFinite(amount) && amount >= 0 ? Math.round(amount * 100) : 0);
+    }, 0), 0) / 100;
 
   return (
     <main className="bm-page ct-page" data-bm-theme={theme}>
@@ -277,15 +288,7 @@ export default function CreatorDashboardPage({
                     <h3>01 · Task information</h3>
                     <label>Task title<input value={title} maxLength={140} required onChange={(e) => setTitle(e.target.value)} placeholder="Enter a task title" /></label>
                     <label>Task description<textarea value={description} maxLength={4000} required rows={7} onChange={(e) => setDescription(e.target.value)} placeholder="Describe what participants should do" /></label>
-                    <div className="ct-bp-field">
-                      <label htmlFor="ct-task-bp">BP amount per task (maximum 5)</label>
-                      <div className="ct-bp-input-wrap">
-                        <input id="ct-task-bp" type="number" min="0" max="5" step="0.01" inputMode="decimal"
-                          value={rewardBp} onChange={(event) => setRewardBp(event.target.value)} />
-                        <span>BP</span>
-                      </div>
-                      <small>Examples: 1 BP, 0.5 BP, 2.75 BP. Amounts appear on tasks; payouts are not active yet.</small>
-                    </div>
+
                     <div className="ct-image-uploader">
                       <div className="ct-image-heading">
                         <strong>Task images</strong><span>{existingImages.length + newImages.length}/8 images</span>
@@ -333,19 +336,34 @@ export default function CreatorDashboardPage({
                 </div>
                 <section className="bm-card ct-editor-card">
                   <h3>03 · Named checklists</h3>
-                  <p className="bm-muted">Checklists live under a task, each containing its own items.</p>
+                  <p className="bm-muted">Every checklist item is an individual task with its own BP value (0–5). The total is calculated automatically.</p>
+                  <div className="ct-bp-summary"><span>Combined task BP</span><strong>{totalBp.toFixed(2)} BP</strong></div>
                   {groups.map((group, index) => (
                     <div className="ct-group" key={group.key}>
                       <div className="ct-group-head"><strong>Checklist {index + 1}</strong><button type="button" className="ct-text-danger" onClick={() => setGroups((old) => old.filter((g) => g.key !== group.key))}>Remove</button></div>
                       <label>Checklist name<input maxLength={100} value={group.name} onChange={(e) => updateGroup(group.key, { name: e.target.value })} placeholder="Checklist name" /></label>
                       <strong className="ct-steps-label">Checklist steps</strong>
                       {group.items.map((item) => (
-                        <div className="ct-edit-item" key={item.key}>
-                          <span>☐</span><input value={item.text} maxLength={240} onChange={(e) => updateItem(group.key, item.key, e.target.value)} placeholder="Write a step"/>
-                          <button type="button" title="Remove step" onClick={() => updateGroup(group.key, { items: group.items.filter((i) => i.key !== item.key) })}>×</button>
+                        <div className="ct-edit-item ct-reward-item" key={item.key}>
+                          <span>☐</span>
+                          <input aria-label="Checklist item title" value={item.text} maxLength={240}
+                            onChange={(e) => updateItem(group.key, item.key, e.target.value)} placeholder="Individual task title"/>
+                          <label className="ct-item-bp">
+                            <span>BP / item</span>
+                            <input type="number" min="0" max="5" step="0.01" inputMode="decimal"
+                              aria-label={'BP for ' + (item.text || 'checklist item')}
+                              value={item.rewardBp}
+                              onChange={(e) => updateGroup(group.key, {
+                                items: group.items.map((x) => x.key === item.key
+                                  ? { ...x, rewardBp: e.target.value } : x),
+                              })} />
+                          </label>
+                          <button type="button" title="Remove item" onClick={() => updateGroup(group.key, {
+                            items: group.items.filter((i) => i.key !== item.key),
+                          })}>×</button>
                         </div>
                       ))}
-                      <button type="button" className="bm-outline" disabled={group.items.length >= 30} onClick={() => updateGroup(group.key, { items: [...group.items, { key: ++nextItemKey, text: '' }] })}>＋ Add checklist item</button>
+                      <button type="button" className="bm-outline" disabled={group.items.length >= 30} onClick={() => updateGroup(group.key, { items: [...group.items, { key: ++nextItemKey, text: '', rewardBp: '0' }] })}>＋ Add checklist item</button>
                     </div>
                   ))}
                   <button type="button" className="bm-outline ct-add-checklist" disabled={groups.length >= 12} onClick={() => setGroups((old) => [...old, makeChecklist()])}>＋ Add another checklist</button>
@@ -354,7 +372,7 @@ export default function CreatorDashboardPage({
               {showPreview && <section className="bm-card ct-preview-task">
                 <span className="bm-eyebrow">TASK PREVIEW</span>
                 <h2>{title.trim() || 'Untitled task'}</h2>
-                <span className="ct-reward-pill">🟠 {rewardBp || 0} BP per task</span>
+                <span className="ct-reward-pill">🟠 {totalBp.toFixed(2)} BP total (sum of items)</span>
                 <div className="ct-image-grid ct-preview-images">
                   {existingImages.map((image) => <CreatorTaskImage key={image.id} image={image} alt="Task picture" />)}
                   {newImages.map((file, index) => <CreatorNewImage key={index} file={file} />)}
@@ -363,7 +381,7 @@ export default function CreatorDashboardPage({
                 {videoPreview && <video src={videoPreview} controls playsInline />}
                 {groups.map((group) => <div key={group.key}>
                   <h3>{group.name || 'Unnamed checklist'}</h3>
-                  {group.items.filter((item) => item.text.trim()).map((item) => <p key={item.key}>☐ {item.text}</p>)}
+                  {group.items.filter((item) => item.text.trim()).map((item) => <p key={item.key}>☐ {item.text} — {Number(item.rewardBp || 0).toFixed(2)} BP</p>)}
                 </div>)}
               </section>}
               <div className="ct-form-footer">
