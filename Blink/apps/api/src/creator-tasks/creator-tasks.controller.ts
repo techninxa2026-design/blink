@@ -8,13 +8,15 @@ import type { Response } from 'express';
 import { JwtAuthGuard, type AuthenticatedUser } from '../auth/jwt-auth.guard';
 import { CreatorTasksService, VIDEO_CHUNK_BYTES } from './creator-tasks.service';
 import { SaveTaskDto, StartVideoDto } from './creator-tasks.dto';
+import { TaskReviewService } from './task-review.service';
+import { ReviewTaskAnswerDto } from './task-review.dto';
 
 type AuthRequest = { user: AuthenticatedUser };
 
 @Controller('creator-tasks')
 @UseGuards(JwtAuthGuard)
 export class CreatorTasksController {
-  constructor(private readonly service: CreatorTasksService) {}
+  constructor(private readonly service: CreatorTasksService, private readonly reviews: TaskReviewService) {}
 
   @Get('mine') mine(@Req() req: AuthRequest) {
     return this.service.myTasks(req.user.userId);
@@ -55,6 +57,16 @@ export class CreatorTasksController {
   @Get('images/:id')
   privateImage(@Req() req: AuthRequest, @Param('id') id: string, @Res() response: Response) {
     return this.service.streamImage(id, response, req.user.userId);
+  }
+  @Get(':id/submissions')
+  submissions(@Req() req: AuthRequest, @Param('id') id: string) {
+    return this.reviews.list(req.user.userId, id);
+  }
+  @Post(':id/submissions/:participationId/steps/:stepId/review')
+  reviewItem(@Req() req: AuthRequest, @Param('id') id: string,
+    @Param('participationId') participationId: string, @Param('stepId') stepId: string,
+    @Body() dto: ReviewTaskAnswerDto) {
+    return this.reviews.review(req.user.userId, id, participationId, stepId, dto.decision, dto.note);
   }
   @Get(':id') detail(@Req() req: AuthRequest, @Param('id') id: string) {
     return this.service.detail(req.user.userId, id);

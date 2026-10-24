@@ -6,7 +6,10 @@ export type TaskParticipation = {
   explanation: string;
   checkedItemIds: string[];
   images: { id: string }[];
-  status: 'DRAFT';
+  status: 'DRAFT' | 'SUBMITTED' | 'REVIEWED';
+  submittedAt: string | null;
+  reviewedAt: string | null;
+  earnedBp: number;
   steps: TaskItemResponse[];
   createdAt: string;
   updatedAt: string;
@@ -66,6 +69,9 @@ export type TaskItemResponse = {
   videoUploadId: string | null;
   images: { id: string }[];
   updatedAt: string;
+  reviewStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
+  reviewNote: string | null;
+  rewardBpSnapshot: number;
 };
 
 export async function uploadParticipationVideo(

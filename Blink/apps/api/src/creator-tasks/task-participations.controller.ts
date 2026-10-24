@@ -9,6 +9,7 @@ import type { Response } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { JwtAuthGuard, type AuthenticatedUser } from '../auth/jwt-auth.guard';
 import { TaskParticipationsService, PARTICIPATION_CHUNK_SIZE } from './task-participations.service';
+import { TaskReviewService } from './task-review.service';
 import { SaveParticipationDto, SaveParticipationStepDto, StartParticipationVideoDto, UpdateChecklistDto } from './task-participations.dto';
 
 type AuthRequest = { user: AuthenticatedUser };
@@ -16,7 +17,8 @@ type AuthRequest = { user: AuthenticatedUser };
 @Controller('task-participations')
 @UseGuards(JwtAuthGuard)
 export class TaskParticipationsController {
-  constructor(private readonly service: TaskParticipationsService, private readonly jwt: JwtService) {}
+  constructor(private readonly service: TaskParticipationsService, private readonly jwt: JwtService,
+    private readonly reviews: TaskReviewService) {}
 
   @Post('images')
   @UseInterceptors(FileInterceptor('image', {
@@ -41,6 +43,11 @@ export class TaskParticipationsController {
   updateChecklist(@Req() req: AuthRequest, @Param('taskId') taskId: string,
     @Body() input: UpdateChecklistDto) {
     return this.service.saveChecklist(req.user.userId, taskId, input.checkedItemIds);
+  }
+
+  @Post(':taskId/submit')
+  submit(@Req() req: AuthRequest, @Param('taskId') taskId: string) {
+    return this.reviews.submit(req.user.userId, taskId);
   }
 
   @Put(':taskId/steps/:itemId')

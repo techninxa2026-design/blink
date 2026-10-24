@@ -23,6 +23,7 @@ import IrlPage from './IrlPage';
 import BusinessMatchPage from './BusinessMatchPage';
 import BusinessDashboardPage from './BusinessDashboardPage';
 import CreatorDashboardPage from './CreatorDashboardPage';
+import TaskReviewPage from './TaskReviewPage';
 import CreatorTasksPage from './CreatorTasksPage';
 import TaskParticipationPage from './TaskParticipationPage';
 import { NotesRow, useActiveCheckins } from './CheckinPreview';
@@ -80,6 +81,7 @@ type Route =
   | 'hearts'
   | 'business-match'
   | 'creator-dashboard'
+  | 'task-reviews'
   | 'business-dashboard'
   | 'tasks'
   | 'task-detail'
@@ -142,6 +144,7 @@ function messageOf(
 }
 
 function routeFromPath(path: string): Route {
+  if (/^\/creator-dashboard\/reviews\/[^/]+$/.test(path)) return 'task-reviews';
   if (/^\/tasks\/[^/]+\/participate$/.test(path)) return 'task-participate';
   if (/^\/tasks\/[^/]+$/.test(path)) return 'task-detail';
   if (/^\/profile\/user\/[^/]+$/.test(path)) {
@@ -504,6 +507,21 @@ export default function App() {
       void loadWallet();
       void loadProfile();
     }
+  }, [route]);
+
+  // Reflect verified BP from other sessions without requiring a manual page refresh.
+  useEffect(() => {
+    if (route !== 'home' || !token()) return;
+    const refresh = () => void loadWallet();
+    const onVisible = () => { if (document.visibilityState === 'visible') refresh(); };
+    const poll = window.setInterval(refresh, 30000);
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.clearInterval(poll);
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [route]);
 
   // MOMENT VIEWS
@@ -1211,6 +1229,19 @@ export default function App() {
     );
   }
 
+  if (route === 'task-reviews') {
+    const id = window.location.pathname.match(/^\/creator-dashboard\/reviews\/([^/]+)$/)?.[1];
+    if (id) return protectedScreen(
+      <TaskReviewPage
+        taskId={decodeURIComponent(id)}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        onBack={() => goTo('/creator-dashboard')}
+      />,
+      'Task Reviews',
+    );
+  }
+
   if (route === 'creator-dashboard') {
     return protectedScreen(
       <CreatorDashboardPage
@@ -1219,6 +1250,7 @@ export default function App() {
         onBack={() => goTo('/settings')}
         onBrowse={() => goTo('/tasks')}
         onOpenTask={(id) => goTo('/tasks/' + encodeURIComponent(id))}
+        onReviewTask={(id) => goTo('/creator-dashboard/reviews/' + encodeURIComponent(id))}
       />,
       'Creator Dashboard',
     );
@@ -1414,7 +1446,7 @@ export default function App() {
           <div className="home-header-right">
             {bpBalance !== null && (
               <span className="home-bp-pill">
-                🟠 {bpBalance.toFixed(1)} BP
+                🟠 {bpBalance.toFixed(2)} BP
               </span>
             )}
 
