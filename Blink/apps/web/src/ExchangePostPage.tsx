@@ -290,7 +290,7 @@ export default function ExchangePostPage({
   // Other user = interested customer.
 
   const chatPath =
-    `/exchange/${encodeURIComponent(postId)}/chats`;
+    `/Exchange/${encodeURIComponent(postId)}/chats`;
 
   const selectedThread = threads.find(
     (thread) => thread.id === threadId,
@@ -354,7 +354,7 @@ export default function ExchangePostPage({
     async function initialize() {
       try {
         const detail = await api<ExchangePost>(
-          `/exchange/${encodeURIComponent(postId)}`,
+          `/Exchange/${encodeURIComponent(postId)}`,
         );
 
         if (cancelled) return;
@@ -397,7 +397,7 @@ export default function ExchangePostPage({
           setPageError(
             error instanceof Error
               ? error.message
-              : 'Could not load exchange post.',
+              : 'Could not load Exchange post.',
           );
         }
       } finally {
@@ -686,7 +686,7 @@ export default function ExchangePostPage({
           onClick={onBack}
         >
           <span>←</span>
-          All exchanges
+          All Exchanges
         </button>
 
         <div className="ed-brand">
@@ -704,7 +704,7 @@ export default function ExchangePostPage({
 
       {loading && (
         <div className="ed-loading">
-          Loading exchange…
+          Loading Exchange…
         </div>
       )}
 
@@ -781,7 +781,7 @@ export default function ExchangePostPage({
             <div className="ed-post-body">
 
               <div className="ed-section-label">
-                ABOUT THIS EXCHANGE
+                ABOUT THIS Exchange
               </div>
 
               <p className="ed-description">
@@ -797,7 +797,7 @@ export default function ExchangePostPage({
                   <div className="ed-post-media">
                     {post.media.map((media) => {
                       const src =
-                        `${API_URL}/exchange/media/${encodeURIComponent(media.id)}`;
+                        `${API_URL}/Exchange/media/${encodeURIComponent(media.id)}`;
 
                       if (
                         media.mimeType.startsWith('video/')
@@ -862,7 +862,7 @@ export default function ExchangePostPage({
               <div className="ed-sidebar-heading">
 
                 <span className="ed-sidebar-eyebrow">
-                  BLINK EXCHANGE
+                  Blink Exchange
                 </span>
 
                 <div className="ed-sidebar-title">
@@ -1074,10 +1074,10 @@ export default function ExchangePostPage({
 
                   <span>
                     {threadId
-                      ? 'Private exchange chat'
+                      ? 'Private Exchange chat'
                       : isOwner
                         ? 'Choose someone from Messages'
-                        : 'Discuss this exchange privately'}
+                        : 'Discuss this Exchange privately'}
                   </span>
                 </div>
 
@@ -1176,7 +1176,7 @@ export default function ExchangePostPage({
                     ) : (
                       <>
                         <h3>
-                          Interested in this exchange?
+                          Interested in this Exchange?
                         </h3>
 
                         <p>

@@ -167,7 +167,7 @@ export default function ExchangePriceOfferPanel({
   const [error, setError] = useState('');
 
   const endpoint =
-    `/exchange/${encodeURIComponent(postId)}` +
+    `/Exchange/${encodeURIComponent(postId)}` +
     `/chats/${encodeURIComponent(threadId)}/offer`;
 
   const refresh = useCallback(async () => {
@@ -395,7 +395,7 @@ export default function ExchangePriceOfferPanel({
                   {isOwner
                     ? 'Waiting for the interested customer to submit a price.'
                     : postStatus === 'CLOSED'
-                      ? 'This exchange is closed to new offers.'
+                      ? 'This Exchange is closed to new offers.'
                       : 'Interested in this service? Send the provider your price offer.'}
                 </p>
               )}

@@ -28,7 +28,7 @@
 .bm-chat-compose textarea { width:100%; box-sizing:border-box; }
 @media (max-width:650px) { .bm-chat-layout { grid-template-columns:1fr; } .bm-chat-contacts { flex-direction:row; overflow-x:auto; } .bm-chat-contact { flex-shrink:0; } }
 
-/* BM-6 meeting layout inherits Business Match light/dark theme tokens. */
+/* BM-6 meeting layout inherits Blink Business light/dark theme tokens. */
 .bm-meeting-form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin:20px 0 28px; }
 .bm-meeting-form label { display:flex; flex-direction:column; gap:6px; font-weight:600; }
 .bm-meeting-form label:has(textarea), .bm-meeting-form > button { grid-column:1/-1; }

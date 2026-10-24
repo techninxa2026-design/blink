@@ -24,8 +24,8 @@ import { mkdirSync } from 'node:fs';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import {
   ExchangeService,
-  EXCHANGE_MEDIA_DIR,
-} from './exchange.service';
+  Exchange_MEDIA_DIR,
+} from './Exchange.service';
 
 type AuthenticatedRequest = {
   user: { userId: string };
@@ -43,11 +43,11 @@ const allowedMimeToExtension: Record<string, string> = {
 const uploads: NonNullable<Parameters<typeof FilesInterceptor>[2]> = {
   storage: diskStorage({
     destination: (_req, _file, callback) => {
-      mkdirSync(EXCHANGE_MEDIA_DIR, {
+      mkdirSync(Exchange_MEDIA_DIR, {
         recursive: true,
       });
 
-      callback(null, EXCHANGE_MEDIA_DIR);
+      callback(null, Exchange_MEDIA_DIR);
     },
 
     filename: (_req, file, callback) => {
@@ -93,11 +93,11 @@ const uploads: NonNullable<Parameters<typeof FilesInterceptor>[2]> = {
   },
 };
 
-@Controller('exchange')
+@Controller('Exchange')
 @UseGuards(JwtAuthGuard)
 export class ExchangeController {
   constructor(
-    private readonly exchange: ExchangeService,
+    private readonly Exchange: ExchangeService,
   ) {}
 
   @Get()
@@ -108,7 +108,7 @@ export class ExchangeController {
     @Query('mine') mine?: string,
     @Query('page') page?: string,
   ) {
-    return this.exchange.list(req.user.userId, {
+    return this.Exchange.list(req.user.userId, {
       search,
       kind,
       mine,
@@ -118,7 +118,7 @@ export class ExchangeController {
 
   @Get(':id')
   getOne(@Param('id') id: string) {
-    return this.exchange.getOne(id);
+    return this.Exchange.getOne(id);
   }
 
   @Post()
@@ -131,7 +131,7 @@ export class ExchangeController {
     @UploadedFiles()
     files: Express.Multer.File[] = [],
   ) {
-    return this.exchange.create(
+    return this.Exchange.create(
       req.user.userId,
       body,
       files,
@@ -149,7 +149,7 @@ export class ExchangeController {
     @UploadedFiles()
     files: Express.Multer.File[] = [],
   ) {
-    return this.exchange.update(
+    return this.Exchange.update(
       req.user.userId,
       id,
       body,
@@ -162,7 +162,7 @@ export class ExchangeController {
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
   ) {
-    return this.exchange.remove(
+    return this.Exchange.remove(
       req.user.userId,
       id,
     );
@@ -174,7 +174,7 @@ export class ExchangeController {
     @Param('id') id: string,
     @Body() body: { message?: string },
   ) {
-    return this.exchange.reply(
+    return this.Exchange.reply(
       req.user.userId,
       id,
       body?.message,
@@ -187,7 +187,7 @@ export class ExchangeController {
     @Param('id') id: string,
     @Param('responseId') responseId: string,
   ) {
-    return this.exchange.acknowledge(
+    return this.Exchange.acknowledge(
       req.user.userId,
       id,
       responseId,
@@ -196,10 +196,10 @@ export class ExchangeController {
 }
 
 // Public media route for displaying attachments.
-@Controller('exchange/media')
+@Controller('Exchange/media')
 export class ExchangeMediaController {
   constructor(
-    private readonly exchange: ExchangeService,
+    private readonly Exchange: ExchangeService,
   ) {}
 
   @Get(':id')
@@ -207,7 +207,7 @@ export class ExchangeMediaController {
     @Param('id') id: string,
     @Res() res: Response,
   ) {
-    const media = await this.exchange.getMedia(id);
+    const media = await this.Exchange.getMedia(id);
 
     res.setHeader(
       'Content-Type',
@@ -225,7 +225,7 @@ export class ExchangeMediaController {
     );
 
     return res.sendFile(media.key, {
-      root: EXCHANGE_MEDIA_DIR,
+      root: Exchange_MEDIA_DIR,
     });
   }
 }

@@ -14,7 +14,7 @@ export class ExchangeChatService {
   ) {}
 
   private async getPost(postId: string) {
-    const post = await this.prisma.exchangePost.findUnique({
+    const post = await this.prisma.ExchangePost.findUnique({
       where: { id: postId },
       select: {
         id: true,
@@ -61,7 +61,7 @@ export class ExchangeChatService {
     postId: string,
     threadId: string,
   ) {
-    const thread = await this.prisma.exchangeThread.findFirst({
+    const thread = await this.prisma.ExchangeThread.findFirst({
       where: {
         id: threadId,
         postId,
@@ -108,7 +108,7 @@ export class ExchangeChatService {
 
     await this.ensureNotBlocked(post.authorId, userId);
 
-    const thread = await this.prisma.exchangeThread.findUnique({
+    const thread = await this.prisma.ExchangeThread.findUnique({
       where: {
         postId_requesterId: {
           postId,
@@ -135,7 +135,7 @@ export class ExchangeChatService {
 
     await this.ensureNotBlocked(post.authorId, userId);
 
-    const existing = await this.prisma.exchangeThread.findUnique({
+    const existing = await this.prisma.ExchangeThread.findUnique({
       where: {
         postId_requesterId: {
           postId,
@@ -151,11 +151,11 @@ export class ExchangeChatService {
 
     if (post.status === 'CLOSED') {
       throw new BadRequestException(
-        'This exchange is closed to new conversations.',
+        'This Exchange is closed to new conversations.',
       );
     }
 
-    const thread = await this.prisma.exchangeThread.upsert({
+    const thread = await this.prisma.ExchangeThread.upsert({
       where: {
         postId_requesterId: {
           postId,
@@ -183,7 +183,7 @@ export class ExchangeChatService {
       );
     }
 
-    return this.prisma.exchangeThread.findMany({
+    return this.prisma.ExchangeThread.findMany({
       where: { postId },
       include: {
         requester: {
@@ -216,7 +216,7 @@ export class ExchangeChatService {
       threadId,
     );
 
-    const messages = await this.prisma.exchangeChatMessage.findMany({
+    const messages = await this.prisma.ExchangeChatMessage.findMany({
       where: { threadId },
       select: {
         id: true,
@@ -264,7 +264,7 @@ export class ExchangeChatService {
     }
 
     return this.prisma.$transaction(async (tx) => {
-      const message = await tx.exchangeChatMessage.create({
+      const message = await tx.ExchangeChatMessage.create({
         data: {
           threadId,
           senderId: userId,
@@ -280,7 +280,7 @@ export class ExchangeChatService {
         },
       });
 
-      await tx.exchangeThread.update({
+      await tx.ExchangeThread.update({
         where: { id: threadId },
         data: {
           updatedAt: new Date(),

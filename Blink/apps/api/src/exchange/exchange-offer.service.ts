@@ -41,7 +41,7 @@ export class ExchangeOfferService {
     postId: string,
     threadId: string,
   ) {
-    const thread = await this.prisma.exchangeThread.findFirst({
+    const thread = await this.prisma.ExchangeThread.findFirst({
       where: {
         id: threadId,
         postId,
@@ -152,7 +152,7 @@ export class ExchangeOfferService {
   ) {
     await this.authorizedThread(userId, postId, threadId);
 
-    return this.prisma.exchangePriceOffer.findUnique({
+    return this.prisma.ExchangePriceOffer.findUnique({
       where: { threadId },
     });
   }
@@ -177,14 +177,14 @@ export class ExchangeOfferService {
 
     if (thread.post.status !== 'OPEN') {
       throw new BadRequestException(
-        'This exchange is closed to new price offers.',
+        'This Exchange is closed to new price offers.',
       );
     }
 
     const value = this.validateOffer(input);
 
     try {
-      return await this.prisma.exchangePriceOffer.create({
+      return await this.prisma.ExchangePriceOffer.create({
         data: {
           threadId,
           amount: value.amount,
@@ -226,7 +226,7 @@ export class ExchangeOfferService {
 
     if (thread.post.status !== 'OPEN') {
       throw new BadRequestException(
-        'This exchange is closed.',
+        'This Exchange is closed.',
       );
     }
 
@@ -234,7 +234,7 @@ export class ExchangeOfferService {
 
     // Atomic status check: the provider might be accepting
     // or declining the offer at the same time.
-    const result = await this.prisma.exchangePriceOffer.updateMany({
+    const result = await this.prisma.ExchangePriceOffer.updateMany({
       where: {
         threadId,
         status: 'PENDING',
@@ -251,7 +251,7 @@ export class ExchangeOfferService {
       );
     }
 
-    return this.prisma.exchangePriceOffer.findUnique({
+    return this.prisma.ExchangePriceOffer.findUnique({
       where: { threadId },
     });
   }
@@ -274,7 +274,7 @@ export class ExchangeOfferService {
       );
     }
 
-    const result = await this.prisma.exchangePriceOffer.updateMany({
+    const result = await this.prisma.ExchangePriceOffer.updateMany({
       where: {
         threadId,
         status: ExchangeOfferStatus.PENDING,
@@ -291,7 +291,7 @@ export class ExchangeOfferService {
       );
     }
 
-    return this.prisma.exchangePriceOffer.findUnique({
+    return this.prisma.ExchangePriceOffer.findUnique({
       where: { threadId },
     });
   }

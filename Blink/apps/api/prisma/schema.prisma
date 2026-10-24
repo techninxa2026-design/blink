@@ -100,10 +100,10 @@ model User {
   irlInvitationsReceived IrlInvitation[] @relation("IrlInvitationRecipient")
 
   // Blink Exchange
-  exchangePosts          ExchangePost[]        @relation("ExchangePostAuthor")
-  exchangeResponses      ExchangeResponse[]    @relation("ExchangeResponseAuthor")
-  exchangeThreadsStarted ExchangeThread[]      @relation("ExchangeThreadRequester")
-  exchangeChatMessages   ExchangeChatMessage[] @relation("ExchangeChatSender")
+  ExchangePosts          ExchangePost[]        @relation("ExchangePostAuthor")
+  ExchangeResponses      ExchangeResponse[]    @relation("ExchangeResponseAuthor")
+  ExchangeThreadsStarted ExchangeThread[]      @relation("ExchangeThreadRequester")
+  ExchangeChatMessages   ExchangeChatMessage[] @relation("ExchangeChatSender")
 
   // Blink Secrets and Hearts
   blinkPoints          Int                   @default(0)
@@ -118,7 +118,7 @@ model User {
 
   irlMessages IrlMessage[]
 
-  // Business Match
+  // Blink Business
   businessProfile          BusinessProfile?
   businessRequestsSent     BusinessConnectionRequest[] @relation("BusinessRequestSender")
   businessRequestsReceived BusinessConnectionRequest[] @relation("BusinessRequestReceiver")
@@ -466,7 +466,7 @@ model IrlInvitation {
 }
 
 // ======================================================
-// BLINK EXCHANGE POSTS
+// Blink Exchange POSTS
 // ======================================================
 
 model ExchangePost {
@@ -491,7 +491,7 @@ model ExchangePost {
 }
 
 // ======================================================
-// EXCHANGE MEDIA
+// Exchange MEDIA
 // ======================================================
 
 model ExchangeMedia {
@@ -507,7 +507,7 @@ model ExchangeMedia {
 }
 
 // ======================================================
-// EXCHANGE RESPONSES
+// Exchange RESPONSES
 // ======================================================
 
 model ExchangeResponse {
@@ -526,7 +526,7 @@ model ExchangeResponse {
 }
 
 // ======================================================
-// EXCHANGE THREADS
+// Exchange THREADS
 // ======================================================
 
 model ExchangeThread {
@@ -549,7 +549,7 @@ model ExchangeThread {
 }
 
 // ======================================================
-// EXCHANGE CHAT MESSAGES
+// Exchange CHAT MESSAGES
 // ======================================================
 
 model ExchangeChatMessage {
@@ -566,7 +566,7 @@ model ExchangeChatMessage {
 }
 
 // ======================================================
-// EXCHANGE PRICE OFFERS
+// Exchange PRICE OFFERS
 // ======================================================
 
 model ExchangePriceOffer {
@@ -720,7 +720,7 @@ model IrlMessage {
 }
 
 // ======================================================
-// BUSINESS MATCH
+// Blink Business
 // ======================================================
 
 enum BusinessProfileType {

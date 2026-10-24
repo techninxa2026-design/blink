@@ -6,15 +6,15 @@ import { AuthModule } from '../auth/auth.module';
 import {
   ExchangeController,
   ExchangeMediaController,
-} from './exchange.controller';
+} from './Exchange.controller';
 
-import { ExchangeService } from './exchange.service';
+import { ExchangeService } from './Exchange.service';
 
-import { ExchangeChatController } from './exchange-chat.controller';
-import { ExchangeChatService } from './exchange-chat.service';
+import { ExchangeChatController } from './Exchange-chat.controller';
+import { ExchangeChatService } from './Exchange-chat.service';
 
-import { ExchangeOfferController } from './exchange-offer.controller';
-import { ExchangeOfferService } from './exchange-offer.service';
+import { ExchangeOfferController } from './Exchange-offer.controller';
+import { ExchangeOfferService } from './Exchange-offer.service';
 
 @Module({
   imports: [

@@ -13,10 +13,10 @@ import { unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { PrismaService } from '../prisma/prisma.service';
 
-export const EXCHANGE_MEDIA_DIR = join(
+export const Exchange_MEDIA_DIR = join(
   process.cwd(),
   'uploads',
-  'exchange',
+  'Exchange',
 );
 
 const postInclude = {
@@ -108,7 +108,7 @@ export class ExchangeService {
     await Promise.all(
       files.map(async (file) => {
         await unlink(
-          join(EXCHANGE_MEDIA_DIR, file.filename),
+          join(Exchange_MEDIA_DIR, file.filename),
         ).catch(() => undefined);
       }),
     );
@@ -157,14 +157,14 @@ export class ExchangeService {
     const take = 10;
 
     const [items, total] = await this.prisma.$transaction([
-      this.prisma.exchangePost.findMany({
+      this.prisma.ExchangePost.findMany({
         where,
         include: postInclude,
         orderBy: { createdAt: 'desc' },
         take,
         skip: (page - 1) * take,
       }),
-      this.prisma.exchangePost.count({ where }),
+      this.prisma.ExchangePost.count({ where }),
     ]);
 
     return {
@@ -176,7 +176,7 @@ export class ExchangeService {
   }
 
   async getOne(id: string) {
-    const post = await this.prisma.exchangePost.findUnique({
+    const post = await this.prisma.ExchangePost.findUnique({
       where: { id },
       include: postInclude,
     });
@@ -198,7 +198,7 @@ export class ExchangeService {
     try {
       const data = this.validateForm(body);
 
-      return await this.prisma.exchangePost.create({
+      return await this.prisma.ExchangePost.create({
         data: {
           ...data,
           authorId: userId,
@@ -221,7 +221,7 @@ export class ExchangeService {
     files: Express.Multer.File[],
   ) {
     try {
-      const post = await this.prisma.exchangePost.findUnique({
+      const post = await this.prisma.ExchangePost.findUnique({
         where: { id },
         include: { media: true },
       });
@@ -253,7 +253,7 @@ export class ExchangeService {
       }
 
       const updated =
-        await this.prisma.exchangePost.update({
+        await this.prisma.ExchangePost.update({
           where: { id },
           data: {
             ...data,
@@ -290,7 +290,7 @@ export class ExchangeService {
   }
 
   async remove(userId: string, id: string) {
-    const post = await this.prisma.exchangePost.findUnique({
+    const post = await this.prisma.ExchangePost.findUnique({
       where: { id },
       include: { media: true },
     });
@@ -307,7 +307,7 @@ export class ExchangeService {
       );
     }
 
-    await this.prisma.exchangePost.delete({
+    await this.prisma.ExchangePost.delete({
       where: { id },
     });
 
@@ -337,7 +337,7 @@ export class ExchangeService {
       );
     }
 
-    const post = await this.prisma.exchangePost.findUnique({
+    const post = await this.prisma.ExchangePost.findUnique({
       where: { id: postId },
     });
 
@@ -349,17 +349,17 @@ export class ExchangeService {
 
     if (post.status === ExchangeStatus.CLOSED) {
       throw new BadRequestException(
-        'This exchange is closed.',
+        'This Exchange is closed.',
       );
     }
 
     if (post.authorId === userId) {
       throw new BadRequestException(
-        'You cannot reply to your own exchange post.',
+        'You cannot reply to your own Exchange post.',
       );
     }
 
-    return this.prisma.exchangeResponse.create({
+    return this.prisma.ExchangeResponse.create({
       data: {
         postId,
         authorId: userId,
@@ -379,7 +379,7 @@ export class ExchangeService {
     responseId: string,
   ) {
     const response =
-      await this.prisma.exchangeResponse.findFirst({
+      await this.prisma.ExchangeResponse.findFirst({
         where: { id: responseId, postId },
         include: {
           post: {
@@ -398,7 +398,7 @@ export class ExchangeService {
       );
     }
 
-    return this.prisma.exchangeResponse.update({
+    return this.prisma.ExchangeResponse.update({
       where: { id: responseId },
       data: {
         acknowledgedAt:
@@ -408,7 +408,7 @@ export class ExchangeService {
   }
 
   async getMedia(id: string) {
-    const media = await this.prisma.exchangeMedia.findUnique({
+    const media = await this.prisma.ExchangeMedia.findUnique({
       where: { id },
     });
 

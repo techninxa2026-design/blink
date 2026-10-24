@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { ExchangeOfferService } from './exchange-offer.service';
+import { ExchangeOfferService } from './Exchange-offer.service';
 
 type AuthRequest = {
   user: {
@@ -24,7 +24,7 @@ type PriceOfferBody = {
   currency?: string;
 };
 
-@Controller('exchange/:postId/chats/:threadId/offer')
+@Controller('Exchange/:postId/chats/:threadId/offer')
 @UseGuards(JwtAuthGuard)
 export class ExchangeOfferController {
   constructor(

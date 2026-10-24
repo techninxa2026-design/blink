@@ -77,8 +77,8 @@ type Route =
   | 'business-match'
   | 'settings'
   | 'inbox'
-  | 'exchange'
-  | 'exchange-post'
+  | 'Exchange'
+  | 'Exchange-post'
   | 'login'
   | 'signup';
 
@@ -137,8 +137,8 @@ function routeFromPath(path: string): Route {
     return 'public-profile';
   }
 
-  if (/^\/exchange\/[^/]+$/.test(path)) {
-    return 'exchange-post';
+  if (/^\/Exchange\/[^/]+$/.test(path)) {
+    return 'Exchange-post';
   }
 
   const map: Record<string, Route> = {
@@ -152,7 +152,7 @@ function routeFromPath(path: string): Route {
     '/business-match': 'business-match',
     '/settings': 'settings',
     '/inbox': 'inbox',
-    '/exchange': 'exchange',
+    '/Exchange': 'Exchange',
     '/login': 'login',
     '/': 'signup',
   };
@@ -167,12 +167,12 @@ export default function App() {
     routeFromPath(window.location.pathname),
   );
 
-  const [exchangePostId, setExchangePostId] = useState<
+  const [ExchangePostId, setExchangePostId] = useState<
     string | null
   >(
     () =>
       window.location.pathname.match(
-        /^\/exchange\/([^/]+)$/,
+        /^\/Exchange\/([^/]+)$/,
       )?.[1] ?? null,
   );
 
@@ -302,7 +302,7 @@ export default function App() {
       setRoute(routeFromPath(path));
 
       setExchangePostId(
-        path.match(/^\/exchange\/([^/]+)$/)?.[1] ?? null,
+        path.match(/^\/Exchange\/([^/]+)$/)?.[1] ?? null,
       );
 
       setPublicProfileId(
@@ -327,7 +327,7 @@ export default function App() {
     setRoute(routeFromPath(path));
 
     setExchangePostId(
-      path.match(/^\/exchange\/([^/]+)$/)?.[1] ?? null,
+      path.match(/^\/Exchange\/([^/]+)$/)?.[1] ?? null,
     );
 
     setPublicProfileId(
@@ -358,7 +358,7 @@ export default function App() {
   }
 
   function openExchangePost(id: string) {
-    goTo(`/exchange/${encodeURIComponent(id)}`);
+    goTo(`/Exchange/${encodeURIComponent(id)}`);
   }
 
   function toggleTheme() {
@@ -1216,7 +1216,7 @@ export default function App() {
         theme={theme}
         onToggleTheme={toggleTheme}
       />,
-      'Business Match',
+      'Blink Business',
     );
   }
 
@@ -1266,12 +1266,12 @@ export default function App() {
     );
   }
 
-  if (route === 'exchange-post') {
+  if (route === 'Exchange-post') {
     return protectedScreen(
-      exchangePostId ? (
+      ExchangePostId ? (
         <ExchangePostPage
-          postId={decodeURIComponent(exchangePostId)}
-          onBack={() => goTo('/exchange')}
+          postId={decodeURIComponent(ExchangePostId)}
+          onBack={() => goTo('/Exchange')}
           onOpenProfile={openPublicProfile}
           theme={theme}
           onToggleTheme={toggleTheme}
@@ -1281,11 +1281,11 @@ export default function App() {
           Exchange post not found.
         </main>
       ),
-      'Blink Exchange',
+      'Blink Market',
     );
   }
 
-  if (route === 'exchange') {
+  if (route === 'Exchange') {
     return protectedScreen(
       <ExchangePage
         onBack={() => goTo('/home')}
@@ -1294,7 +1294,7 @@ export default function App() {
         theme={theme}
         onToggleTheme={toggleTheme}
       />,
-      'Blink Exchange',
+      'Blink Market',
     );
   }
 
@@ -1403,8 +1403,8 @@ export default function App() {
                 👤 <span>My profile</span>
               </button>
 
-              <button onClick={() => goTo('/exchange')}>
-                💱 <span>Blink Exchange</span>
+              <button onClick={() => goTo('/Exchange')}>
+                💱 <span>Blink Market</span>
               </button>
 
               <button onClick={() => goTo('/secrets')}>
@@ -1418,7 +1418,7 @@ export default function App() {
               <button
                 onClick={() => goTo('/business-match')}
               >
-                🤝 <span>Business Match</span>
+                🤝 <span>Blink Business</span>
               </button>
 
               <p className="drawer-label drawer-section-label">

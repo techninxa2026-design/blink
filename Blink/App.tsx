@@ -81,8 +81,8 @@ type Route =
   | 'business-match'
   | 'settings'
   | 'inbox'
-  | 'exchange'
-  | 'exchange-post'
+  | 'Exchange'
+  | 'Exchange-post'
   | 'login'
   | 'signup';
 
@@ -143,8 +143,8 @@ function routeFromPath(path: string): Route {
     return 'public-profile';
   }
 
-  if (/^\/exchange\/[^/]+$/.test(path)) {
-    return 'exchange-post';
+  if (/^\/Exchange\/[^/]+$/.test(path)) {
+    return 'Exchange-post';
   }
 
   const map: Record<string, Route> = {
@@ -158,7 +158,7 @@ function routeFromPath(path: string): Route {
     '/business-match': 'business-match',
     '/settings': 'settings',
     '/inbox': 'inbox',
-    '/exchange': 'exchange',
+    '/Exchange': 'Exchange',
     '/login': 'login',
     '/': 'signup',
   };
@@ -395,10 +395,10 @@ export default function App() {
     routeFromPath(window.location.pathname),
   );
 
-  const [exchangePostId, setExchangePostId] =
+  const [ExchangePostId, setExchangePostId] =
     useState<string | null>(() =>
       window.location.pathname.match(
-        /^\/exchange\/([^/]+)$/,
+        /^\/Exchange\/([^/]+)$/,
       )?.[1] ?? null,
     );
 
@@ -569,7 +569,7 @@ export default function App() {
       setRoute(routeFromPath(path));
 
       setExchangePostId(
-        path.match(/^\/exchange\/([^/]+)$/)?.[1] ??
+        path.match(/^\/Exchange\/([^/]+)$/)?.[1] ??
           null,
       );
 
@@ -596,7 +596,7 @@ export default function App() {
     setRoute(routeFromPath(path));
 
     setExchangePostId(
-      path.match(/^\/exchange\/([^/]+)$/)?.[1] ??
+      path.match(/^\/Exchange\/([^/]+)$/)?.[1] ??
         null,
     );
 
@@ -632,7 +632,7 @@ export default function App() {
   }
 
   function openExchangePost(id: string) {
-    goTo(`/exchange/${encodeURIComponent(id)}`);
+    goTo(`/Exchange/${encodeURIComponent(id)}`);
   }
 
   function toggleTheme() {
@@ -1588,7 +1588,7 @@ export default function App() {
     );
   }
 
-  // BUSINESS MATCH
+  // Blink Business
 
   if (route === 'business-match') {
     return protectedScreen(
@@ -1597,7 +1597,7 @@ export default function App() {
         theme={theme}
         onToggleTheme={toggleTheme}
       />,
-      'Business Match',
+      'Blink Business',
     );
   }
 
@@ -1655,32 +1655,32 @@ export default function App() {
     );
   }
 
-  // EXCHANGE POST DETAILS
+  // Exchange POST DETAILS
 
-  if (route === 'exchange-post') {
+  if (route === 'Exchange-post') {
     return protectedScreen(
-      exchangePostId ? (
+      ExchangePostId ? (
         <ExchangePostPage
           postId={decodeURIComponent(
-            exchangePostId,
+            ExchangePostId,
           )}
-          onBack={() => goTo('/exchange')}
+          onBack={() => goTo('/Exchange')}
           onOpenProfile={openPublicProfile}
           theme={theme}
           onToggleTheme={toggleTheme}
         />
       ) : (
         <main className="blink-guard">
-          Exchange post not found.
+          Market post not found.
         </main>
       ),
-      'Blink Exchange',
+      'Blink Market',
     );
   }
 
-  // BLINK EXCHANGE
+  // Blink Market
 
-  if (route === 'exchange') {
+  if (route === 'Exchange') {
     return protectedScreen(
       <ExchangePage
         onBack={() => goTo('/home')}
@@ -1689,7 +1689,7 @@ export default function App() {
         theme={theme}
         onToggleTheme={toggleTheme}
       />,
-      'Blink Exchange',
+      'Blink Market',
     );
   }
 
@@ -1815,10 +1815,10 @@ export default function App() {
 
               <button
                 onClick={() =>
-                  goTo('/exchange')
+                  goTo('/Exchange')
                 }
               >
-                💱 <span>Blink Exchange</span>
+                💱 <span>Blink Market</span>
               </button>
 
               <button
@@ -1842,7 +1842,7 @@ export default function App() {
                   goTo('/business-match')
                 }
               >
-                🤝 <span>Business Match</span>
+                🤝 <span>Blink Business</span>
               </button>
 
               <p className="drawer-label drawer-section-label">

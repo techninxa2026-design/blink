@@ -99,7 +99,7 @@ async function api<T>(
 
   if (!token) {
     throw new Error(
-      'Please sign in to use Blink Exchange.',
+      'Please sign in to use Blink Market.',
     );
   }
 
@@ -216,7 +216,7 @@ export default function ExchangePage({
   const currentId = myUserId();
 
   // ==============================
-  // LOAD EXCHANGE POSTS
+  // LOAD Exchange POSTS
   // ==============================
 
   const load = useCallback(async () => {
@@ -237,7 +237,7 @@ export default function ExchangePage({
     }
 
     return api<PostsResult>(
-      `/exchange?${query.toString()}`,
+      `/Exchange?${query.toString()}`,
     );
   }, [search, kind, mine, page]);
 
@@ -362,8 +362,8 @@ export default function ExchangePage({
 
       await api<ExchangePost>(
         editingId
-          ? `/exchange/${encodeURIComponent(editingId)}`
-          : '/exchange',
+          ? `/Exchange/${encodeURIComponent(editingId)}`
+          : '/Exchange',
         {
           method: editingId ? 'PATCH' : 'POST',
           body: form,
@@ -373,7 +373,7 @@ export default function ExchangePage({
       setNotice(
         editingId
           ? 'Your post was updated.'
-          : 'Your post is live on Blink Exchange.',
+          : 'Your post is live on Blink Market.',
       );
 
       closeComposer();
@@ -410,14 +410,14 @@ export default function ExchangePage({
 
     try {
       await api(
-        `/exchange/${encodeURIComponent(post.id)}`,
+        `/Exchange/${encodeURIComponent(post.id)}`,
         {
           method: 'DELETE',
         },
       );
 
       setNotice(
-        'Your exchange post was deleted.',
+        'Your Market post was deleted.',
       );
 
       refresh();
@@ -437,23 +437,23 @@ export default function ExchangePage({
   // ==============================
 
   return (
-    <main className="exchange-page">
-      <header className="exchange-topbar">
+    <main className="Exchange-page">
+      <header className="Exchange-topbar">
         <button
           type="button"
-          className="exchange-back"
+          className="Exchange-back"
           onClick={onBack}
         >
           ← Back
         </button>
 
-        <span className="exchange-brand">
-          Blink <strong>Exchange</strong>
+        <span className="Exchange-brand">
+          Blink <strong>Market</strong>
         </span>
 
         <button
           type="button"
-          className="exchange-mode"
+          className="Exchange-mode"
           onClick={onToggleTheme}
         >
           {theme === 'dark'
@@ -462,18 +462,18 @@ export default function ExchangePage({
         </button>
       </header>
 
-      <div className="exchange-shell">
+      <div className="Exchange-shell">
 
         {/* HERO SECTION */}
 
-        <section className="exchange-hero">
+        <section className="Exchange-hero">
           <div>
-            <span className="exchange-eyebrow">
+            <span className="Exchange-eyebrow">
               PEOPLE HELPING PEOPLE
             </span>
 
             <h1>
-              Small exchanges.
+              Small Markets.
               <br />
               <em>Real opportunities.</em>
             </h1>
@@ -487,7 +487,7 @@ export default function ExchangePage({
 
           <button
             type="button"
-            className="exchange-primary"
+            className="Exchange-primary"
             onClick={() =>
               composerOpen
                 ? closeComposer()
@@ -496,7 +496,7 @@ export default function ExchangePage({
           >
             {composerOpen
               ? '× Close'
-              : '+ Create exchange'}
+              : '+ Create Market'}
           </button>
         </section>
 
@@ -504,7 +504,7 @@ export default function ExchangePage({
 
         {notice && (
           <p
-            className="exchange-alert success"
+            className="Exchange-alert success"
             role="status"
           >
             ✓ {notice}
@@ -513,7 +513,7 @@ export default function ExchangePage({
 
         {error && (
           <p
-            className="exchange-alert error"
+            className="Exchange-alert error"
             role="alert"
           >
             {error}
@@ -523,11 +523,11 @@ export default function ExchangePage({
         {/* CREATE / EDIT POST */}
 
         {composerOpen && (
-          <section className="exchange-composer">
-            <div className="exchange-section-head">
+          <section className="Exchange-composer">
+            <div className="Exchange-section-head">
               <h2>
                 {editingId
-                  ? 'Edit your exchange'
+                  ? 'Edit your Market'
                   : 'What would you like to share?'}
               </h2>
             </div>
@@ -535,7 +535,7 @@ export default function ExchangePage({
             <form onSubmit={savePost}>
 
               <label>
-                Exchange type
+                Market type
 
                 <select
                   value={draftKind}
@@ -612,7 +612,7 @@ export default function ExchangePage({
                 </label>
               )}
 
-              <label className="exchange-file-control">
+              <label className="Exchange-file-control">
                 Photos or video (up to 4 files,
                 40 MB each)
 
@@ -666,10 +666,10 @@ export default function ExchangePage({
                 </small>
               </label>
 
-              <div className="exchange-form-actions">
+              <div className="Exchange-form-actions">
                 <button
                   type="button"
-                  className="exchange-quiet"
+                  className="Exchange-quiet"
                   onClick={closeComposer}
                 >
                   Cancel
@@ -677,14 +677,14 @@ export default function ExchangePage({
 
                 <button
                   type="submit"
-                  className="exchange-primary"
+                  className="Exchange-primary"
                   disabled={busy}
                 >
                   {busy
                     ? 'Saving…'
                     : editingId
                       ? 'Save changes'
-                      : 'Publish exchange'}
+                      : 'Publish Market'}
                 </button>
               </div>
             </form>
@@ -693,18 +693,18 @@ export default function ExchangePage({
 
         {/* SEARCH AND FILTER */}
 
-        <section className="exchange-toolbar">
-          <div className="exchange-section-head">
-            <h2>Explore exchanges</h2>
+        <section className="Exchange-toolbar">
+          <div className="Exchange-section-head">
+            <h2>Explore Markets</h2>
 
             <span>
               {result?.total ?? 0} posts
             </span>
           </div>
 
-          <div className="exchange-filterbar">
+          <div className="Exchange-filterbar">
             <input
-              aria-label="Search exchanges"
+              aria-label="Search Markets"
               placeholder="Search skills, services or opportunities…"
               value={search}
               onChange={(e) => {
@@ -741,8 +741,8 @@ export default function ExchangePage({
               type="button"
               className={
                 mine
-                  ? 'exchange-quiet active'
-                  : 'exchange-quiet'
+                  ? 'Exchange-quiet active'
+                  : 'Exchange-quiet'
               }
               onClick={() => {
                 setMine((v) => !v);
@@ -759,8 +759,8 @@ export default function ExchangePage({
         {/* LOADING */}
 
         {loading && (
-          <p className="exchange-state">
-            Loading exchanges…
+          <p className="Exchange-state">
+            Loading Markets…
           </p>
         )}
 
@@ -769,8 +769,8 @@ export default function ExchangePage({
         {!loading &&
           !error &&
           result?.items.length === 0 && (
-            <div className="exchange-empty">
-              No matching exchanges yet.
+            <div className="Exchange-empty">
+              No matching Markets yet.
               Be the first to create one!
             </div>
           )}
@@ -778,14 +778,14 @@ export default function ExchangePage({
         {/* POSTS GRID */}
 
         {!loading && !error && (
-          <div className="exchange-grid">
+          <div className="Exchange-grid">
             {result?.items.map((post) => {
               const isMine =
                 currentId === post.authorId;
 
               return (
                 <article
-                  className="exchange-card exchange-card-clickable"
+                  className="Exchange-card Exchange-card-clickable"
                   key={post.id}
                   onClick={(event) => {
                     const target =
@@ -806,10 +806,10 @@ export default function ExchangePage({
                 >
                   {/* AUTHOR */}
 
-                  <div className="exchange-card-header">
+                  <div className="Exchange-card-header">
                     <button
                       type="button"
-                      className="exchange-author"
+                      className="Exchange-author"
                       onClick={() =>
                         onOpenProfile?.(
                           post.authorId,
@@ -817,7 +817,7 @@ export default function ExchangePage({
                       }
                       disabled={!onOpenProfile}
                     >
-                      <span className="exchange-avatar">
+                      <span className="Exchange-avatar">
                         {post.author.name
                           .slice(0, 1)
                           .toUpperCase()}
@@ -837,7 +837,7 @@ export default function ExchangePage({
                     </button>
 
                     <span
-                      className={`exchange-tag ${post.kind.toLowerCase()}`}
+                      className={`Exchange-tag ${post.kind.toLowerCase()}`}
                     >
                       {kindLabels[post.kind]}
                     </span>
@@ -849,17 +849,17 @@ export default function ExchangePage({
 
                   {/* POST DESCRIPTION */}
 
-                  <p className="exchange-description">
+                  <p className="Exchange-description">
                     {post.description}
                   </p>
 
                   {/* IMAGES AND VIDEOS */}
 
                   {post.media.length > 0 && (
-                    <div className="exchange-media-grid">
+                    <div className="Exchange-media-grid">
                       {post.media.map((media) => {
                         const url =
-                          `${API_URL}/exchange/media/${encodeURIComponent(media.id)}`;
+                          `${API_URL}/Exchange/media/${encodeURIComponent(media.id)}`;
 
                         return media.mimeType.startsWith(
                           'video/',
@@ -885,12 +885,12 @@ export default function ExchangePage({
 
                   {/* POST STATUS / OWNER ACTIONS */}
 
-                  <div className="exchange-card-meta">
+                  <div className="Exchange-card-meta">
                     <span
                       className={
                         post.status === 'OPEN'
-                          ? 'exchange-open'
-                          : 'exchange-closed'
+                          ? 'Exchange-open'
+                          : 'Exchange-closed'
                       }
                     >
                       {post.status === 'OPEN'
@@ -903,7 +903,7 @@ export default function ExchangePage({
                     </span>
 
                     {isMine && (
-                      <span className="exchange-actions">
+                      <span className="Exchange-actions">
                         <button
                           type="button"
                           onClick={() =>
@@ -930,7 +930,7 @@ export default function ExchangePage({
 
                   <button
                     type="button"
-                    className="exchange-open-post"
+                    className="Exchange-open-post"
                     onClick={() =>
                       onOpenPost(post.id)
                     }
@@ -954,7 +954,7 @@ export default function ExchangePage({
         {result &&
           !loading &&
           result.pages > 1 && (
-            <div className="exchange-pagination">
+            <div className="Exchange-pagination">
               <button
                 type="button"
                 disabled={page <= 1}

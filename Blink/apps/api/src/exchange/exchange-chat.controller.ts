@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { ExchangeChatService } from './exchange-chat.service';
+import { ExchangeChatService } from './Exchange-chat.service';
 
 type AuthenticatedRequest = {
   user: {
@@ -17,7 +17,7 @@ type AuthenticatedRequest = {
   };
 };
 
-@Controller('exchange/:postId/chats')
+@Controller('Exchange/:postId/chats')
 @UseGuards(JwtAuthGuard)
 export class ExchangeChatController {
   constructor(
