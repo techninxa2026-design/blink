@@ -1,7 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   ArrayMaxSize, IsArray, IsEnum, IsInt, IsNotEmpty, IsOptional,
-  IsString, Max, MaxLength, Min, ValidateNested,
+  IsString, MaxLength, Min, ValidateNested,
 } from 'class-validator';
 import { CreatorTaskStatus } from '@prisma/client';
 

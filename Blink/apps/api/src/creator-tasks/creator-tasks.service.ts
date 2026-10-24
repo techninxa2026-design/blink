@@ -1,7 +1,7 @@
 import {
   BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException,
 } from '@nestjs/common';
-import { CreatorTaskStatus, Prisma } from '@prisma/client';
+import { CreatorTaskStatus } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { mkdir, open, readFile, rename, rm, stat, unlink, writeFile } from 'node:fs/promises';
@@ -46,14 +46,15 @@ export class CreatorTasksService {
     creator: { select: { id: true, name: true, avatarKey: true, businessProfile: { select: { name: true } } } },
     videoUpload: { select: { completed: true } },
     checklists: { orderBy: { position: 'asc' as const }, include: { items: { orderBy: { position: 'asc' as const } } } },
-  };
+  } as const;
 
   private present(row: any) {
     return {
       id: row.id, creatorId: row.creatorId, title: row.title,
       description: row.description, status: row.status, createdAt: row.createdAt,
       updatedAt: row.updatedAt, publishedAt: row.publishedAt,
-      videoUrl: row.videoUpload?.completed ? '/task-media/' + row.id : null,
+      videoUrl: row.videoUpload?.completed && row.status === 'PUBLISHED' ? '/task-media/' + row.id : null,
+      hasVideo: Boolean(row.videoUpload?.completed),
       creator: { id: row.creator.id, name: row.creator.businessProfile?.name || row.creator.name, avatarKey: row.creator.avatarKey },
       checklists: row.checklists.map((group: any) => ({
         id: group.id, name: group.name,
