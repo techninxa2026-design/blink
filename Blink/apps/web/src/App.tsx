@@ -22,6 +22,8 @@ import CheckinsPage from './CheckinsPage';
 import IrlPage from './IrlPage';
 import BusinessMatchPage from './BusinessMatchPage';
 import BusinessDashboardPage from './BusinessDashboardPage';
+import CreatorDashboardPage from './CreatorDashboardPage';
+import CreatorTasksPage from './CreatorTasksPage';
 import { NotesRow, useActiveCheckins } from './CheckinPreview';
 
 const API = (
@@ -78,6 +80,8 @@ type Route =
   | 'business-match'
   | 'creator-dashboard'
   | 'business-dashboard'
+  | 'tasks'
+  | 'task-detail'
   | 'settings'
   | 'inbox'
   | 'Exchange'
@@ -136,6 +140,7 @@ function messageOf(
 }
 
 function routeFromPath(path: string): Route {
+  if (/^\/tasks\/[^/]+$/.test(path)) return 'task-detail';
   if (/^\/profile\/user\/[^/]+$/.test(path)) {
     return 'public-profile';
   }
@@ -154,6 +159,7 @@ function routeFromPath(path: string): Route {
     '/hearts': 'hearts',
     '/business-match': 'business-match',
     '/creator-dashboard': 'creator-dashboard',
+    '/tasks': 'tasks',
     '/business-dashboard': 'business-dashboard',
     '/settings': 'settings',
     '/inbox': 'inbox',
@@ -1202,16 +1208,44 @@ export default function App() {
     );
   }
 
-  if (route === 'creator-dashboard' || route === 'business-dashboard') {
-    const isCreator = route === 'creator-dashboard';
+  if (route === 'creator-dashboard') {
+    return protectedScreen(
+      <CreatorDashboardPage
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        onBack={() => goTo('/settings')}
+        onBrowse={() => goTo('/tasks')}
+        onOpenTask={(id) => goTo('/tasks/' + encodeURIComponent(id))}
+      />,
+      'Creator Dashboard',
+    );
+  }
+
+  if (route === 'business-dashboard') {
     return protectedScreen(
       <BusinessDashboardPage
-        expectedType={isCreator ? 'PROFESSIONAL' : 'COMPANY'}
+        expectedType="COMPANY"
         theme={theme}
         onToggleTheme={toggleTheme}
         onBack={() => goTo('/settings')}
       />,
-      isCreator ? 'Creator Dashboard' : 'Business Dashboard',
+      'Business Dashboard',
+    );
+  }
+
+  if (route === 'tasks' || route === 'task-detail') {
+    return protectedScreen(
+      <CreatorTasksPage
+        taskId={route === 'task-detail'
+          ? window.location.pathname.match(/^\/tasks\/([^/]+)$/)?.[1] ?? null
+          : null}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        onBack={() => goTo('/home')}
+        onBrowse={() => goTo('/tasks')}
+        onOpenTask={(id) => goTo('/tasks/' + encodeURIComponent(id))}
+      />,
+      'Blink Tasks',
     );
   }
 
@@ -1425,6 +1459,10 @@ export default function App() {
 
               <button onClick={() => goTo('/Exchange')}>
                 💱 <span>Blink Market</span>
+              </button>
+
+              <button onClick={() => goTo('/tasks')}>
+                🎯 <span>Blink Tasks</span>
               </button>
 
               <button onClick={() => goTo('/secrets')}>
