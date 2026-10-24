@@ -14,6 +14,7 @@ import { IrlModule } from './irl/irl.module';
 import { SecretsModule } from './secrets/secrets.module';
 import { HeartsModule } from './hearts/hearts.module';
 import { BusinessMatchModule } from './business-match/business-match.module';
+import { CreatorTasksModule } from './creator-tasks/creator-tasks.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -29,6 +30,7 @@ import { BusinessMatchModule } from './business-match/business-match.module';
     SecretsModule,
     HeartsModule,
     BusinessMatchModule,
+    CreatorTasksModule,
   ],
   controllers: [AppController],
   providers: [AppService],

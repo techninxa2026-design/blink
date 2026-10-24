@@ -119,6 +119,8 @@ model User {
   irlMessages IrlMessage[]
 
   // Blink Business
+  creatorTasks            CreatorTask[]
+  taskVideoUploads        TaskVideoUpload[]
   businessProfile          BusinessProfile?
   businessRequestsSent     BusinessConnectionRequest[] @relation("BusinessRequestSender")
   businessRequestsReceived BusinessConnectionRequest[] @relation("BusinessRequestReceiver")
@@ -828,4 +830,71 @@ model BusinessMeeting {
   @@index([organizerId, startsAt])
   @@index([attendeeId, startsAt])
   @@index([connectionId, startsAt])
+}
+
+/* Creator tasks: one-level named checklists and original-quality video uploads. */
+enum CreatorTaskStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model CreatorTask {
+  id           String            @id @default(cuid())
+  creatorId    String
+  title        String            @db.VarChar(140)
+  description  String            @db.Text
+  status       CreatorTaskStatus @default(DRAFT)
+  videoUploadId String?          @unique
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  publishedAt  DateTime?
+
+  creator      User             @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  videoUpload  TaskVideoUpload? @relation(fields: [videoUploadId], references: [id], onDelete: SetNull)
+  checklists   TaskChecklist[]
+
+  @@index([status, publishedAt])
+  @@index([creatorId, updatedAt])
+}
+
+model TaskChecklist {
+  id       String @id @default(cuid())
+  taskId   String
+  name     String @db.VarChar(100)
+  position Int
+
+  task  CreatorTask         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  items TaskChecklistItem[]
+
+  @@index([taskId, position])
+}
+
+model TaskChecklistItem {
+  id          String @id @default(cuid())
+  checklistId String
+  text        String @db.VarChar(240)
+  position    Int
+
+  checklist TaskChecklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+
+  @@index([checklistId, position])
+}
+
+model TaskVideoUpload {
+  id          String   @id @default(cuid())
+  userId      String
+  originalName String  @db.VarChar(255)
+  mimeType    String   @db.VarChar(70)
+  totalBytes  BigInt
+  chunkBytes  Int
+  nextChunk   Int      @default(0)
+  completed   Boolean  @default(false)
+  storageKey  String?  @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task CreatorTask?
+
+  @@index([userId, createdAt])
 }
