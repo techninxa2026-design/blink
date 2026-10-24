@@ -91,9 +91,17 @@ export async function uploadTaskVideo(file: File, progress: (percent: number) =>
         }
       }
     }
-    if (!complete) throw error instanceof Error ? error : new Error('Video upload interrupted.');
+    if (!complete) {
+      await taskRequest('/uploads/' + started.uploadId, 'DELETE').catch(() => {});
+      throw error instanceof Error ? error : new Error('Video upload interrupted.');
+    }
     progress(Math.round((index * 100) / started.totalChunks));
   }
-  await taskRequest('/uploads/' + started.uploadId + '/complete', 'POST');
+  try {
+    await taskRequest('/uploads/' + started.uploadId + '/complete', 'POST');
+  } catch (error) {
+    await taskRequest('/uploads/' + started.uploadId, 'DELETE').catch(() => {});
+    throw error;
+  }
   return started.uploadId;
 }

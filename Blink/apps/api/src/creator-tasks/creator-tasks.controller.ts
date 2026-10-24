@@ -41,6 +41,9 @@ export class CreatorTasksController {
   @Post('uploads/:id/complete') finishUpload(@Req() req: AuthRequest, @Param('id') id: string) {
     return this.service.finishUpload(req.user.userId, id);
   }
+  @Delete('uploads/:id') cancelUpload(@Req() req: AuthRequest, @Param('id') id: string) {
+    return this.service.cancelUpload(req.user.userId, id);
+  }
   @Get(':id') detail(@Req() req: AuthRequest, @Param('id') id: string) {
     return this.service.detail(req.user.userId, id);
   }
