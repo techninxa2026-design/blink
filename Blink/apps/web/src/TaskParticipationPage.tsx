@@ -284,7 +284,15 @@ export default function TaskParticipationPage({
                   ? 'Evidence is locked. The creator can approve or reject each checklist answer.'
                   : 'Save each checklist answer, then submit your work for verification.'}</p>
             </div>
-            {locked ? <span className="tp-submitted-chip">{saved?.status === 'REVIEWED' ? 'Reviewed' : 'In review'}</span>
+            {locked ? <div className="tp-status-actions">
+                <span className="tp-submitted-chip">{saved?.status === 'REVIEWED' ? 'Reviewed' : 'In review'}</span>
+                <button className="bm-outline" type="button" onClick={() =>
+                  void participationRequest<TaskParticipation>('/' + encodeURIComponent(taskId) + '/me')
+                    .then((latest) => { setSaved(latest); setChecked(latest?.checkedItemIds ?? []); })
+                    .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Unable to refresh status.'))}>
+                  ↻ Refresh status
+                </button>
+              </div>
               : <button type="button" className="tp-submit-action"
                   disabled={submitting || saving || checking || dirty || !saved?.steps.length}
                   onClick={() => void submitForReview()}>
