@@ -2,9 +2,10 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import './BusinessMatchPage.css';
 import './CreatorTasks.css';
 import {
-  TASK_API, taskRequest, taskSteps, taskToken, uploadTaskVideo,
+  TASK_API, taskRequest, taskSteps, taskToken, uploadTaskVideo, uploadTaskImage,
   type CreatorTask, type DraftChecklist,
 } from './creatorTaskApi';
+import { CreatorTaskImage, CreatorNewImage } from './CreatorTaskImages';
 
 type Profile = { id: string; name: string; type: 'PROFESSIONAL' | 'COMPANY'; active: boolean };
 type Props = {
@@ -29,6 +30,11 @@ export default function CreatorDashboardPage({
   const [showPreview, setShowPreview] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [rewardBp, setRewardBp] = useState('0');
+  const [existingImages, setExistingImages] = useState<CreatorTask['images']>([]);
+  const [newImages, setNewImages] = useState<File[]>([]);
+  const [uploadedImages, setUploadedImages] = useState<{ file: File; id: string }[]>([]);
+  const [imageProgress, setImageProgress] = useState('');
   const [groups, setGroups] = useState<DraftChecklist[]>([makeChecklist()]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
@@ -39,6 +45,7 @@ export default function CreatorDashboardPage({
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const fileInput = useRef<HTMLInputElement>(null);
+  const imageInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     let alive = true;
@@ -75,6 +82,11 @@ export default function CreatorDashboardPage({
     setShowPreview(false);
     setTitle('');
     setDescription('');
+    setRewardBp('0');
+    setExistingImages([]);
+    setNewImages([]);
+    setUploadedImages([]);
+    setImageProgress('');
     setGroups([makeChecklist()]);
     setSelectedFile(null);
     setVideoUploadId(null);
@@ -88,6 +100,11 @@ export default function CreatorDashboardPage({
     setShowPreview(false);
     setTitle(task.title);
     setDescription(task.description);
+    setRewardBp(String(task.rewardBp ?? 0));
+    setExistingImages(task.images ?? []);
+    setNewImages([]);
+    setUploadedImages([]);
+    setImageProgress('');
     setGroups(task.checklists.length
       ? task.checklists.map((g) => ({
         key: ++nextItemKey, name: g.name,
@@ -111,9 +128,31 @@ export default function CreatorDashboardPage({
     } : g));
   }
 
+  function selectImages(files: FileList | null) {
+    if (!files) return;
+    const incoming = Array.from(files);
+    if (existingImages.length + newImages.length + incoming.length > 8) {
+      setError('A task supports up to eight images. Remove an image before adding more.');
+      return;
+    }
+    if (incoming.some((file) => !['image/jpeg','image/png','image/webp','image/gif'].includes(file.type)
+      || !file.size || file.size > 10 * 1024 * 1024)) {
+      setError('Use JPEG, PNG, WebP or GIF images under 10 MB each.');
+      return;
+    }
+    setNewImages((old) => [...old, ...incoming]);
+    setError('');
+  }
+
   async function saveTask(status: 'DRAFT' | 'PUBLISHED') {
     if (busy) return;
     if (!title.trim() || !description.trim()) { setError('Task title and description are required.'); return; }
+    const amount = Number(rewardBp);
+    if (!rewardBp.trim() || !Number.isFinite(amount) || amount < 0 || amount > 5 ||
+        Math.abs(amount * 100 - Math.round(amount * 100)) > 0.000001) {
+      setError('Task BP must be 0–5, using whole numbers or up to two decimal places.');
+      return;
+    }
     const checklists = groups.filter((g) => g.name.trim() || g.items.some((i) => i.text.trim()))
       .map((g) => ({ name: g.name.trim(), items: g.items.map((i) => i.text.trim()).filter(Boolean) }));
     if (checklists.some((g) => !g.name)) { setError('Enter a name for every checklist.'); return; }
@@ -136,9 +175,22 @@ export default function CreatorDashboardPage({
         currentVideo = await uploadTaskVideo(selectedFile, setUploadPercent);
         setVideoUploadId(currentVideo);
       }
+      const imageIds = existingImages.map((image) => image.id);
+      for (let i = 0; i < newImages.length; i++) {
+        const file = newImages[i];
+        let imageId = uploadedImages.find((entry) => entry.file === file)?.id;
+        if (!imageId) {
+          setImageProgress('Uploading image ' + (i + 1) + ' of ' + newImages.length + '…');
+          imageId = await uploadTaskImage(file);
+          setUploadedImages((current) => [...current, { file, id: imageId as string }]);
+        }
+        imageIds.push(imageId);
+      }
+      setImageProgress('');
       const url = editingId ? '/' + encodeURIComponent(editingId) : '';
       const result = await taskRequest<{ id: string; status: string }>(url, editingId ? 'PUT' : 'POST', {
         title: title.trim(), description: description.trim(), status, checklists,
+        rewardBp: amount, imageIds,
         ...(currentVideo ? { videoUploadId: currentVideo } : {}),
       });
       setTasks(await taskRequest<CreatorTask[]>('/mine'));
@@ -200,8 +252,10 @@ export default function CreatorDashboardPage({
                 <div className="ct-empty"><span>🎬</span><h3>No tasks yet</h3><p>Create your first task with a video and named checklist.</p><button className="bm-primary" type="button" onClick={createTask}>Create Task</button></div>
               ) : tasks.map((task) => (
                 <article className="ct-task-row" key={task.id}>
-                  <div className="ct-task-icon">🎬</div>
-                  <div className="ct-task-main"><h3>{task.title}</h3><p>{task.checklists.length} checklists · {taskSteps(task)} steps · {new Date(task.updatedAt).toLocaleDateString()}</p></div>
+                  <div className="ct-task-icon">{task.images?.[0]
+                    ? <CreatorTaskImage image={task.images[0]} alt="" className="ct-dashboard-thumb" />
+                    : '🎬'}</div>
+                  <div className="ct-task-main"><h3>{task.title}</h3><p>{task.rewardBp ?? 0} BP · {task.images?.length ?? 0} images · {task.checklists.length} checklists · {taskSteps(task)} steps · {new Date(task.updatedAt).toLocaleDateString()}</p></div>
                   <span className={'ct-status ' + (task.status === 'PUBLISHED' ? 'published' : 'draft')}>{task.status === 'PUBLISHED' ? 'Published' : 'Draft'}</span>
                   <div className="ct-row-actions">
                     {task.status === 'PUBLISHED' && <button className="bm-outline" type="button" onClick={() => onOpenTask(task.id)}>View</button>}
@@ -223,6 +277,45 @@ export default function CreatorDashboardPage({
                     <h3>01 · Task information</h3>
                     <label>Task title<input value={title} maxLength={140} required onChange={(e) => setTitle(e.target.value)} placeholder="Enter a task title" /></label>
                     <label>Task description<textarea value={description} maxLength={4000} required rows={7} onChange={(e) => setDescription(e.target.value)} placeholder="Describe what participants should do" /></label>
+                    <div className="ct-bp-field">
+                      <label htmlFor="ct-task-bp">BP amount per task (maximum 5)</label>
+                      <div className="ct-bp-input-wrap">
+                        <input id="ct-task-bp" type="number" min="0" max="5" step="0.01" inputMode="decimal"
+                          value={rewardBp} onChange={(event) => setRewardBp(event.target.value)} />
+                        <span>BP</span>
+                      </div>
+                      <small>Examples: 1 BP, 0.5 BP, 2.75 BP. Amounts appear on tasks; payouts are not active yet.</small>
+                    </div>
+                    <div className="ct-image-uploader">
+                      <div className="ct-image-heading">
+                        <strong>Task images</strong><span>{existingImages.length + newImages.length}/8 images</span>
+                      </div>
+                      <p className="bm-muted">Add pictures beside the title and description.</p>
+                      <input ref={imageInput} type="file" accept="image/jpeg,image/png,image/webp,image/gif"
+                        multiple hidden onChange={(event) => { selectImages(event.target.files); event.target.value = ''; }} />
+                      <button className="bm-outline ct-add-image" type="button"
+                        disabled={busy || existingImages.length + newImages.length >= 8}
+                        onClick={() => imageInput.current?.click()}>＋ Add images</button>
+                      {(existingImages.length > 0 || newImages.length > 0) && (
+                        <div className="ct-image-grid">
+                          {existingImages.map((image) => (
+                            <div className="ct-image-cell" key={image.id}>
+                              <CreatorTaskImage image={image} alt="Task image" />
+                              <button type="button" aria-label="Remove image"
+                                onClick={() => setExistingImages((items) => items.filter((item) => item.id !== image.id))}>×</button>
+                            </div>
+                          ))}
+                          {newImages.map((file, index) => (
+                            <div className="ct-image-cell" key={index}>
+                              <CreatorNewImage file={file} />
+                              <button type="button" aria-label="Remove image"
+                                onClick={() => setNewImages((items) => items.filter((_, i) => i !== index))}>×</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {imageProgress && <p className="ct-image-upload-status" role="status">{imageProgress}</p>}
+                    </div>
                   </section>
                   <section className="bm-card ct-editor-card">
                     <h3>02 · Task video</h3>
@@ -261,6 +354,11 @@ export default function CreatorDashboardPage({
               {showPreview && <section className="bm-card ct-preview-task">
                 <span className="bm-eyebrow">TASK PREVIEW</span>
                 <h2>{title.trim() || 'Untitled task'}</h2>
+                <span className="ct-reward-pill">🟠 {rewardBp || 0} BP per task</span>
+                <div className="ct-image-grid ct-preview-images">
+                  {existingImages.map((image) => <CreatorTaskImage key={image.id} image={image} alt="Task picture" />)}
+                  {newImages.map((file, index) => <CreatorNewImage key={index} file={file} />)}
+                </div>
                 <p>{description || 'Your description will appear here.'}</p>
                 {videoPreview && <video src={videoPreview} controls playsInline />}
                 {groups.map((group) => <div key={group.key}>

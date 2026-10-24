@@ -4,6 +4,8 @@ export type CreatorTask = {
   creatorId: string;
   title: string;
   description: string;
+  rewardBp: number;
+  images: { id: string; url: string | null }[];
   status: 'DRAFT' | 'PUBLISHED';
   videoUrl: string | null;
   hasVideo: boolean;
@@ -104,4 +106,23 @@ export async function uploadTaskVideo(file: File, progress: (percent: number) =>
     throw error;
   }
   return started.uploadId;
+}
+
+export async function uploadTaskImage(file: File): Promise<string> {
+  const allowed = ['image/jpeg','image/png','image/webp','image/gif'];
+  if (!allowed.includes(file.type) || file.size === 0 || file.size > 10 * 1024 * 1024) {
+    throw new Error('Task images must be JPEG, PNG, WebP or GIF, each under 10 MB.');
+  }
+  const jwt = taskToken();
+  if (!jwt) throw new Error('Please sign in again.');
+  const body = new FormData();
+  body.append('image', file, file.name);
+  const response = await fetch(TASK_API + '/creator-tasks/images', {
+    method: 'POST', headers: { Authorization: 'Bearer ' + jwt }, body,
+  });
+  const result = await response.json().catch(() => null) as { id?: string; message?: string | string[] } | null;
+  if (!response.ok || !result?.id) {
+    throw new Error((Array.isArray(result?.message) ? result.message.join(', ') : result?.message) || 'Unable to upload task image.');
+  }
+  return result.id;
 }

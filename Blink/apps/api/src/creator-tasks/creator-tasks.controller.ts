@@ -44,6 +44,18 @@ export class CreatorTasksController {
   @Delete('uploads/:id') cancelUpload(@Req() req: AuthRequest, @Param('id') id: string) {
     return this.service.cancelUpload(req.user.userId, id);
   }
+  @Post('images')
+  @UseInterceptors(FileInterceptor('image', {
+    storage: memoryStorage(),
+    limits: { fileSize: 12 * 1024 * 1024, files: 1 },
+  }))
+  uploadImage(@Req() req: AuthRequest, @UploadedFile() file?: Express.Multer.File) {
+    return this.service.uploadImage(req.user.userId, file);
+  }
+  @Get('images/:id')
+  privateImage(@Req() req: AuthRequest, @Param('id') id: string, @Res() response: Response) {
+    return this.service.streamImage(id, response, req.user.userId);
+  }
   @Get(':id') detail(@Req() req: AuthRequest, @Param('id') id: string) {
     return this.service.detail(req.user.userId, id);
   }
@@ -61,6 +73,11 @@ export class CreatorTasksController {
 @Controller('task-media')
 export class TaskMediaController {
   constructor(private readonly service: CreatorTasksService) {}
+
+  @Get('images/:id')
+  image(@Param('id') id: string, @Res() response: Response) {
+    return this.service.streamImage(id, response);
+  }
 
   // Publicly playable only for published tasks. Draft media stays private.
   @Get(':id')

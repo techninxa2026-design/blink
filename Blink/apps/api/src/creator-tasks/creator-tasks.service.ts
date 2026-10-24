@@ -14,6 +14,12 @@ export const VIDEO_CHUNK_BYTES = 8 * 1024 * 1024;
 const VIDEO_ROOT = join(__dirname, '..', '..', 'task-media');
 const SESSIONS = join(VIDEO_ROOT, 'sessions');
 const VIDEOS = join(VIDEO_ROOT, 'videos');
+const IMAGES = join(VIDEO_ROOT, 'images');
+const IMAGE_EXT: Record<string, string> = {
+  'image/jpeg': '.jpg', 'image/png': '.png',
+  'image/webp': '.webp', 'image/gif': '.gif',
+};
+const IMAGE_LIMIT = 10 * 1024 * 1024;
 const MIME_EXT: Record<string, string> = {
   'video/mp4': '.mp4',
   'video/webm': '.webm',
@@ -45,12 +51,15 @@ export class CreatorTasksService {
   private readonly relations = {
     creator: { select: { id: true, name: true, avatarKey: true, businessProfile: { select: { name: true } } } },
     videoUpload: { select: { completed: true } },
+    images: { orderBy: { position: 'asc' as const }, select: { id: true } },
     checklists: { orderBy: { position: 'asc' as const }, include: { items: { orderBy: { position: 'asc' as const } } } },
   } as const;
 
   private present(row: any) {
     return {
       id: row.id, creatorId: row.creatorId, title: row.title,
+      rewardBp: Number(row.rewardBp),
+      images: row.images.map((image: { id: string }) => ({ id: image.id, url: row.status === 'PUBLISHED' ? '/task-media/images/' + image.id : null })),
       description: row.description, status: row.status, createdAt: row.createdAt,
       updatedAt: row.updatedAt, publishedAt: row.publishedAt,
       videoUrl: row.videoUpload?.completed && row.status === 'PUBLISHED' ? '/task-media/' + row.id : null,
@@ -139,7 +148,31 @@ export class CreatorTasksService {
   async save(userId: string, input: SaveTaskDto, id?: string) {
     const profile = await this.professional(userId);
     const { title, description, groups } = this.validate(input);
+    const reward = input.rewardBp ?? 0;
+    if (typeof reward !== 'number' || !Number.isFinite(reward) || reward < 0 ||
+        reward > 5 || Math.abs(reward * 100 - Math.round(reward * 100)) > 0.000001) {
+      throw new BadRequestException('Task BP must be between 0 and 5, with up to two decimal places.');
+    }
     const existing = id ? await this.mine(userId, id) : null;
+    const imageIds = input.imageIds ?? (existing
+      ? (await this.prisma.taskImage.findMany({
+        where: { taskId: existing.id }, orderBy: { position: 'asc' }, select: { id: true },
+      })).map((image) => image.id)
+      : []);
+    if (imageIds.length > 8 || new Set(imageIds).size !== imageIds.length) {
+      throw new BadRequestException('Choose up to eight unique task images.');
+    }
+    if (imageIds.length) {
+      const owned = await this.prisma.taskImage.findMany({
+        where: {
+          id: { in: imageIds }, userId,
+          OR: [{ taskId: null }, { taskId: existing?.id ?? '' }],
+        }, select: { id: true },
+      });
+      if (owned.length !== imageIds.length) {
+        throw new BadRequestException('An image is missing, owned by another user, or already attached to another task.');
+      }
+    }
     const videoId = input.videoUploadId ?? existing?.videoUploadId ?? null;
     const video = await this.ensureVideo(userId, videoId, id);
     if (input.status === 'PUBLISHED' && (!video || !profile.active)) {
@@ -149,7 +182,7 @@ export class CreatorTasksService {
     }
     return this.prisma.$transaction(async (tx) => {
       const data = {
-        title, description, status: input.status,
+        title, description, status: input.status, rewardBp: reward.toFixed(2),
         videoUploadId: videoId,
         publishedAt: input.status === 'PUBLISHED' ? existing?.publishedAt ?? new Date() : null,
       };
@@ -157,6 +190,14 @@ export class CreatorTasksService {
         ? await tx.creatorTask.update({ where: { id: existing.id }, data })
         : await tx.creatorTask.create({ data: { ...data, creatorId: userId } });
 
+      const detached = await tx.taskImage.findMany({
+        where: { taskId: task.id, id: { notIn: imageIds } },
+        select: { id: true, storageKey: true },
+      });
+      await tx.taskImage.deleteMany({ where: { taskId: task.id, id: { notIn: imageIds } } });
+      for (let i = 0; i < imageIds.length; i++) {
+        await tx.taskImage.update({ where: { id: imageIds[i] }, data: { taskId: task.id, position: i } });
+      }
       await tx.taskChecklist.deleteMany({ where: { taskId: task.id } });
       for (let g = 0; g < groups.length; g++) {
         await tx.taskChecklist.create({
@@ -166,15 +207,83 @@ export class CreatorTasksService {
           },
         });
       }
-      return { id: task.id, status: task.status };
+      return { id: task.id, status: task.status, removedImageKeys: detached.map((image) => image.storageKey) };
+    }).then(async (result) => {
+      await Promise.all(result.removedImageKeys.map((key) => unlink(join(IMAGES, key)).catch(() => {})));
+      return { id: result.id, status: result.status };
     });
+  }
+
+  private imageFormat(file: Express.Multer.File) {
+    const extension = IMAGE_EXT[file.mimetype];
+    if (!extension || !file.buffer || file.size < 8 || file.size > IMAGE_LIMIT) {
+      throw new BadRequestException('Use a JPEG, PNG, WebP or GIF image under 10 MB.');
+    }
+    const b = file.buffer;
+    const good = file.mimetype === 'image/jpeg' ? b[0] === 255 && b[1] === 216 && b[2] === 255
+      : file.mimetype === 'image/png' ? b.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10]))
+      : file.mimetype === 'image/webp' ? b.toString('ascii', 0, 4) === 'RIFF' && b.toString('ascii', 8, 12) === 'WEBP'
+      : ['GIF87a','GIF89a'].includes(b.toString('ascii', 0, 6));
+    if (!good) throw new BadRequestException('The uploaded file is not a valid image format.');
+    return extension;
+  }
+
+  async uploadImage(userId: string, file?: Express.Multer.File) {
+    await this.professional(userId);
+    if (!file) throw new BadRequestException('Choose an image.');
+    const ext = this.imageFormat(file);
+    // Clean up abandoned, unattached uploads after 48 hours.
+    const stale = await this.prisma.taskImage.findMany({
+      where: { userId, taskId: null, createdAt: { lt: new Date(Date.now() - 48 * 3600 * 1000) } },
+      select: { id: true, storageKey: true },
+    });
+    if (stale.length) {
+      await this.prisma.taskImage.deleteMany({ where: { id: { in: stale.map((image) => image.id) }, userId, taskId: null } });
+      await Promise.all(stale.map((image) => unlink(join(IMAGES, image.storageKey)).catch(() => {})));
+    }
+    const pending = await this.prisma.taskImage.count({ where: { userId, taskId: null } });
+    if (pending >= 24) throw new ConflictException('Too many unused images. Save your task before uploading more.');
+    await mkdir(IMAGES, { recursive: true });
+    const key = randomUUID() + ext;
+    await writeFile(join(IMAGES, key), file.buffer, { flag: 'wx' });
+    try {
+      const image = await this.prisma.taskImage.create({
+        data: { userId, storageKey: key, mimeType: file.mimetype, fileSize: file.size },
+      });
+      return { id: image.id };
+    } catch (error) {
+      await unlink(join(IMAGES, key)).catch(() => {});
+      throw error;
+    }
+  }
+
+  async streamImage(id: string, response: Response, userId?: string) {
+    const image = await this.prisma.taskImage.findUnique({
+      where: { id },
+      include: { task: { select: { status: true, creatorId: true } } },
+    });
+    if (!image?.task || (image.task.status !== 'PUBLISHED' && image.task.creatorId !== userId)) {
+      throw new NotFoundException('Task image unavailable.');
+    }
+    const filePath = join(IMAGES, image.storageKey);
+    const file = await stat(filePath).catch(() => null);
+    if (!file) throw new NotFoundException('Task image file missing.');
+    response.setHeader('Content-Type', image.mimeType);
+    response.setHeader('Content-Length', file.size);
+    response.setHeader('X-Content-Type-Options', 'nosniff');
+    response.setHeader('Cache-Control', image.task.status === 'PUBLISHED' ? 'public, max-age=600' : 'private, no-store');
+    createReadStream(filePath).on('error', () => response.destroy()).pipe(response);
   }
 
   async remove(userId: string, id: string) {
     await this.professional(userId);
     const task = await this.mine(userId, id);
+    const images = await this.prisma.taskImage.findMany({
+      where: { taskId: id }, select: { storageKey: true },
+    });
     await this.prisma.creatorTask.deleteMany({ where: { id, creatorId: userId } });
     // Keep unrelated tasks' media safe; video uploads are unique per task.
+    await Promise.all(images.map((image) => unlink(join(IMAGES, image.storageKey)).catch(() => {})));
     if (task.videoUploadId) {
       const media = await this.prisma.taskVideoUpload.findUnique({
         where: { id: task.videoUploadId }, select: { storageKey: true },
