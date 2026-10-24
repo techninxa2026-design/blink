@@ -14,7 +14,7 @@ export type TaskParticipation = {
 
 export async function participationRequest<T>(
   path: string,
-  method: 'GET' | 'PUT' | 'DELETE' = 'GET',
+  method: 'GET' | 'PUT' | 'POST' | 'DELETE' = 'GET',
   body?: unknown,
 ): Promise<T> {
   const jwt = taskToken();
@@ -115,7 +115,7 @@ export async function uploadParticipationVideo(
     progress(Math.round(100 * index / session.totalChunks));
   }
   try {
-    await participationRequest('/videos/' + session.uploadId + '/complete', 'PUT');
+    await participationRequest('/videos/' + session.uploadId + '/complete', 'POST');
   } catch (error) {
     // Do not detach files from a saved participation; this upload is unlinked.
     await participationRequest('/videos/' + session.uploadId, 'DELETE').catch(() => {});
