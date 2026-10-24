@@ -27,7 +27,8 @@ let detectorPromise: Promise<FaceDetectorInstance> | null = null;
 export function loadFaceLandmarker(): Promise<FaceDetectorInstance> {
   if (!detectorPromise) {
     detectorPromise = (async () => {
-      const vision = await import(/* @vite-ignore */ 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.1.1/+esm') as {
+      const moduleUrl = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.1.1/+esm';
+      const vision = await import(/* @vite-ignore */ moduleUrl) as {
         FilesetResolver: { forVisionTasks(path: string): Promise<unknown> };
         FaceLandmarker: { createFromOptions(wasm: unknown, options: unknown): Promise<FaceDetectorInstance> };
       };
