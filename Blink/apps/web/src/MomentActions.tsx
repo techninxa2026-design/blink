@@ -393,7 +393,12 @@ export default function MomentActions({
           <button type="button" className="bma-action bma-viewers-action"
             title="See who viewed this Moment" aria-label="View Moment viewers"
             onClick={onShowViewers}>
-            <span className="bma-icon" aria-hidden="true">👥</span>
+            <span className="bma-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="9" cy="8" r="3" /><path d="M3 19v-2c0-2.4 2.4-4 6-4s6 1.6 6 4v2H3Z" />
+                <path d="M17 5.5a3 3 0 0 1 0 5.8M17 13c2.8.25 4 1.7 4 4v2h-3.5" />
+              </svg>
+            </span>
             <small>Viewers</small>
           </button>
         )}
@@ -404,7 +409,12 @@ export default function MomentActions({
           onClick={() => void react('❤️')}
           title="Like Moment"
         >
-          <span className="bma-icon">{myReaction === '❤️' ? '❤️' : '♡'}</span>
+          <span className="bma-icon" aria-hidden="true">
+            {myReaction === '❤️' ? '❤️' : (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"
+                strokeLinecap="round" strokeLinejoin="round"><path d="M20.8 4.7a5.4 5.4 0 0 0-7.7 0L12 5.8l-1.1-1.1a5.4 5.4 0 0 0-7.7 7.7L12 21l8.8-8.6a5.4 5.4 0 0 0 0-7.7Z" /></svg>
+            )}
+          </span>
           <small>{loading ? '…' : reactionTotal}</small>
         </button>
 
@@ -440,15 +450,26 @@ export default function MomentActions({
         </div>
 
         <button type="button" className="bma-action" title="Comments" onClick={() => openPanel('comments')}>
-          <span className="bma-icon">💬</span>
+          <span className="bma-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"
+              strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.8 8.8 0 0 1-9.5 8.6 9.3 9.3 0 0 1-3.5-.9L3 20.5l1.3-4.2A8.8 8.8 0 1 1 21 11.5Z" /></svg>
+          </span>
           <small>{activity?.commentCount ?? 0}</small>
         </button>
         <button type="button" className="bma-action" title="Give Blink Points" onClick={() => openPanel('bp')}>
-          <span className="bma-icon">🧡</span>
+          <span className="bma-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#ff9b60" strokeWidth="1.8"
+              strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="9" width="18" height="12" rx="2" />
+              <path d="M12 9v12M3 13h18M12 9c-2-3.9-6-5.1-7.1-2.3C3.8 9.2 7.8 9 12 9Zm0 0c2-3.9 6-5.1 7.1-2.3C20.2 9.2 16.2 9 12 9Z" /></svg>
+          </span>
           <small>BP</small>
         </button>
         <button type="button" className="bma-action" title="Share to Inbox" onClick={() => void openShare()}>
-          <span className="bma-icon">↗</span>
+          <span className="bma-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m21 3-8.3 18-3.9-7.8L1 9.3 21 3Zm0 0L9 13.2" />
+            </svg>
+          </span>
           <small>Share</small>
         </button>
       </div>
