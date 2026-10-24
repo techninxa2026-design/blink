@@ -210,18 +210,30 @@ model MomentView {
 // ======================================================
 
 model MomentComment {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   momentId  String
   authorId  String
-  body      String   @db.VarChar(500)
-  createdAt DateTime @default(now())
+  body      String    @db.VarChar(500)
+  createdAt DateTime  @default(now())
 
-  moment Moment @relation(fields: [momentId], references: [id], onDelete: Cascade)
-  author User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  // Threaded replies
+  parentId  String?
+
+  // Soft deletion preserves other users' replies
+  deletedAt DateTime?
+
+  moment  Moment @relation(fields: [momentId], references: [id], onDelete: Cascade)
+  author  User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  parent  MomentComment?  @relation("MomentCommentReplies", fields: [parentId], references: [id], onDelete: SetNull)
+  replies MomentComment[] @relation("MomentCommentReplies")
 
   @@index([momentId, createdAt])
   @@index([authorId])
+  @@index([parentId, createdAt])
 }
+
+
 
 // ======================================================
 // MOMENT BP GIFTS
@@ -276,6 +288,7 @@ model Conversation {
   isGroup         Boolean @default(false)
   groupName       String? @db.VarChar(80)
   groupOwnerId    String?
+  
 }
 
 model ConversationMember {

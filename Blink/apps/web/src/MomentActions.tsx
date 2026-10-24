@@ -1,33 +1,21 @@
 
-import {
-  useEffect,
-  useState,
-  type FormEvent,
-} from 'react';
-
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { createPortal } from 'react-dom';
-
 import './MomentActions.css';
 
-const API = (
-  import.meta.env.VITE_API_URL ||
-  'http://localhost:3000'
-).replace(/\/$/, '');
-
-const EMOJIS = [
-  '❤️', '🧡', '😂', '😮', '🔥', '👏',
-];
+const API = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '');
+const EMOJIS = ['❤️', '🧡', '😂', '😮', '🔥', '👏'];
+const BP_AMOUNTS = [1, 5, 10, 25, 50, 100];
 
 type Comment = {
   id: string;
   authorId: string;
   body: string;
   createdAt: string;
-  author: {
-    id: string;
-    name: string;
-    avatarKey?: string | null;
-  };
+  parentId?: string | null;
+  deletedAt?: string | null;
+  replies?: Comment[];
+  author: { id: string; name: string; avatarKey?: string | null };
 };
 
 type Activity = {
@@ -40,13 +28,9 @@ type Activity = {
   myReaction?: string | null;
 };
 
-type Friend = {
-  id: string;
-  name: string;
-  avatarKey: string | null;
-};
-
+type Friend = { id: string; name: string; avatarKey: string | null };
 type Panel = 'comments' | 'bp' | 'share' | null;
+type ReplyTarget = { id: string; name: string };
 
 type Props = {
   momentId: string;
@@ -57,64 +41,76 @@ type Props = {
   onBpTransferred?: () => void;
 };
 
-function token() {
+function token(): string | null {
   return (
     localStorage.getItem('blink-access-token') ||
     sessionStorage.getItem('blink-access-token')
   );
 }
 
-function avatar(key?: string | null) {
+function avatar(key?: string | null): string {
   if (!key) return '';
-
   return /^https?:\/\//i.test(key)
     ? key
-    : `${API}${key.startsWith('/')
-      ? key
-      : `/uploads/${encodeURIComponent(key)}`}`;
+    : `${API}${key.startsWith('/') ? key : `/uploads/${encodeURIComponent(key)}`}`;
+}
+
+function since(value: string): string {
+  const timestamp = new Date(value).getTime();
+  if (!Number.isFinite(timestamp)) return '';
+  const minutes = Math.max(0, Math.floor((Date.now() - timestamp) / 60000));
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes}m`;
+  if (minutes < 1440) return `${Math.floor(minutes / 60)}h`;
+  if (minutes < 10080) return `${Math.floor(minutes / 1440)}d`;
+  return new Date(value).toLocaleDateString();
+}
+
+function normalizeActivity(value: Activity): Activity {
+  return {
+    ...value,
+    comments: Array.isArray(value.comments) ? value.comments : [],
+    commentCount: Number(value.commentCount ?? 0),
+    bpTotal: Number(value.bpTotal ?? 0),
+    myBalance: Number(value.myBalance ?? 0),
+    reactionTotal: Number(value.reactionTotal ?? 0),
+    reactionCounts: value.reactionCounts ?? {},
+    myReaction: value.myReaction ?? null,
+  };
 }
 
 async function request<T>(
   path: string,
-  method = 'GET',
+  method: 'GET' | 'POST' | 'DELETE' = 'GET',
   body?: unknown,
 ): Promise<T> {
   const jwt = token();
-
   if (!jwt) throw new Error('Please sign in again.');
 
   const response = await fetch(`${API}${path}`, {
     method,
     headers: {
       Authorization: `Bearer ${jwt}`,
-      ...(body === undefined
-        ? {}
-        : { 'Content-Type': 'application/json' }),
+      ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
     },
-    ...(body === undefined
-      ? {}
-      : { body: JSON.stringify(body) }),
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     cache: 'no-store',
   });
 
   const text = await response.text();
-
-  let data: any = null;
-
+  let data: unknown = null;
   try {
     data = text ? JSON.parse(text) : null;
   } catch {
-    // Use the HTTP status if no JSON was returned.
+    // If the API sends non-JSON, report its HTTP status below.
   }
 
   if (!response.ok) {
-    const message = Array.isArray(data?.message)
-      ? data.message.join(', ')
-      : data?.message;
-
-    throw new Error(
-      message || `Request failed (${response.status})`,
-    );
+    const details = data as { message?: string | string[] } | null;
+    const message = Array.isArray(details?.message)
+      ? details.message.join(', ')
+      : details?.message;
+    throw new Error(message || `Request failed (${response.status})`);
   }
 
   return data as T;
@@ -128,307 +124,277 @@ export default function MomentActions({
   onOpenProfile,
   onBpTransferred,
 }: Props) {
-  const [activity, setActivity] =
-    useState<Activity | null>(null);
-
+  const [activity, setActivity] = useState<Activity | null>(null);
   const [panel, setPanel] = useState<Panel>(null);
   const [showEmojis, setShowEmojis] = useState(false);
-
   const [comment, setComment] = useState('');
+  const [replyTo, setReplyTo] = useState<ReplyTarget | null>(null);
+  const [collapsedThreads, setCollapsedThreads] = useState<Record<string, boolean>>({});
   const [giftAmount, setGiftAmount] = useState(5);
-
-  const [friends, setFriends] =
-    useState<Friend[]>([]);
-
+  const [friends, setFriends] = useState<Friend[]>([]);
   const [friendId, setFriendId] = useState('');
-  const [friendsLoading, setFriendsLoading] =
-    useState(false);
-
+  const [friendsLoading, setFriendsLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const commentInputRef = useRef<HTMLInputElement>(null);
 
-  async function refresh() {
-    const result = await request<Activity>(
-      `/moments/${encodeURIComponent(momentId)}/activity`,
-    );
-
-    setActivity({
-      ...result,
-      comments: result.comments ?? [],
-      commentCount: Number(result.commentCount ?? 0),
-      bpTotal: Number(result.bpTotal ?? 0),
-      myBalance: Number(result.myBalance ?? 0),
-      reactionTotal: Number(result.reactionTotal ?? 0),
-      reactionCounts: result.reactionCounts ?? {},
-      myReaction: result.myReaction ?? null,
-    });
+  async function refresh(): Promise<void> {
+    const data = await request<Activity>(`/moments/${encodeURIComponent(momentId)}/activity`);
+    setActivity(normalizeActivity(data));
   }
 
   useEffect(() => {
-    let mounted = true;
-
+    let active = true;
     setActivity(null);
     setPanel(null);
     setShowEmojis(false);
+    setComment('');
+    setReplyTo(null);
+    setCollapsedThreads({});
     setLoading(true);
     setError('');
+    setNotice('');
 
-    void request<Activity>(
-      `/moments/${encodeURIComponent(momentId)}/activity`,
-    )
-      .then((result) => {
-        if (!mounted) return;
-
-        setActivity({
-          ...result,
-          comments: result.comments ?? [],
-          commentCount: Number(result.commentCount ?? 0),
-          bpTotal: Number(result.bpTotal ?? 0),
-          myBalance: Number(result.myBalance ?? 0),
-          reactionTotal: Number(result.reactionTotal ?? 0),
-          reactionCounts: result.reactionCounts ?? {},
-          myReaction: result.myReaction ?? null,
-        });
+    void request<Activity>(`/moments/${encodeURIComponent(momentId)}/activity`)
+      .then((data) => {
+        if (active) setActivity(normalizeActivity(data));
       })
-      .catch((err) => {
-        if (mounted) {
-          setError(
-            err instanceof Error
-              ? err.message
-              : 'Unable to load activity.',
-          );
-        }
+      .catch((err: unknown) => {
+        if (active) setError(err instanceof Error ? err.message : 'Unable to load activity.');
       })
       .finally(() => {
-        if (mounted) setLoading(false);
+        if (active) setLoading(false);
       });
 
-    return () => {
-      mounted = false;
-    };
+    return () => { active = false; };
   }, [momentId]);
 
-  async function react(emoji: string) {
-    if (busy) return;
+  function openPanel(next: Panel): void {
+    setPanel(next);
+    setShowEmojis(false);
+    setError('');
+    setNotice('');
+  }
 
+  function startReply(rootId: string, name: string): void {
+    setReplyTo({ id: rootId, name });
+    setError('');
+    commentInputRef.current?.focus();
+  }
+
+  async function react(emoji: string): Promise<void> {
+    if (busy) return;
     setBusy(true);
     setError('');
-
     try {
-      await request(
-        `/moments/${encodeURIComponent(momentId)}/react`,
-        'POST',
-        { emoji },
-      );
-
+      await request(`/moments/${encodeURIComponent(momentId)}/react`, 'POST', { emoji });
       await refresh();
       setShowEmojis(false);
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : 'Reaction failed.',
-      );
+      setError(err instanceof Error ? err.message : 'Reaction failed.');
     } finally {
       setBusy(false);
     }
   }
 
-  async function postComment(
-    event: FormEvent<HTMLFormElement>,
-  ) {
+  async function postComment(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
-
-    if (!comment.trim() || busy) return;
-
+    const text = comment.trim();
+    if (!text || busy) return;
     setBusy(true);
     setError('');
-
     try {
-      await request(
-        `/moments/${encodeURIComponent(momentId)}/comments`,
-        'POST',
-        { body: comment.trim() },
-      );
-
+      await request(`/moments/${encodeURIComponent(momentId)}/comments`, 'POST', {
+        body: text,
+        ...(replyTo ? { parentId: replyTo.id } : {}),
+      });
       setComment('');
+      setReplyTo(null);
       await refresh();
+      commentInputRef.current?.focus();
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : 'Could not post comment.',
-      );
+      setError(err instanceof Error ? err.message : 'Could not post comment.');
     } finally {
       setBusy(false);
     }
   }
 
-  async function deleteComment(id: string) {
+  async function deleteComment(id: string): Promise<void> {
     if (busy) return;
-
     setBusy(true);
     setError('');
-
     try {
-      await request(
-        `/moments/comments/${encodeURIComponent(id)}`,
-        'DELETE',
-      );
-
+      await request(`/moments/comments/${encodeURIComponent(id)}`, 'DELETE');
       await refresh();
+      if (replyTo?.id === id) setReplyTo(null);
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : 'Could not delete comment.',
-      );
+      setError(err instanceof Error ? err.message : 'Could not delete comment.');
     } finally {
       setBusy(false);
     }
   }
 
-  async function sendBp() {
-    if (busy || momentOwnerId === currentUserId) {
-      return;
-    }
-
+  async function sendBp(): Promise<void> {
+    if (busy || momentOwnerId === currentUserId) return;
     setBusy(true);
     setError('');
-
     try {
-      await request(
-        `/moments/${encodeURIComponent(momentId)}/bp`,
-        'POST',
-        { amount: giftAmount },
-      );
-
+      await request(`/moments/${encodeURIComponent(momentId)}/bp`, 'POST', { amount: giftAmount });
       await refresh();
       onBpTransferred?.();
       setNotice(`${giftAmount} BP sent successfully.`);
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : 'Unable to send BP.',
-      );
+      setError(err instanceof Error ? err.message : 'Unable to send BP.');
     } finally {
       setBusy(false);
     }
   }
 
-  async function openShare() {
-    setPanel('share');
-    setShowEmojis(false);
+  async function openShare(): Promise<void> {
+    openPanel('share');
     setFriends([]);
     setFriendId('');
     setFriendsLoading(true);
-    setError('');
-
     try {
-      setFriends(
-        await request<Friend[]>('/inbox/friends'),
-      );
+      setFriends(await request<Friend[]>('/inbox/friends'));
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : 'Unable to load friends.',
-      );
+      setError(err instanceof Error ? err.message : 'Unable to load friends.');
     } finally {
       setFriendsLoading(false);
     }
   }
 
-  async function sendToInbox() {
+  async function sendToInbox(): Promise<void> {
     if (!friendId || busy) return;
-
     setBusy(true);
     setError('');
-
     try {
-      const conversation = await request<{
-        conversationId: string;
-      }>(
-        '/inbox/conversations',
-        'POST',
-        { friendId },
+      const conversation = await request<{ conversationId: string }>(
+        '/inbox/conversations', 'POST', { friendId },
       );
-
-      const link =
-        `${window.location.origin}/home?moment=` +
-        encodeURIComponent(momentId);
-
+      const link = `${window.location.origin}/home?moment=${encodeURIComponent(momentId)}`;
       await request(
-        `/inbox/conversations/${
-          encodeURIComponent(conversation.conversationId)
-        }/messages`,
+        `/inbox/conversations/${encodeURIComponent(conversation.conversationId)}/messages`,
         'POST',
-        {
-          body:
-            `📸 Blink Moment shared\n` +
-            (caption ? `${caption.slice(0, 180)}\n` : '') +
-            link,
-        },
+        { body: `📸 Blink Moment shared\n${caption ? `${caption.slice(0, 180)}\n` : ''}${link}` },
       );
-
       setPanel(null);
       setNotice('Moment shared to Inbox.');
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : 'Unable to share Moment.',
-      );
+      setError(err instanceof Error ? err.message : 'Unable to share Moment.');
     } finally {
       setBusy(false);
     }
   }
 
-  const myReaction = activity?.myReaction;
+  function renderComment(item: Comment, rootId: string, isReply = false) {
+    const deleted = Boolean(item.deletedAt) || item.body === '[deleted]';
+    const visibleReplies = (item.replies ?? []).filter(
+      (reply) => !reply.deletedAt && reply.body !== '[deleted]',
+    );
+    if (deleted && visibleReplies.length === 0) return null;
+
+    const expanded = !collapsedThreads[item.id];
+    return (
+      <div
+        className={`bma-thread${isReply ? ' bma-thread-nested' : ''}`}
+        key={item.id}
+      >
+        <article className="bma-comment">
+          {deleted ? (
+            <div className="bma-avatar bma-avatar-deleted" aria-hidden="true">–</div>
+          ) : (
+            <button
+              type="button"
+              className="bma-avatar"
+              title={`View ${item.author.name}'s profile`}
+              onClick={() => onOpenProfile?.(item.authorId)}
+            >
+              {item.author.avatarKey ? (
+                <img src={avatar(item.author.avatarKey)} alt="" />
+              ) : (
+                item.author.name?.[0]?.toUpperCase() ?? 'B'
+              )}
+            </button>
+          )}
+
+          <div className="bma-comment-main">
+            <div className={`bma-comment-bubble${deleted ? ' is-deleted' : ''}`}>
+              <strong className="bma-comment-name">
+                {deleted ? 'Deleted comment' : item.author.name}
+              </strong>
+              <p className="bma-comment-body">
+                {deleted ? 'This comment was deleted.' : item.body}
+              </p>
+            </div>
+            {!deleted && (
+              <div className="bma-comment-actions">
+                <span className="bma-comment-time">{since(item.createdAt)}</span>
+                <button type="button" onClick={() => startReply(rootId, item.author.name)}>
+                  Reply
+                </button>
+                {item.authorId === currentUserId && (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void deleteComment(item.id)}
+                    aria-label="Delete your comment"
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </article>
+
+        {visibleReplies.length > 0 && !isReply && (
+          <div className="bma-replies-wrap">
+            <button
+              type="button"
+              className="bma-toggle-replies"
+              onClick={() => setCollapsedThreads((current) => ({
+                ...current,
+                [item.id]: !current[item.id],
+              }))}
+              aria-expanded={expanded}
+            >
+              <span aria-hidden="true">↳</span>
+              {expanded
+                ? `Hide ${visibleReplies.length} ${visibleReplies.length === 1 ? 'reply' : 'replies'}`
+                : `View ${visibleReplies.length} ${visibleReplies.length === 1 ? 'reply' : 'replies'}`}
+            </button>
+            {expanded && (
+              <div className="bma-replies">
+                {visibleReplies.map((reply) => renderComment(reply, item.id, true))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const myReaction = activity?.myReaction ?? null;
   const reactionTotal = activity?.reactionTotal ?? 0;
+  const threads = activity?.comments.filter(
+    (item) => (!item.deletedAt && item.body !== '[deleted]') ||
+      (item.replies ?? []).some((reply) => !reply.deletedAt && reply.body !== '[deleted]'),
+  ) ?? [];
 
   return createPortal(
-    <div
-      className="bma-root"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 2147483000,
-        pointerEvents: 'none',
-      }}
-    >
-      {/* VISIBLE RIGHT-SIDE ACTION BAR */}
-
-      <div
-        className="bma-rail"
-        style={{
-          position: 'absolute',
-          right: 24,
-          bottom: 115,
-          zIndex: 2,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 10,
-          pointerEvents: 'auto',
-          visibility: 'visible',
-        }}
-      >
+    <div className="bma-root">
+      <div className="bma-rail" aria-label="Moment actions">
         <button
           type="button"
-          className={`bma-action ${
-            myReaction === '❤️' ? 'active' : ''
-          }`}
+          className={`bma-action${myReaction === '❤️' ? ' active' : ''}`}
           disabled={busy}
           onClick={() => void react('❤️')}
           title="Like Moment"
         >
-          <span className="bma-icon">
-            {myReaction === '❤️' ? '❤️' : '♡'}
-          </span>
+          <span className="bma-icon">{myReaction === '❤️' ? '❤️' : '♡'}</span>
           <small>{loading ? '…' : reactionTotal}</small>
         </button>
 
@@ -436,30 +402,24 @@ export default function MomentActions({
           <button
             type="button"
             className="bma-action"
+            title="React to Moment"
+            aria-expanded={showEmojis}
             onClick={() => {
               setShowEmojis((value) => !value);
               setPanel(null);
             }}
-            title="React to Moment"
           >
-            <span className="bma-icon">
-              {myReaction && myReaction !== '❤️'
-                ? myReaction
-                : '😊'}
-            </span>
+            <span className="bma-icon">{myReaction && myReaction !== '❤️' ? myReaction : '😊'}</span>
             <small>React</small>
           </button>
-
           {showEmojis && (
-            <div className="bma-emojis">
+            <div className="bma-emojis" role="group" aria-label="Choose a reaction">
               {EMOJIS.map((emoji) => (
                 <button
-                  key={emoji}
                   type="button"
+                  key={emoji}
                   disabled={busy}
-                  className={
-                    myReaction === emoji ? 'selected' : ''
-                  }
+                  className={myReaction === emoji ? 'selected' : ''}
                   onClick={() => void react(emoji)}
                 >
                   {emoji}
@@ -469,193 +429,76 @@ export default function MomentActions({
           )}
         </div>
 
-        <button
-          type="button"
-          className="bma-action"
-          onClick={() => {
-            setPanel('comments');
-            setShowEmojis(false);
-          }}
-          title="Comments"
-        >
+        <button type="button" className="bma-action" title="Comments" onClick={() => openPanel('comments')}>
           <span className="bma-icon">💬</span>
           <small>{activity?.commentCount ?? 0}</small>
         </button>
-
-        <button
-          type="button"
-          className="bma-action"
-          onClick={() => {
-            setPanel('bp');
-            setShowEmojis(false);
-          }}
-          title="Give Blink Points"
-        >
+        <button type="button" className="bma-action" title="Give Blink Points" onClick={() => openPanel('bp')}>
           <span className="bma-icon">🧡</span>
           <small>BP</small>
         </button>
-
-        <button
-          type="button"
-          className="bma-action"
-          onClick={() => void openShare()}
-          title="Share to Inbox"
-        >
+        <button type="button" className="bma-action" title="Share to Inbox" onClick={() => void openShare()}>
           <span className="bma-icon">↗</span>
           <small>Share</small>
         </button>
       </div>
 
-      {/* ERRORS AND NOTICES */}
-
       {(error || notice) && !panel && (
-        <div
-          className="bma-message"
-          role={error ? 'alert' : 'status'}
-        >
-          {error || notice}
-          <button
-            type="button"
-            onClick={() => {
-              setError('');
-              setNotice('');
-            }}
-          >
-            ×
-          </button>
+        <div className="bma-message" role={error ? 'alert' : 'status'}>
+          <span>{error || notice}</span>
+          <button type="button" aria-label="Dismiss message" onClick={() => { setError(''); setNotice(''); }}>×</button>
         </div>
       )}
 
-      {/* COMMENT / BP / SHARE PANEL */}
-
       {panel && (
         <>
-          <button
-            type="button"
-            className="bma-backdrop"
-            onClick={() => setPanel(null)}
-            aria-label="Close panel"
-          />
-
-          <section
-            className="bma-panel"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Moment interaction panel"
-          >
+          <button type="button" className="bma-backdrop" aria-label="Close panel" onClick={() => setPanel(null)} />
+          <section className="bma-panel" role="dialog" aria-modal="true" aria-label="Moment interaction panel">
             <header className="bma-panel-header">
               <div>
                 <span>BLINK MOMENTS</span>
-                <h2>
-                  {panel === 'comments'
-                    ? `Comments (${activity?.commentCount ?? 0})`
-                    : panel === 'bp'
-                      ? 'Give Blink Points'
-                      : 'Share Moment'}
-                </h2>
+                <h2>{panel === 'comments'
+                  ? `Comments (${activity?.commentCount ?? 0})`
+                  : panel === 'bp'
+                    ? 'Give Blink Points'
+                    : 'Share Moment'}</h2>
               </div>
-
-              <button
-                type="button"
-                className="bma-close"
-                onClick={() => setPanel(null)}
-              >
-                ×
-              </button>
+              <button type="button" className="bma-close" aria-label="Close panel" onClick={() => setPanel(null)}>×</button>
             </header>
 
-            {error && (
-              <p className="bma-error" role="alert">
-                {error}
-              </p>
-            )}
-
-            {notice && (
-              <p className="bma-notice" role="status">
-                {notice}
-              </p>
-            )}
+            {error && <p className="bma-error" role="alert">{error}</p>}
+            {notice && <p className="bma-notice" role="status">{notice}</p>}
 
             {panel === 'comments' && (
               <>
                 <div className="bma-comments">
                   {loading ? (
-                    <p>Loading comments…</p>
-                  ) : activity?.comments.length === 0 ? (
-                    <div className="bma-empty">
-                      <span>💬</span>
-                      <strong>No comments yet</strong>
-                      <p>Start the conversation!</p>
-                    </div>
+                    <p className="bma-loading">Loading comments…</p>
+                  ) : threads.length === 0 ? (
+                    <div className="bma-empty"><span>💬</span><strong>No comments yet</strong><p>Start the conversation!</p></div>
                   ) : (
-                    activity?.comments.map((item) => (
-                      <article
-                        key={item.id}
-                        className="bma-comment"
-                      >
-                        <button
-                          type="button"
-                          className="bma-avatar"
-                          onClick={() =>
-                            onOpenProfile?.(item.authorId)
-                          }
-                        >
-                          {item.author.avatarKey ? (
-                            <img
-                              src={avatar(
-                                item.author.avatarKey,
-                              )}
-                              alt=""
-                            />
-                          ) : (
-                            item.author.name[0]
-                              ?.toUpperCase() ?? 'B'
-                          )}
-                        </button>
-
-                        <div className="bma-comment-text">
-                          <strong>{item.author.name}</strong>
-                          <p>{item.body}</p>
-                        </div>
-
-                        {(item.authorId === currentUserId ||
-                          momentOwnerId === currentUserId) && (
-                          <button
-                            type="button"
-                            className="bma-delete"
-                            disabled={busy}
-                            onClick={() =>
-                              void deleteComment(item.id)
-                            }
-                          >
-                            ×
-                          </button>
-                        )}
-                      </article>
-                    ))
+                    threads.map((item) => renderComment(item, item.id))
                   )}
                 </div>
 
-                <form
-                  className="bma-compose"
-                  onSubmit={(event) =>
-                    void postComment(event)
-                  }
-                >
+                {replyTo && (
+                  <div className="bma-replying-to">
+                    <span>Replying to <strong>{replyTo.name}</strong></span>
+                    <button type="button" onClick={() => setReplyTo(null)}>Cancel</button>
+                  </div>
+                )}
+
+                <form className="bma-compose" onSubmit={(event) => void postComment(event)}>
                   <input
+                    ref={commentInputRef}
                     value={comment}
                     maxLength={500}
-                    placeholder="Write a comment…"
-                    onChange={(event) =>
-                      setComment(event.target.value)
-                    }
+                    aria-label={replyTo ? `Reply to ${replyTo.name}` : 'Write a comment'}
+                    placeholder={replyTo ? `Reply to ${replyTo.name}…` : 'Write a comment…'}
+                    onChange={(event) => setComment(event.target.value)}
                   />
-
-                  <button
-                    type="submit"
-                    disabled={busy || !comment.trim()}
-                  >
-                    Post
+                  <button type="submit" disabled={busy || !comment.trim()}>
+                    {busy ? 'Posting…' : replyTo ? 'Reply' : 'Post'}
                   </button>
                 </form>
               </>
@@ -664,51 +507,24 @@ export default function MomentActions({
             {panel === 'bp' && (
               <div className="bma-content">
                 <div className="bma-large-emoji">🧡</div>
-
-                <p>
-                  Appreciate this Moment by sending
-                  Blink Points.
-                </p>
-
-                <div className="bma-balance">
-                  Your balance
-                  <strong>
-                    {Number(
-                      activity?.myBalance ?? 0,
-                    ).toFixed(1)} BP
-                  </strong>
-                </div>
-
+                <p>Appreciate this Moment by sending Blink Points.</p>
+                <div className="bma-balance">Your balance <strong>{Number(activity?.myBalance ?? 0).toFixed(1)} BP</strong></div>
                 <div className="bma-bp-options">
-                  {[1, 5, 10, 25, 50, 100].map(
-                    (amount) => (
-                      <button
-                        type="button"
-                        key={amount}
-                        className={
-                          giftAmount === amount
-                            ? 'selected'
-                            : ''
-                        }
-                        onClick={() =>
-                          setGiftAmount(amount)
-                        }
-                      >
-                        {amount} BP
-                      </button>
-                    ),
-                  )}
+                  {BP_AMOUNTS.map((amount) => (
+                    <button
+                      type="button"
+                      key={amount}
+                      className={giftAmount === amount ? 'selected' : ''}
+                      onClick={() => setGiftAmount(amount)}
+                    >
+                      {amount} BP
+                    </button>
+                  ))}
                 </div>
-
                 <button
                   type="button"
                   className="bma-primary"
-                  disabled={
-                    busy ||
-                    !activity ||
-                    momentOwnerId === currentUserId ||
-                    Number(activity.myBalance) < giftAmount
-                  }
+                  disabled={busy || !activity || momentOwnerId === currentUserId || Number(activity.myBalance) < giftAmount}
                   onClick={() => void sendBp()}
                 >
                   Send {giftAmount} BP
@@ -719,47 +535,19 @@ export default function MomentActions({
             {panel === 'share' && (
               <div className="bma-content">
                 <div className="bma-large-emoji">↗</div>
-
-                <p>
-                  Share this Moment with your connections.
-                </p>
-
+                <p>Share this Moment with your connections.</p>
                 {friendsLoading ? (
                   <p>Loading friends…</p>
                 ) : friends.length === 0 ? (
                   <p>No friends available for sharing.</p>
                 ) : (
                   <>
-                    <select
-                      aria-label="Select friend"
-                      value={friendId}
-                      onChange={(event) =>
-                        setFriendId(event.target.value)
-                      }
-                    >
+                    <select aria-label="Select friend" value={friendId} onChange={(event) => setFriendId(event.target.value)}>
                       <option value="">Choose a friend</option>
-
-                      {friends.map((friend) => (
-                        <option
-                          key={friend.id}
-                          value={friend.id}
-                        >
-                          {friend.name}
-                        </option>
-                      ))}
+                      {friends.map((friend) => <option key={friend.id} value={friend.id}>{friend.name}</option>)}
                     </select>
-
-                    <button
-                      type="button"
-                      className="bma-primary"
-                      disabled={!friendId || busy}
-                      onClick={() =>
-                        void sendToInbox()
-                      }
-                    >
-                      {busy
-                        ? 'Sending…'
-                        : 'Share to Inbox →'}
+                    <button type="button" className="bma-primary" disabled={!friendId || busy} onClick={() => void sendToInbox()}>
+                      {busy ? 'Sending…' : 'Share to Inbox →'}
                     </button>
                   </>
                 )}

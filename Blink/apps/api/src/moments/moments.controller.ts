@@ -147,14 +147,22 @@ getViews(
     return this.momentsService.activity(req.user.userId, id);
   }
 
-  @Post(':id/comments')
-  comment(
-    @Req() req: AuthenticatedRequest,
-    @Param('id') id: string,
-    @Body('body') body: unknown,
-  ) {
-    return this.momentsService.comment(req.user.userId, id, body);
-  }
+ 
+@Post(':id/comments')
+comment(
+  @Req() req: AuthenticatedRequest,
+  @Param('id') id: string,
+  @Body('body') body: unknown,
+  @Body('parentId') parentId?: unknown,
+) {
+  return this.momentsService.comment(
+    req.user.userId,
+    id,
+    body,
+    parentId,
+  );
+}
+
 
   @Post(':id/bp')
   giftPoints(

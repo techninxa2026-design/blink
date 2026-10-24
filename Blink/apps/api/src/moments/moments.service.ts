@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException
 } from '@nestjs/common';
 import { MomentType } from '@prisma/client';
 import { unlink } from 'node:fs/promises';
@@ -287,10 +288,8 @@ async getViews(userId: string, momentId: string) {
   }
 
   
-async activity(
-  userId: string,
-  momentId: string,
-) {
+
+async activity(userId: string, momentId: string) {
   await this.activePublicMoment(momentId);
 
   const [
@@ -302,7 +301,18 @@ async activity(
     myReaction,
   ] = await Promise.all([
     this.prisma.momentComment.findMany({
-      where: { momentId },
+      where: {
+        momentId,
+        parentId: null,
+        OR: [
+          { deletedAt: null },
+          {
+            replies: {
+              some: { deletedAt: null },
+            },
+          },
+        ],
+      },
       orderBy: { createdAt: 'desc' },
       take: 60,
       include: {
@@ -313,33 +323,43 @@ async activity(
             avatarKey: true,
           },
         },
+        replies: {
+          where: { deletedAt: null },
+          orderBy: { createdAt: 'asc' },
+          include: {
+            author: {
+              select: {
+                id: true,
+                name: true,
+                avatarKey: true,
+              },
+            },
+          },
+        },
       },
     }),
 
     this.prisma.momentComment.count({
-      where: { momentId },
+      where: {
+        momentId,
+        deletedAt: null,
+      },
     }),
 
     this.prisma.momentBpGift.aggregate({
       where: { momentId },
-      _sum: {
-        amount: true,
-      },
+      _sum: { amount: true },
     }),
 
     this.prisma.user.findUnique({
       where: { id: userId },
-      select: {
-        blinkPoints: true,
-      },
+      select: { blinkPoints: true },
     }),
 
     this.prisma.momentReaction.groupBy({
       by: ['emoji'],
       where: { momentId },
-      _count: {
-        _all: true,
-      },
+      _count: { _all: true },
     }),
 
     this.prisma.momentReaction.findUnique({
@@ -349,9 +369,7 @@ async activity(
           userId,
         },
       },
-      select: {
-        emoji: true,
-      },
+      select: { emoji: true },
     }),
   ]);
 
@@ -368,10 +386,8 @@ async activity(
   return {
     comments: comments.reverse(),
     commentCount,
-
     bpTotal: giftTotal._sum.amount ?? 0,
     myBalance: Number(wallet?.blinkPoints ?? 0),
-
     reactionCounts,
     reactionTotal,
     myReaction: myReaction?.emoji ?? null,
@@ -379,28 +395,128 @@ async activity(
 }
 
 
-  async comment(userId: string, momentId: string, body: unknown) {
-    await this.activePublicMoment(momentId);
-    if (typeof body !== 'string' || !body.trim() || body.trim().length > 500) {
-      throw new BadRequestException('Comment must be 1–500 characters.');
-    }
-    return this.prisma.momentComment.create({
-      data: { momentId, authorId: userId, body: body.trim() },
-      include: { author: { select: { id: true, name: true, avatarKey: true } } },
-    });
+
+  
+async comment(
+  userId: string,
+  momentId: string,
+  body: unknown,
+  parentId?: unknown,
+) {
+  await this.activePublicMoment(momentId);
+
+  if (
+    typeof body !== 'string' ||
+    !body.trim() ||
+    body.trim().length > 500
+  ) {
+    throw new BadRequestException(
+      'Comment must be 1–500 characters.',
+    );
   }
 
-  async deleteComment(userId: string, commentId: string) {
-    const comment = await this.prisma.momentComment.findUnique({
-      where: { id: commentId },
-      include: { moment: { select: { senderId: true } } },
-    });
-    if (!comment || (comment.authorId !== userId && comment.moment.senderId !== userId)) {
-      throw new NotFoundException('Comment unavailable.');
+  let verifiedParentId: string | null = null;
+
+  if (parentId !== undefined && parentId !== null) {
+    if (
+      typeof parentId !== 'string' ||
+      !parentId.trim()
+    ) {
+      throw new BadRequestException(
+        'Invalid parent comment.',
+      );
     }
-    await this.prisma.momentComment.delete({ where: { id: commentId } });
+
+    // A reply must belong to the same Moment.
+    // Keep replies one level deep for organized threads.
+    const parent = await this.prisma.momentComment.findFirst({
+      where: {
+        id: parentId,
+        momentId,
+        parentId: null,
+        deletedAt: null,
+      },
+      select: { id: true },
+    });
+
+    if (!parent) {
+      throw new BadRequestException(
+        'The comment you are replying to is unavailable.',
+      );
+    }
+
+    verifiedParentId = parent.id;
+  }
+
+  return this.prisma.momentComment.create({
+    data: {
+      momentId,
+      authorId: userId,
+      body: body.trim(),
+      parentId: verifiedParentId,
+    },
+    include: {
+      author: {
+        select: {
+          id: true,
+          name: true,
+          avatarKey: true,
+        },
+      },
+    },
+  });
+}
+
+
+ 
+async deleteComment(
+  userId: string,
+  commentId: string,
+) {
+  const comment = await this.prisma.momentComment.findUnique({
+    where: { id: commentId },
+    select: {
+      id: true,
+      authorId: true,
+      deletedAt: true,
+    },
+  });
+
+  if (!comment) {
+    throw new NotFoundException(
+      'Comment not found.',
+    );
+  }
+
+  // Only the actual comment author can delete it.
+  // The Moment owner has NO special delete permission.
+  if (comment.authorId !== userId) {
+    throw new ForbiddenException(
+      'You can only delete your own comments.',
+    );
+  }
+
+  if (comment.deletedAt) {
     return { ok: true };
   }
+
+  // Remove visible content without deleting replies
+  // written by other users.
+  await this.prisma.momentComment.updateMany({
+    where: {
+      id: commentId,
+      authorId: userId,
+      deletedAt: null,
+    },
+    data: {
+      body: '[deleted]',
+      deletedAt: new Date(),
+    },
+  });
+
+  return { ok: true };
+}
+
 
   async giftPoints(userId: string, momentId: string, amount: unknown) {
     if (typeof amount !== 'number' || !Number.isInteger(amount) || amount < 1 || amount > 100) {
