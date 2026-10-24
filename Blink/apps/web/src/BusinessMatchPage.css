@@ -37,3 +37,36 @@
 .bm-meeting-item { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding:16px; border:1px solid var(--bm-border,#aaa); border-radius:12px; }
 .bm-meeting-actions { display:flex; flex-wrap:wrap; gap:8px; }
 @media(max-width:640px) { .bm-meeting-form { grid-template-columns:1fr; } .bm-meeting-item { flex-direction:column; } }
+/* Dashboard navigation: Business Profile Settings */
+.bm-dashboard-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 13px 16px;
+  border: 1.5px solid #fb6c00;
+  border-radius: 12px;
+  background: transparent;
+  color: #fb6c00;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background .2s ease, transform .2s ease;
+}
+.bm-dashboard-link:hover:not(:disabled) {
+  background: rgba(251, 108, 0, .09);
+  transform: translateY(-1px);
+}
+.bm-dashboard-link:focus-visible {
+  outline: 3px solid rgba(251, 108, 0, .35);
+  outline-offset: 2px;
+}
+.bm-dashboard-link:disabled { opacity: .45; cursor: not-allowed; }
+.bm-dashboard-link-icon { font-size: 20px; line-height: 1; }
+.bm-dashboard-link-arrow { margin-left: auto; font-size: 19px; }
+.bm-page[data-bm-theme="dark"] .bm-dashboard-link {
+  color: #ff984d;
+  border-color: #ff984d;
+}

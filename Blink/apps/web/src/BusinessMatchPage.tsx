@@ -1,7 +1,14 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import './BusinessMatchPage.css';
 
-type Props = { onBack: () => void; theme: 'light' | 'dark'; onToggleTheme: () => void; initialView?: 'match' | 'settings' };
+type DashboardPath = '/creator-dashboard' | '/business-dashboard';
+type Props = {
+  onBack: () => void;
+  onOpenDashboard: (path: DashboardPath) => void;
+  theme: 'light' | 'dark';
+  onToggleTheme: () => void;
+  initialView?: 'match' | 'settings';
+};
 type ProfileType = 'PROFESSIONAL' | 'COMPANY';
 type Profile = {
   id: string; type: ProfileType; name: string; headline: string; industry: string;
@@ -38,7 +45,9 @@ function toDraft(profile: Profile): Draft {
   return { type: profile.type, name: profile.name, headline: profile.headline, industry: profile.industry,
     location: profile.location, skills: profile.skills, about: profile.about, lookingFor: profile.lookingFor };
 }
-export default function BusinessMatchPage({ onBack, theme, onToggleTheme, initialView = 'match' }: Props) {
+export default function BusinessMatchPage({
+  onBack, onOpenDashboard, theme, onToggleTheme, initialView = 'match',
+}: Props) {
   const [view, setView] = useState<'match' | 'settings'>(initialView);
   const [tab, setTab] = useState<'discover' | 'connections' | 'chats' | 'meetings'>('discover');
   const [draft, setDraft] = useState<Draft>(blank);
@@ -242,7 +251,25 @@ export default function BusinessMatchPage({ onBack, theme, onToggleTheme, initia
             <label>Looking for<textarea rows={3} maxLength={400} value={draft.lookingFor} onChange={e => update('lookingFor', e.target.value)}/></label>
             <button className="bm-primary" type="submit" disabled={busy}>{busy ? 'Saving…' : 'Save Business Profile'}</button>
           </form></section>
-          <aside className="bm-settings-side"><section className="bm-card"><span className="bm-eyebrow">PROFILE VISIBILITY</span><h2>Blink Business access</h2><p className="bm-muted">Only activated profiles can browse other activated profiles. Your account's activation is enforced by the server.</p><span className={saved?.active ? 'bm-activation on' : 'bm-activation'}>{saved?.active ? '● Active' : '○ Inactive'}</span><button className="bm-primary bm-full" type="button" disabled={busy || !saved} onClick={() => void toggleActive()}>{busy ? 'Updating…' : saved?.active ? 'Deactivate profile' : 'Activate profile'}</button>{!saved && <p className="bm-muted bm-small">Save your profile first to enable activation.</p>}</section><section className="bm-card"><span className="bm-eyebrow">PROFILE PREVIEW</span><div className="bm-preview-avatar">{(draft.name.trim() || 'B').slice(0,1).toUpperCase()}</div><h3>{draft.name || 'Your name or business'}</h3><p>{draft.headline || 'Your professional headline'}</p><p className="bm-muted">{draft.industry || 'Industry'} · {draft.location || 'Location'}</p><p className="bm-muted">{draft.about || 'Your description will appear here.'}</p></section></aside></div>
+          <aside className="bm-settings-side"><section className="bm-card"><span className="bm-eyebrow">PROFILE VISIBILITY</span><h2>Blink Business access</h2><p className="bm-muted">Only activated profiles can browse other activated profiles. Your account's activation is enforced by the server.</p><span className={saved?.active ? 'bm-activation on' : 'bm-activation'}>{saved?.active ? '● Active' : '○ Inactive'}</span><button className="bm-primary bm-full" type="button" disabled={busy || !saved} onClick={() => void toggleActive()}>{busy ? 'Updating…' : saved?.active ? 'Deactivate profile' : 'Activate profile'}</button>
+          {saved && (
+            <button
+              type="button"
+              className="bm-dashboard-link"
+              disabled={busy || draft.type !== saved.type}
+              onClick={() => onOpenDashboard(saved.type === 'PROFESSIONAL'
+                ? '/creator-dashboard'
+                : '/business-dashboard'
+              )}
+            >
+              <span className="bm-dashboard-link-icon" aria-hidden="true">▦</span>
+              <span>{saved.type === 'PROFESSIONAL' ? 'Creator Dashboard' : 'Business Dashboard'}</span>
+              <span className="bm-dashboard-link-arrow" aria-hidden="true">→</span>
+            </button>
+          )}
+          {saved && draft.type !== saved.type && (
+            <p className="bm-muted bm-small">Save your changed profile type to open its dashboard.</p>
+          )}{!saved && <p className="bm-muted bm-small">Save your profile first to enable activation.</p>}</section><section className="bm-card"><span className="bm-eyebrow">PROFILE PREVIEW</span><div className="bm-preview-avatar">{(draft.name.trim() || 'B').slice(0,1).toUpperCase()}</div><h3>{draft.name || 'Your name or business'}</h3><p>{draft.headline || 'Your professional headline'}</p><p className="bm-muted">{draft.industry || 'Industry'} · {draft.location || 'Location'}</p><p className="bm-muted">{draft.about || 'Your description will appear here.'}</p></section></aside></div>
       </> : !saved?.active ? <section className="bm-gate bm-card"><span className="bm-gate-icon">🤝</span><span className="bm-eyebrow">ACTIVATION REQUIRED</span><h1>Grow your network with Blink Business.</h1><p>Create and activate a Professional or Company profile to discover other active Blink Business members.</p><button className="bm-primary" type="button" onClick={settings}>Go to Business Profile Settings →</button></section> : <>
         <section className="bm-hero"><span className="bm-eyebrow">YOUR NEXT OPPORTUNITY STARTS HERE</span><h1>Find your next <span>business connection.</span></h1><p>Discover real, activated professionals and companies beyond your Blink friends list.</p><button type="button" className="bm-secondary" onClick={settings}>Manage business profile →</button></section>
         <nav className="bm-tabs" aria-label="Blink Business sections">{(['discover','connections','chats','meetings'] as const).map(item => <button type="button" key={item} className={tab === item ? 'active' : ''} onClick={() => { setTab(item); setSelected(null); }}>{item[0].toUpperCase() + item.slice(1)}</button>)}</nav>

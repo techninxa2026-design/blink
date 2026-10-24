@@ -21,6 +21,7 @@ import InboxPage from './InboxPage';
 import CheckinsPage from './CheckinsPage';
 import IrlPage from './IrlPage';
 import BusinessMatchPage from './BusinessMatchPage';
+import BusinessDashboardPage from './BusinessDashboardPage';
 import { NotesRow, useActiveCheckins } from './CheckinPreview';
 
 const API = (
@@ -75,6 +76,8 @@ type Route =
   | 'secrets'
   | 'hearts'
   | 'business-match'
+  | 'creator-dashboard'
+  | 'business-dashboard'
   | 'settings'
   | 'inbox'
   | 'Exchange'
@@ -150,6 +153,8 @@ function routeFromPath(path: string): Route {
     '/secrets': 'secrets',
     '/hearts': 'hearts',
     '/business-match': 'business-match',
+    '/creator-dashboard': 'creator-dashboard',
+    '/business-dashboard': 'business-dashboard',
     '/settings': 'settings',
     '/inbox': 'inbox',
     '/Exchange': 'Exchange',
@@ -1197,9 +1202,23 @@ export default function App() {
     );
   }
 
+  if (route === 'creator-dashboard' || route === 'business-dashboard') {
+    const isCreator = route === 'creator-dashboard';
+    return protectedScreen(
+      <BusinessDashboardPage
+        expectedType={isCreator ? 'PROFESSIONAL' : 'COMPANY'}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        onBack={() => goTo('/settings')}
+      />,
+      isCreator ? 'Creator Dashboard' : 'Business Dashboard',
+    );
+  }
+
   if (route === 'settings') {
     return protectedScreen(
       <BusinessMatchPage
+        onOpenDashboard={(path) => goTo(path)}
         initialView="settings"
         onBack={() => goTo('/home')}
         theme={theme}
@@ -1212,6 +1231,7 @@ export default function App() {
   if (route === 'business-match') {
     return protectedScreen(
       <BusinessMatchPage
+        onOpenDashboard={(path) => goTo(path)}
         onBack={() => goTo('/home')}
         theme={theme}
         onToggleTheme={toggleTheme}
