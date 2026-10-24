@@ -14,7 +14,7 @@ export class ExchangeChatService {
   ) {}
 
   private async getPost(postId: string) {
-    const post = await this.prisma.ExchangePost.findUnique({
+    const post = await this.prisma.exchangePost.findUnique({
       where: { id: postId },
       select: {
         id: true,
@@ -61,7 +61,7 @@ export class ExchangeChatService {
     postId: string,
     threadId: string,
   ) {
-    const thread = await this.prisma.ExchangeThread.findFirst({
+    const thread = await this.prisma.exchangeThread.findFirst({
       where: {
         id: threadId,
         postId,
@@ -108,7 +108,7 @@ export class ExchangeChatService {
 
     await this.ensureNotBlocked(post.authorId, userId);
 
-    const thread = await this.prisma.ExchangeThread.findUnique({
+    const thread = await this.prisma.exchangeThread.findUnique({
       where: {
         postId_requesterId: {
           postId,
@@ -135,7 +135,7 @@ export class ExchangeChatService {
 
     await this.ensureNotBlocked(post.authorId, userId);
 
-    const existing = await this.prisma.ExchangeThread.findUnique({
+    const existing = await this.prisma.exchangeThread.findUnique({
       where: {
         postId_requesterId: {
           postId,
@@ -155,7 +155,7 @@ export class ExchangeChatService {
       );
     }
 
-    const thread = await this.prisma.ExchangeThread.upsert({
+    const thread = await this.prisma.exchangeThread.upsert({
       where: {
         postId_requesterId: {
           postId,
@@ -183,7 +183,7 @@ export class ExchangeChatService {
       );
     }
 
-    return this.prisma.ExchangeThread.findMany({
+    return this.prisma.exchangeThread.findMany({
       where: { postId },
       include: {
         requester: {
@@ -216,7 +216,7 @@ export class ExchangeChatService {
       threadId,
     );
 
-    const messages = await this.prisma.ExchangeChatMessage.findMany({
+    const messages = await this.prisma.exchangeChatMessage.findMany({
       where: { threadId },
       select: {
         id: true,
@@ -264,7 +264,7 @@ export class ExchangeChatService {
     }
 
     return this.prisma.$transaction(async (tx) => {
-      const message = await tx.ExchangeChatMessage.create({
+      const message = await tx.exchangeChatMessage.create({
         data: {
           threadId,
           senderId: userId,
@@ -280,7 +280,7 @@ export class ExchangeChatService {
         },
       });
 
-      await tx.ExchangeThread.update({
+      await tx.exchangeThread.update({
         where: { id: threadId },
         data: {
           updatedAt: new Date(),

@@ -157,14 +157,14 @@ export class ExchangeService {
     const take = 10;
 
     const [items, total] = await this.prisma.$transaction([
-      this.prisma.ExchangePost.findMany({
+      this.prisma.exchangePost.findMany({
         where,
         include: postInclude,
         orderBy: { createdAt: 'desc' },
         take,
         skip: (page - 1) * take,
       }),
-      this.prisma.ExchangePost.count({ where }),
+      this.prisma.exchangePost.count({ where }),
     ]);
 
     return {
@@ -176,7 +176,7 @@ export class ExchangeService {
   }
 
   async getOne(id: string) {
-    const post = await this.prisma.ExchangePost.findUnique({
+    const post = await this.prisma.exchangePost.findUnique({
       where: { id },
       include: postInclude,
     });
@@ -198,7 +198,7 @@ export class ExchangeService {
     try {
       const data = this.validateForm(body);
 
-      return await this.prisma.ExchangePost.create({
+      return await this.prisma.exchangePost.create({
         data: {
           ...data,
           authorId: userId,
@@ -221,7 +221,7 @@ export class ExchangeService {
     files: Express.Multer.File[],
   ) {
     try {
-      const post = await this.prisma.ExchangePost.findUnique({
+      const post = await this.prisma.exchangePost.findUnique({
         where: { id },
         include: { media: true },
       });
@@ -253,7 +253,7 @@ export class ExchangeService {
       }
 
       const updated =
-        await this.prisma.ExchangePost.update({
+        await this.prisma.exchangePost.update({
           where: { id },
           data: {
             ...data,
@@ -290,7 +290,7 @@ export class ExchangeService {
   }
 
   async remove(userId: string, id: string) {
-    const post = await this.prisma.ExchangePost.findUnique({
+    const post = await this.prisma.exchangePost.findUnique({
       where: { id },
       include: { media: true },
     });
@@ -307,7 +307,7 @@ export class ExchangeService {
       );
     }
 
-    await this.prisma.ExchangePost.delete({
+    await this.prisma.exchangePost.delete({
       where: { id },
     });
 
@@ -337,7 +337,7 @@ export class ExchangeService {
       );
     }
 
-    const post = await this.prisma.ExchangePost.findUnique({
+    const post = await this.prisma.exchangePost.findUnique({
       where: { id: postId },
     });
 
@@ -359,7 +359,7 @@ export class ExchangeService {
       );
     }
 
-    return this.prisma.ExchangeResponse.create({
+    return this.prisma.exchangeResponse.create({
       data: {
         postId,
         authorId: userId,
@@ -379,7 +379,7 @@ export class ExchangeService {
     responseId: string,
   ) {
     const response =
-      await this.prisma.ExchangeResponse.findFirst({
+      await this.prisma.exchangeResponse.findFirst({
         where: { id: responseId, postId },
         include: {
           post: {
@@ -398,7 +398,7 @@ export class ExchangeService {
       );
     }
 
-    return this.prisma.ExchangeResponse.update({
+    return this.prisma.exchangeResponse.update({
       where: { id: responseId },
       data: {
         acknowledgedAt:
@@ -408,7 +408,7 @@ export class ExchangeService {
   }
 
   async getMedia(id: string) {
-    const media = await this.prisma.ExchangeMedia.findUnique({
+    const media = await this.prisma.exchangeMedia.findUnique({
       where: { id },
     });
 

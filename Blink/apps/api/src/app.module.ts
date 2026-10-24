@@ -1,4 +1,4 @@
-import { ExchangeModule } from './Exchange/Exchange.module';
+import { ExchangeModule } from './exchange/exchange.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';

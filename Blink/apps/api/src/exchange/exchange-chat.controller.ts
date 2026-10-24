@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { ExchangeChatService } from './Exchange-chat.service';
+import { ExchangeChatService } from './exchange-chat.service';
 
 type AuthenticatedRequest = {
   user: {
