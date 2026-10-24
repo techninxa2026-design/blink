@@ -96,9 +96,12 @@ export default function TaskReviewPage({ taskId, theme, onToggleTheme, onBack }:
         encodeURIComponent(entry.id) + '/steps/' + encodeURIComponent(step.id) + '/review',
         'POST', { decision, note: notes[step.id]?.trim() || undefined },
       );
-      setMessage(decision === 'APPROVED'
-        ? 'Approved. ' + outcome.awardedBp.toFixed(2) + ' BP credited to ' + entry.participant.name + '.'
-        : 'Rejected answer. No BP was credited.');
+      setMessage(outcome.status === 'REVIEWED'
+        ? 'Verification finished. ' + outcome.awardedBp.toFixed(2) +
+          ' BP has been credited to ' + entry.participant.name + '.'
+        : decision === 'APPROVED'
+          ? 'Answer approved. BP will be credited once all submitted items have been reviewed.'
+          : 'Answer rejected. Continue reviewing the remaining items.');
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not review the answer.');
@@ -165,7 +168,7 @@ export default function TaskReviewPage({ taskId, theme, onToggleTheme, onBack }:
                         <p className="tr-muted">Submitted {selection.submittedAt ?
                           new Date(selection.submittedAt).toLocaleString() : 'recently'}</p>
                       </div>
-                      <div className="tr-earned"><strong>{selection.earnedBp.toFixed(2)} BP</strong><small>Rewarded so far</small></div>
+                      <div className="tr-earned"><strong>{selection.earnedBp.toFixed(2)} BP</strong><small>Credited after full review</small></div>
                     </div>
                     {selection.steps.map((step, index) => (
                       <article className="bm-card tr-answer" key={step.id}>
@@ -199,7 +202,7 @@ export default function TaskReviewPage({ taskId, theme, onToggleTheme, onBack }:
                           <div className="tr-decisions">
                             <button type="button" className="tr-approve" disabled={Boolean(busyId)}
                               onClick={() => void decide(selection, step, 'APPROVED')}>
-                              {busyId === step.id ? 'Reviewing…' : '✓ Verify & Award ' + step.rewardBp.toFixed(2) + ' BP'}
+                              {busyId === step.id ? 'Reviewing…' : '✓ Approve · ' + step.rewardBp.toFixed(2) + ' BP'}
                             </button>
                             <button type="button" className="tr-reject" disabled={Boolean(busyId)}
                               onClick={() => void decide(selection, step, 'REJECTED')}>✕ Reject Answer</button>
