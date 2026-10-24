@@ -69,12 +69,24 @@ export async function videoCoverJpeg(videoFile: File, atSecond: number): Promise
         !Number.isFinite(atSecond) || atSecond < 0 || atSecond > video.duration) {
       throw new Error('Choose a valid cover frame.');
     }
-    video.currentTime = Math.min(atSecond, Math.max(0, video.duration - 0.05));
+    const target = Math.min(atSecond, Math.max(0, video.duration - 0.05));
     await new Promise<void>((resolve, reject) => {
-      video.onseeked = () => resolve();
-      video.onerror = () => reject(new Error('Unable to seek to the selected frame.'));
-      // Browsers can immediately seek to the current timestamp.
-      if (video.readyState >= 2 && video.currentTime === 0 && atSecond === 0) resolve();
+      const done = () => {
+        video.onseeked = null;
+        video.onloadeddata = null;
+        video.onerror = null;
+        resolve();
+      };
+      const fail = () => reject(new Error('Could not decode the selected cover frame.'));
+      video.onerror = fail;
+      if (target < 0.01) {
+        // Seeking to the already-current first frame need not fire 'seeked'.
+        if (video.readyState >= 2) done();
+        else video.onloadeddata = done;
+      } else {
+        video.onseeked = done;
+        video.currentTime = target;
+      }
     });
     const canvas = document.createElement('canvas');
     const naturalWidth = video.videoWidth || 720, naturalHeight = video.videoHeight || 1280;
