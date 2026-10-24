@@ -5,10 +5,11 @@ import { CreatorTasksController, TaskMediaController } from './creator-tasks.con
 import { CreatorTasksService } from './creator-tasks.service';
 import { TaskParticipationsController, ParticipationPlaybackController } from './task-participations.controller';
 import { TaskParticipationsService } from './task-participations.service';
+import { TaskReviewService } from './task-review.service';
 
 @Module({
   imports: [PrismaModule, AuthModule],
   controllers: [CreatorTasksController, TaskMediaController, TaskParticipationsController, ParticipationPlaybackController],
-  providers: [CreatorTasksService, TaskParticipationsService],
+  providers: [CreatorTasksService, TaskParticipationsService, TaskReviewService],
 })
 export class CreatorTasksModule {}
