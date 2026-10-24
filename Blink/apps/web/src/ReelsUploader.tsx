@@ -51,7 +51,12 @@ export default function ReelsUploader({ onBack, onPublished, theme, onToggleThem
 
   useEffect(() => {
     if (!recording) return;
-    const tick = window.setInterval(() => setRecordedSeconds((s) => s + 1), 1000);
+    const tick = window.setInterval(() => setRecordedSeconds((seconds) => {
+      if (seconds >= 299 && recorderRef.current?.state === 'recording') {
+        recorderRef.current.stop();
+      }
+      return Math.min(300, seconds + 1);
+    }), 1000);
     return () => window.clearInterval(tick);
   }, [recording]);
 
