@@ -847,7 +847,7 @@ model CreatorTask {
   creatorId    String
   title        String            @db.VarChar(140)
   description  String            @db.Text
-  rewardBp     Decimal           @default(0) @db.Decimal(4, 2)
+  rewardBp     Decimal           @default(0) @db.Decimal(10, 2)
   status       CreatorTaskStatus @default(DRAFT)
   videoUploadId String?          @unique
   createdAt    DateTime          @default(now())
