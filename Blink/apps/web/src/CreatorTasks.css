@@ -150,3 +150,14 @@
 .ct-page .ct-participate-button:hover {background:#d95700;}
 .ct-page .ct-participate-button:focus-visible {outline:3px solid #fa8f3980;outline-offset:3px;}
 .ct-owner-message {font-size:13px;color:var(--home-muted,#777);}
+
+/* Per-checklist-item BP rewards, summed at parent task level */
+.ct-bp-summary {display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;border-radius:12px;background:rgba(251,108,0,.09);border:1px solid rgba(251,108,0,.32);padding:12px 15px;font-size:13px;}
+.ct-bp-summary strong {font-size:18px;color:#d95d00;}
+.ct-edit-item.ct-reward-item {align-items:start;flex-wrap:wrap;gap:10px;}
+.ct-edit-item.ct-reward-item>input {min-width:135px;flex:1 1 190px;}
+.ct-item-bp {display:flex!important;flex:0 0 120px;max-width:135px;min-width:100px;gap:4px!important;font-size:11px!important;font-weight:800!important;color:var(--home-muted,#777);}
+.ct-item-bp>input {width:100%!important;padding:10px!important;border-radius:10px!important;text-align:right;font-size:14px!important;font-weight:800!important;}
+.ct-item-bp-badge {display:inline-flex;margin-left:auto;padding:5px 9px;border-radius:99px;background:#fff0dd;color:#a84a00;border:1px solid #ffd3b0;font-size:11px;white-space:nowrap;font-weight:800;}
+.ct-check-item .ct-item-text {flex:1;min-width:0;overflow-wrap:anywhere;}
+@media(max-width:550px){.ct-item-bp {flex-basis:92px;min-width:80px;}}

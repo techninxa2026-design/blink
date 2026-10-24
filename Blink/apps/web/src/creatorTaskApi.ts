@@ -1,10 +1,11 @@
-export type TaskChecklist = { id: string; name: string; items: { id: string; text: string }[] };
+export type TaskChecklist = { id: string; name: string; items: { id: string; text: string; rewardBp: number }[] };
 export type CreatorTask = {
   id: string;
   creatorId: string;
   title: string;
   description: string;
   rewardBp: number;
+  legacyUnallocatedBp?: number;
   images: { id: string; url: string | null }[];
   status: 'DRAFT' | 'PUBLISHED';
   videoUrl: string | null;
@@ -15,7 +16,12 @@ export type CreatorTask = {
   creator: { id: string; name: string; avatarKey?: string | null };
   checklists: TaskChecklist[];
 };
-export type DraftChecklist = { key: number; name: string; items: { key: number; text: string }[] };
+export type DraftChecklist = {
+  key: number;
+  id?: string;
+  name: string;
+  items: { key: number; id?: string; text: string; rewardBp: string }[];
+};
 export const TASK_API = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '');
 
 export function taskToken() {

@@ -58,7 +58,14 @@ export class CreatorTasksService {
   private present(row: any) {
     return {
       id: row.id, creatorId: row.creatorId, title: row.title,
-      rewardBp: Number(row.rewardBp),
+      // Reward lives on each checklist item; parent BP is always its calculated sum.
+      rewardBp: Math.round(row.checklists.reduce((sum: number, g: any) =>
+        sum + g.items.reduce((sub: number, item: any) => sub + Number(item.rewardBp), 0), 0) * 100) / 100,
+      // Older tasks used one parent-level BP value. Don't silently assign that
+      // amount to an arbitrary item; show a migration warning to the creator.
+      legacyUnallocatedBp: row.checklists.every((g: any) =>
+        g.items.every((item: any) => Number(item.rewardBp) === 0))
+        ? Number(row.rewardBp) : 0,
       images: row.images.map((image: { id: string }) => ({ id: image.id, url: row.status === 'PUBLISHED' ? '/task-media/images/' + image.id : null })),
       description: row.description, status: row.status, createdAt: row.createdAt,
       updatedAt: row.updatedAt, publishedAt: row.publishedAt,
@@ -67,7 +74,7 @@ export class CreatorTasksService {
       creator: { id: row.creator.id, name: row.creator.businessProfile?.name || row.creator.name, avatarKey: row.creator.avatarKey },
       checklists: row.checklists.map((group: any) => ({
         id: group.id, name: group.name,
-        items: group.items.map((item: any) => ({ id: item.id, text: item.text })),
+        items: group.items.map((item: any) => ({ id: item.id, text: item.text, rewardBp: Number(item.rewardBp) })),
       })),
     };
   }
@@ -116,21 +123,44 @@ export class CreatorTasksService {
     if (!Array.isArray(input.checklists) || input.checklists.length > 12) {
       throw new BadRequestException('A task supports up to 12 named checklists.');
     }
+    const seenGroups = new Set<string>();
+    const seenItems = new Set<string>();
+    let totalCents = 0;
     const groups = input.checklists.map((group) => {
+      const id = typeof group.id === 'string' ? group.id : undefined;
+      if (id && (seenGroups.has(id) || id.length > 64)) {
+        throw new BadRequestException('Checklist IDs must be unique.');
+      }
+      if (id) seenGroups.add(id);
       const name = group.name?.trim();
       if (!name || name.length > 100 || !Array.isArray(group.items) || group.items.length > 30) {
-        throw new BadRequestException('Each checklist needs a name and at most 30 items.');
+        throw new BadRequestException('Each checklist needs a name and at most 30 checklist tasks.');
       }
-      const items = group.items.map((entry) => entry.trim());
-      if (items.some((entry) => !entry || entry.length > 240)) {
-        throw new BadRequestException('Checklist items must be 1–240 characters.');
-      }
-      return { name, items };
+      const items = group.items.map((item) => {
+        const itemId = typeof item?.id === 'string' ? item.id : undefined;
+        if (itemId && (seenItems.has(itemId) || itemId.length > 64)) {
+          throw new BadRequestException('Checklist item IDs must be unique.');
+        }
+        if (itemId) seenItems.add(itemId);
+        const text = item?.text?.trim();
+        const bp = item?.rewardBp;
+        if (!text || text.length > 240) {
+          throw new BadRequestException('Each checklist item needs a title (1–240 characters).');
+        }
+        if (typeof bp !== 'number' || !Number.isFinite(bp) || bp < 0 || bp > 5 ||
+            Math.abs(bp * 100 - Math.round(bp * 100)) > 0.000001) {
+          throw new BadRequestException('Each checklist item must have 0–5 BP, with at most two decimal places.');
+        }
+        const cents = Math.round(bp * 100);
+        totalCents += cents;
+        return { id: itemId, text, rewardBp: (cents / 100).toFixed(2) };
+      });
+      return { id, name, items };
     });
     if (input.status === CreatorTaskStatus.PUBLISHED && !groups.some((g) => g.items.length)) {
       throw new BadRequestException('Add at least one checklist item before publishing.');
     }
-    return { title, description, groups };
+    return { title, description, groups, totalBp: (totalCents / 100).toFixed(2) };
   }
 
   private async ensureVideo(userId: string, uploadId: string | undefined | null, currentTaskId?: string) {
@@ -147,13 +177,26 @@ export class CreatorTasksService {
 
   async save(userId: string, input: SaveTaskDto, id?: string) {
     const profile = await this.professional(userId);
-    const { title, description, groups } = this.validate(input);
-    const reward = input.rewardBp ?? 0;
-    if (typeof reward !== 'number' || !Number.isFinite(reward) || reward < 0 ||
-        reward > 5 || Math.abs(reward * 100 - Math.round(reward * 100)) > 0.000001) {
-      throw new BadRequestException('Task BP must be between 0 and 5, with up to two decimal places.');
-    }
+    const { title, description, groups, totalBp } = this.validate(input);
     const existing = id ? await this.mine(userId, id) : null;
+    // Preserve checklist and item IDs on edits so saved participant responses
+    // continue to refer to the same creator-defined checklist task.
+    const oldGroups = existing ? await this.prisma.taskChecklist.findMany({
+      where: { taskId: existing.id }, include: { items: true },
+    }) : [];
+    const oldGroupIds = new Set(oldGroups.map((group) => group.id));
+    const oldItemGroups = new Map(oldGroups.flatMap((group) =>
+      group.items.map((item) => [item.id, group.id] as const)));
+    for (const group of groups) {
+      if (group.id && !oldGroupIds.has(group.id)) {
+        throw new BadRequestException('Checklist does not belong to this task.');
+      }
+      for (const item of group.items) {
+        if (item.id && (!group.id || oldItemGroups.get(item.id) !== group.id)) {
+          throw new BadRequestException('Checklist item does not belong to this task/checklist.');
+        }
+      }
+    }
     const imageIds = input.imageIds ?? (existing
       ? (await this.prisma.taskImage.findMany({
         where: { taskId: existing.id }, orderBy: { position: 'asc' }, select: { id: true },
@@ -182,7 +225,7 @@ export class CreatorTasksService {
     }
     return this.prisma.$transaction(async (tx) => {
       const data = {
-        title, description, status: input.status, rewardBp: reward.toFixed(2),
+        title, description, status: input.status, rewardBp: totalBp,
         videoUploadId: videoId,
         publishedAt: input.status === 'PUBLISHED' ? existing?.publishedAt ?? new Date() : null,
       };
@@ -198,15 +241,42 @@ export class CreatorTasksService {
       for (let i = 0; i < imageIds.length; i++) {
         await tx.taskImage.update({ where: { id: imageIds[i] }, data: { taskId: task.id, position: i } });
       }
-      await tx.taskChecklist.deleteMany({ where: { taskId: task.id } });
+      const keptGroups: string[] = [];
       for (let g = 0; g < groups.length; g++) {
-        await tx.taskChecklist.create({
-          data: {
-            taskId: task.id, name: groups[g].name, position: g,
-            items: { create: groups[g].items.map((text, i) => ({ text, position: i })) },
-          },
+        const inputGroup = groups[g];
+        const savedGroup = inputGroup.id
+          ? await tx.taskChecklist.update({
+              where: { id: inputGroup.id },
+              data: { name: inputGroup.name, position: g },
+            })
+          : await tx.taskChecklist.create({
+              data: { taskId: task.id, name: inputGroup.name, position: g },
+            });
+        keptGroups.push(savedGroup.id);
+        const keptItems: string[] = [];
+        for (let i = 0; i < inputGroup.items.length; i++) {
+          const item = inputGroup.items[i];
+          if (item.id) {
+            await tx.taskChecklistItem.update({
+              where: { id: item.id },
+              data: { text: item.text, rewardBp: item.rewardBp, position: i },
+            });
+            keptItems.push(item.id);
+          } else {
+            const created = await tx.taskChecklistItem.create({
+              data: { checklistId: savedGroup.id, text: item.text,
+                rewardBp: item.rewardBp, position: i },
+            });
+            keptItems.push(created.id);
+          }
+        }
+        await tx.taskChecklistItem.deleteMany({
+          where: { checklistId: savedGroup.id, id: { notIn: keptItems } },
         });
       }
+      await tx.taskChecklist.deleteMany({
+        where: { taskId: task.id, id: { notIn: keptGroups } },
+      });
       return { id: task.id, status: task.status, removedImageKeys: detached.map((image) => image.storageKey) };
     }).then(async (result) => {
       await Promise.all(result.removedImageKeys.map((key) => unlink(join(IMAGES, key)).catch(() => {})));
@@ -282,12 +352,23 @@ export class CreatorTasksService {
       where: { taskId: id }, select: { storageKey: true },
     });
     const participationImages = await this.prisma.taskParticipationImage.findMany({
-      where: { participation: { taskId: id } },
+      where: { OR: [
+        { participation: { taskId: id } },
+        { step: { participation: { taskId: id } } },
+      ] },
+      select: { storageKey: true },
+    });
+    const participationVideos = await this.prisma.taskParticipationVideo.findMany({
+      where: { step: { participation: { taskId: id } } },
       select: { storageKey: true },
     });
     await this.prisma.creatorTask.deleteMany({ where: { id, creatorId: userId } });
     await Promise.all(participationImages.map((image) =>
       unlink(join(VIDEO_ROOT, 'participation-evidence', image.storageKey)).catch(() => {}),
+    ));
+    await Promise.all(participationVideos.map((video) => video.storageKey
+      ? unlink(join(VIDEO_ROOT, 'participation-videos', 'ready', video.storageKey)).catch(() => {})
+      : Promise.resolve(),
     ));
     // Keep unrelated tasks' media safe; video uploads are unique per task.
     await Promise.all(images.map((image) => unlink(join(IMAGES, image.storageKey)).catch(() => {})));

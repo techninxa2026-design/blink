@@ -5,7 +5,27 @@ import {
 } from 'class-validator';
 import { CreatorTaskStatus } from '@prisma/client';
 
+export class ChecklistItemDto {
+  @IsOptional()
+  @IsString()
+  id?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(240)
+  text!: string;
+
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(5)
+  rewardBp!: number;
+}
+
 export class ChecklistDto {
+  @IsOptional()
+  @IsString()
+  id?: string;
+
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
@@ -13,9 +33,9 @@ export class ChecklistDto {
 
   @IsArray()
   @ArrayMaxSize(30)
-  @IsString({ each: true })
-  @MaxLength(240, { each: true })
-  items!: string[];
+  @ValidateNested({ each: true })
+  @Type(() => ChecklistItemDto)
+  items!: ChecklistItemDto[];
 }
 
 export class SaveTaskDto {
@@ -28,12 +48,6 @@ export class SaveTaskDto {
   @IsNotEmpty()
   @MaxLength(4000)
   description!: string;
-
-  @IsOptional()
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(0)
-  @Max(5)
-  rewardBp?: number;
 
   @IsOptional()
   @IsArray()
