@@ -1,0 +1,107 @@
+/* Blink Moments: clean arrows, viewer rail action and creative camera. */
+.full-moment-view .full-moment-controls{
+  position:absolute!important;top:50%!important;bottom:auto!important;
+  left:0!important;right:0!important;width:100%!important;
+  padding:0 clamp(12px,3vw,38px)!important;transform:translateY(-50%)!important;
+  z-index:8!important;display:flex!important;align-items:center!important;
+  justify-content:space-between!important;pointer-events:none!important;
+}
+.full-moment-view .full-moment-controls .moment-arrow{
+  display:grid!important;place-items:center!important;flex:0 0 auto;
+  width:51px!important;height:51px!important;padding:0!important;
+  border:1px solid #ffffffaa!important;border-radius:50%!important;
+  background:rgba(17,17,17,.73)!important;color:#fff!important;
+  backdrop-filter:blur(10px);pointer-events:auto!important;cursor:pointer;
+  box-shadow:0 3px 14px #0007;transition:background .15s,transform .15s;
+}
+.full-moment-view .full-moment-controls .moment-arrow:hover,
+.full-moment-view .full-moment-controls .moment-arrow:focus-visible {
+  background:#fb6c00!important;border-color:#ffb071!important;transform:scale(1.08);
+}
+.full-moment-view .full-moment-caption {width:min(620px,calc(100% - 155px));bottom:11%;}
+
+/* Viewers sit directly above the heart in the real interaction rail. */
+.bma-root .bma-rail .bma-viewers-action {
+  background:rgba(22,22,22,.86);border-color:#ffa963;color:white;
+}
+.bma-root .bma-rail .bma-viewers-action:hover,
+.bma-root .bma-rail .bma-viewers-action:focus-visible {background:#fb6c00;}
+.bma-root .bma-rail .bma-viewers-action .bma-icon {font-size:24px;}
+.full-moment-view .moment-viewers-panel{
+  position:absolute;z-index:35;left:auto;right:104px;top:100px;bottom:auto;
+  transform:none;width:min(360px,calc(100vw - 125px));max-height:65dvh;
+  border:1px solid #ffffff48;border-radius:18px;background:#1b1b1be9;
+  backdrop-filter:blur(18px);box-shadow:0 15px 55px #000b;
+}
+.full-moment-view .moment-soundtrack{
+  position:absolute;left:clamp(14px,4vw,45px);bottom:32px;z-index:12;
+}
+.full-moment-view .moment-soundtrack-toggle{
+  display:flex;align-items:center;gap:10px;max-width:210px;
+  padding:10px 14px;border:1px solid #ffffff66;border-radius:999px;
+  background:rgba(16,16,16,.77);color:white;font:inherit;font-size:12px;font-weight:750;
+  cursor:pointer;backdrop-filter:blur(12px);
+}
+.full-moment-view .moment-soundtrack-toggle:hover{background:#fb6c00;}
+
+/* True camera overlay has the same cover scaling as the video. */
+.capture-stage .capture-live-video.capture-mirrored {transform:scaleX(-1);}
+.capture-stage .capture-face-overlay{
+  position:absolute;inset:0;display:block;width:100%;height:100%;
+  object-fit:cover;transform:scaleX(-1);pointer-events:none;z-index:2;
+}
+.capture-filter-warning{
+  position:absolute;z-index:5;top:12px;left:12px;right:12px;
+  padding:12px;border-radius:10px;color:#fff;background:#7c3b19de;
+  font-size:12px;line-height:1.5;
+}
+.capture-filters,.capture-music{
+  display:grid;gap:10px;width:min(100%,620px);box-sizing:border-box;
+  border:1px solid #ffffff24;border-radius:17px;padding:14px;background:#ffffff09;
+}
+.capture-feature-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
+.capture-feature-heading strong{font-size:14px;color:#fff;}
+.capture-feature-heading small{color:#c7c7d2;font-size:11px;}
+.capture-filter-scroll{
+  display:flex;gap:9px;overflow-x:auto;padding:3px 2px 9px;scrollbar-width:thin;
+  scroll-snap-type:x mandatory;
+}
+.capture-filter-option{
+  flex:0 0 75px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:6px;min-height:76px;padding:8px;border:1px solid #ffffff2d;border-radius:14px;
+  background:#1f222b;color:#fff;cursor:pointer;scroll-snap-align:start;
+}
+.capture-filter-option span{font-size:29px;line-height:1.2;}
+.capture-filter-option small{font-size:10px;white-space:nowrap;}
+.capture-filter-option.selected{background:#613514;border:2px solid #fb6c00;}
+.capture-music-list{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-height:205px;overflow-y:auto;
+}
+.capture-music-option{
+  display:flex;align-items:center;flex-wrap:wrap;gap:5px 9px;min-width:0;
+  padding:11px;border:1px solid #ffffff34;border-radius:12px;background:#1f222c;
+  color:#fff;text-align:left;cursor:pointer;
+}
+.capture-music-option span{font-size:21px;}
+.capture-music-option strong{font-size:12px;}
+.capture-music-option small{color:#bac0cb;font-size:10px;}
+.capture-music-option.selected{border-color:#fb6c00;background:#58321c;}
+.capture-music-preview{width:100%;display:grid;gap:9px;}
+.capture-music-preview>span{font-size:12px;font-weight:750;color:#ffb277;}
+.capture-music-preview audio{width:100%;height:40px;}
+.capture-music-note{font-size:11px;color:#b9bac7;line-height:1.5;margin:0;}
+@media(max-width:700px){
+  .full-moment-view .full-moment-controls{padding:0 9px!important;}
+  .full-moment-view .full-moment-controls .moment-arrow{width:39px!important;height:39px!important;}
+  .full-moment-view .full-moment-controls svg{width:23px;height:23px;}
+  .full-moment-view .moment-viewers-panel{top:75px;right:74px;width:min(290px,calc(100vw - 86px));}
+  .full-moment-view .moment-soundtrack{left:10px;bottom:75px;}
+  .full-moment-view .full-moment-caption{bottom:22%;width:calc(100% - 125px);}
+  .capture-filters,.capture-music{padding:10px;}
+  .capture-music-list{grid-template-columns:1fr 1fr;}
+  .capture-filter-option{flex-basis:69px;min-height:70px;}
+}
+@media(max-height:580px){
+  .capture-music-list{max-height:140px;}
+  .full-moment-view .moment-soundtrack{bottom:20px;}
+}

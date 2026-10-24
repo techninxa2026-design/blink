@@ -10,6 +10,7 @@ import { join } from 'node:path';
 import { PrismaService } from '../prisma/prisma.service';
 
 const UPLOAD_DIR = join(__dirname, '..', '..', 'uploads');
+const MUSIC_IDS = new Set(['sunny-pop', 'dream-cloud', 'neon-night', 'golden-hour', 'little-steps', 'soft-waves']);
 
 @Injectable()
 export class MomentsService {
@@ -19,12 +20,18 @@ export class MomentsService {
     userId: string,
     file: Express.Multer.File,
     caption?: string,
+    musicTrackId?: string,
   ) {
+    if (musicTrackId && !MUSIC_IDS.has(musicTrackId)) {
+      await unlink(file.path).catch(() => {});
+      throw new BadRequestException('Unknown Moment soundtrack.');
+    }
     const moment = await this.prisma.moment.create({
       data: {
         senderId: userId,
         type: MomentType.PUBLIC,
         mediaKey: file.filename,
+        musicTrackId: musicTrackId || null,
         caption: caption?.trim() || null,
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
       },
@@ -551,6 +558,7 @@ async deleteComment(
     id: string;
     senderId: string;
     mediaKey: string;
+    musicTrackId: string | null;
     caption: string | null;
     createdAt: Date;
   }) {
@@ -562,6 +570,7 @@ async deleteComment(
         ? 'video'
         : 'photo',
       caption: moment.caption,
+      musicTrackId: moment.musicTrackId,
       createdAt: moment.createdAt,
     };
   }

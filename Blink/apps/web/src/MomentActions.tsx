@@ -39,6 +39,7 @@ type Props = {
   momentOwnerId?: string;
   onOpenProfile?: (id: string) => void;
   onBpTransferred?: () => void;
+  onShowViewers?: () => void;
 };
 
 function token(): string | null {
@@ -123,6 +124,7 @@ export default function MomentActions({
   momentOwnerId,
   onOpenProfile,
   onBpTransferred,
+  onShowViewers,
 }: Props) {
   const [activity, setActivity] = useState<Activity | null>(null);
   const [panel, setPanel] = useState<Panel>(null);
@@ -387,6 +389,14 @@ export default function MomentActions({
   return createPortal(
     <div className="bma-root">
       <div className="bma-rail" aria-label="Moment actions">
+        {onShowViewers && currentUserId && currentUserId === momentOwnerId && (
+          <button type="button" className="bma-action bma-viewers-action"
+            title="See who viewed this Moment" aria-label="View Moment viewers"
+            onClick={onShowViewers}>
+            <span className="bma-icon" aria-hidden="true">👥</span>
+            <small>Viewers</small>
+          </button>
+        )}
         <button
           type="button"
           className={`bma-action${myReaction === '❤️' ? ' active' : ''}`}
