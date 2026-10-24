@@ -1354,6 +1354,7 @@ export default function App() {
           userId={decodeURIComponent(publicProfileId)}
           onBack={() => goTo('/connections')}
           onMyProfile={() => goTo('/profile')}
+          onOpenReel={(id) => goTo('/reels/' + encodeURIComponent(id))}
           theme={theme}
           onToggleTheme={toggleTheme}
         />
@@ -1540,6 +1541,7 @@ export default function App() {
     return protectedScreen(
       <ProfilePage
         onBack={() => goTo('/home')}
+        onOpenReel={(id) => goTo('/reels/' + encodeURIComponent(id))}
         theme={theme}
         onToggleTheme={toggleTheme}
       />,
