@@ -91,7 +91,7 @@ export default function TaskReviewPage({ taskId, theme, onToggleTheme, onBack }:
     )) return;
     setBusyId(step.id); setError(''); setMessage('');
     try {
-      const outcome = await taskRequest<{ awardedBp: number }>(
+      const outcome = await taskRequest<{ awardedBp: number; status: 'SUBMITTED' | 'REVIEWED' }>(
         '/' + encodeURIComponent(taskId) + '/submissions/' +
         encodeURIComponent(entry.id) + '/steps/' + encodeURIComponent(step.id) + '/review',
         'POST', { decision, note: notes[step.id]?.trim() || undefined },
