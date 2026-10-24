@@ -2016,30 +2016,36 @@ export default function App() {
               {activeMoment.caption || ''}
             </p>
 
-            {activeMoment.senderId === user?.id && (
-              <button
-                className="moment-viewers-button"
-                onClick={() =>
-                  void loadViewers(activeMoment.id)
-                }
-              >
-                Viewers
+            <div className="full-moment-controls" aria-label="Navigate Moments">
+              <button className="moment-arrow previous" type="button" aria-label="Previous Moment"
+                onClick={() => changeMoment(-1)}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </button>
-            )}
-
-            <div className="full-moment-controls">
-              <button
-                onClick={() => changeMoment(-1)}
-              >
-                ← Previous
-              </button>
-
-              <button
-                onClick={() => changeMoment(1)}
-              >
-                Next →
+              <button className="moment-arrow next" type="button" aria-label="Next Moment"
+                onClick={() => changeMoment(1)}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </button>
             </div>
+            {activeMoment.musicTrackId && musicTrack(activeMoment.musicTrackId) && (
+              <div className="moment-soundtrack">
+                {viewerMusicUrl && <audio ref={viewerMusicRef} src={viewerMusicUrl} loop preload="auto" />}
+                <button type="button" className="moment-soundtrack-toggle"
+                  aria-label={musicPlaying ? 'Pause Moment music' : 'Play Moment music'}
+                  onClick={() => {
+                    const audio = viewerMusicRef.current;
+                    if (!audio) return;
+                    if (audio.paused) void audio.play().then(() => setMusicPlaying(true)).catch(() => {});
+                    else { audio.pause(); setMusicPlaying(false); }
+                  }}>
+                  <span aria-hidden="true">{musicPlaying ? '🔊' : '▶'}</span>
+                  <span>♪ {musicTrack(activeMoment.musicTrackId)?.title}</span>
+                </button>
+              </div>
+            )}
 
             {viewersOpen && (
               <div className="moment-viewers-panel">
@@ -2100,6 +2106,9 @@ export default function App() {
                 }
               }}
               onBpTransferred={() => void loadWallet()}
+              onShowViewers={activeMoment.senderId === user?.id
+                ? () => void loadViewers(activeMoment.id)
+                : undefined}
             />
           </div>
         )}
@@ -2203,13 +2212,18 @@ export default function App() {
                     />
                   )
                 ) : (
-                  <video
-                    ref={videoRef}
-                    className="capture-live-video"
-                    autoPlay
-                    muted
-                    playsInline
-                  />
+                  <>
+                    <video
+                      ref={videoRef}
+                      className={'capture-live-video' + (captureMode === 'photo' ? ' capture-mirrored' : '')}
+                      autoPlay
+                      muted
+                      playsInline
+                    />
+                    {captureMode === 'photo' && faceFilter !== 'none' && (
+                      <canvas ref={faceOverlayRef} className="capture-face-overlay" aria-hidden="true" />
+                    )}
+                  </>
                 )}
 
                 <canvas
@@ -2225,6 +2239,9 @@ export default function App() {
                     </p>
                   )}
 
+                {faceFilterError && !capturedUrl && captureMode === 'photo' && (
+                  <div className="capture-filter-warning" role="status">{faceFilterError}</div>
+                )}
                 {cameraError && (
                   <div
                     className="capture-error"
@@ -2257,6 +2274,21 @@ export default function App() {
                 <span className="capture-corner br" />
               </div>
 
+              {!capturedUrl && captureMode === 'photo' && !recording && (
+                <div className="capture-filters" aria-label="Photo face filters">
+                  <div className="capture-feature-heading"><strong>✨ Face filters</strong><small>Photo only · follows your face</small></div>
+                  <div className="capture-filter-scroll">
+                    {FACE_FILTERS.map((item) => (
+                      <button key={item.id} type="button" className={'capture-filter-option' + (faceFilter === item.id ? ' selected' : '')}
+                        aria-pressed={faceFilter === item.id}
+                        onClick={() => { setFaceFilter(item.id); setFaceFilterError(''); setCameraError(''); }}>
+                        <span aria-hidden="true">{item.icon}</span>
+                        <small>{item.label}</small>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               {capturedUrl ? (
                 <div className="capture-review">
                   <label htmlFor="moment-caption">
@@ -2276,6 +2308,30 @@ export default function App() {
                     }
                   />
 
+                  <div className="capture-music">
+                    <div className="capture-feature-heading"><strong>🎵 Add music</strong>
+                      <small>For photos and videos · Blink Originals</small></div>
+                    <div className="capture-music-list">
+                      <button type="button" className={'capture-music-option' + (!musicChoice ? ' selected' : '')}
+                        onClick={() => { setMusicChoice(''); captureMusicRef.current?.pause(); }}>
+                        <span>🔇</span><strong>No music</strong>
+                      </button>
+                      {MUSIC_TRACKS.map((track) => (
+                        <button type="button" key={track.id}
+                          aria-pressed={musicChoice === track.id}
+                          className={'capture-music-option' + (musicChoice === track.id ? ' selected' : '')}
+                          onClick={() => { setMusicChoice(track.id); captureMusicRef.current?.pause(); }}>
+                          <span>{track.emoji}</span>
+                          <strong>{track.title}</strong><small>{track.mood}</small>
+                        </button>
+                      ))}
+                    </div>
+                    {musicChoice && <div className="capture-music-preview">
+                      <span>♪ {musicTrack(musicChoice)?.title}</span>
+                      <audio ref={captureMusicRef} src={captureMusicUrl} controls loop preload="auto" aria-label="Preview selected soundtrack"/>
+                    </div>}
+                    <p className="capture-music-note">Music plays with this Moment in Blink. Original video sound stays intact; no copyrighted catalog songs are used.</p>
+                  </div>
                   <div className="capture-review-actions">
                     <button
                       type="button"
