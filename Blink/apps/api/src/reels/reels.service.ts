@@ -102,13 +102,16 @@ export class ReelsService {
       }
       const desc = typeof caption === 'string' ? caption.trim() : '';
       if (desc.length > 1000) throw new BadRequestException('Caption cannot exceed 1000 characters.');
-      const durationSeconds = Number(duration);
-      const coverTimeSeconds = Number(coverTime);
-      if (!Number.isFinite(durationSeconds) || durationSeconds <= 0 ||
-          !Number.isFinite(coverTimeSeconds) || coverTimeSeconds < 0 ||
-          coverTimeSeconds > durationSeconds) {
-        throw new BadRequestException('Provide a playable video and a valid thumbnail timestamp.');
-      }
+      // Duration metadata is advisory. Browser-recorded videos often report
+      // Infinity or NaN, so save null rather than refusing the upload.
+      const durationValue = Number(duration);
+      const durationSeconds = duration !== undefined && duration !== null &&
+        String(duration).trim() !== '' && Number.isFinite(durationValue) &&
+        durationValue > 0 ? durationValue : null;
+      const timeValue = Number(coverTime);
+      const coverTimeSeconds = Number.isFinite(timeValue) && timeValue >= 0
+        ? (durationSeconds === null ? timeValue : Math.min(timeValue, durationSeconds))
+        : 0;
       // Unknown MIME, blank/empty or arbitrary shell files are never served as HTML.
       const row = await this.prisma.reel.create({
         data: {
