@@ -13,7 +13,12 @@ const MAX_REEL_BYTES = 200 * 1024 * 1024;
 const ALLOWED_VIDEO = ['video/mp4', 'video/webm', 'video/quicktime'];
 function formatClock(seconds: number) {
   const value = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
-  return String(Math.floor(value / 60)).padStart(2,'0') + ':' + String(value % 60).padStart(2,'0');
+  const hours = Math.floor(value / 3600);
+  const minutes = Math.floor((value % 3600) / 60);
+  const secondsPart = String(value % 60).padStart(2, '0');
+  return hours > 0
+    ? hours + ':' + String(minutes).padStart(2, '0') + ':' + secondsPart
+    : String(minutes).padStart(2, '0') + ':' + secondsPart;
 }
 
 export default function ReelsUploader({ onBack, onPublished, theme, onToggleTheme }: Props) {
@@ -51,12 +56,7 @@ export default function ReelsUploader({ onBack, onPublished, theme, onToggleThem
 
   useEffect(() => {
     if (!recording) return;
-    const tick = window.setInterval(() => setRecordedSeconds((seconds) => {
-      if (seconds >= 299 && recorderRef.current?.state === 'recording') {
-        recorderRef.current.stop();
-      }
-      return Math.min(300, seconds + 1);
-    }), 1000);
+    const tick = window.setInterval(() => setRecordedSeconds((seconds) => seconds + 1), 1000);
     return () => window.clearInterval(tick);
   }, [recording]);
 
@@ -155,8 +155,8 @@ export default function ReelsUploader({ onBack, onPublished, theme, onToggleThem
 
   async function publish() {
     if (publishing || !file) return;
-    if (!duration || duration > 300 || !Number.isFinite(duration)) {
-      setError('Reels must be no longer than five minutes.');
+    if (!Number.isFinite(duration) || duration <= 0) {
+      setError('The selected video has no valid duration. Please choose a playable video.');
       return;
     }
     setError(''); setPublishing(true);
@@ -192,7 +192,7 @@ export default function ReelsUploader({ onBack, onPublished, theme, onToggleThem
           <button type="button" className="br-camera-large" onClick={() => void openCamera()}>
             <span className="br-upload-illustration">🎥</span>
             <strong>Open Camera</strong>
-            <small>Record your own Reel · up to 5 minutes</small>
+            <small>Record your Reel · no duration limit</small>
             <span className="br-upload-cta">Start camera →</span>
           </button>
         </div>}
@@ -202,7 +202,7 @@ export default function ReelsUploader({ onBack, onPublished, theme, onToggleThem
             <button type="button" disabled={publishing} onClick={recording ? stopRecording : startRecording}>
               {recording ? '■ Stop recording' : '● Record Reel'}
             </button>
-            <span>{formatClock(recordedSeconds)} / 05:00</span>
+            <span>{formatClock(recordedSeconds)}</span>
             <button type="button" onClick={closeCamera} disabled={recording}>Close</button>
           </div>
           <small>Grant camera and microphone access to record a Reel.</small>
@@ -214,8 +214,8 @@ export default function ReelsUploader({ onBack, onPublished, theme, onToggleThem
             <video className="br-upload-preview" src={previewUrl} ref={videoRef} controls playsInline preload="auto"
               onLoadedMetadata={(event) => {
                 const value = event.currentTarget.duration;
-                if (!Number.isFinite(value) || value <= 0 || value > 300) {
-                  setError('Reels must be between 1 second and 5 minutes.');
+                if (!Number.isFinite(value) || value <= 0) {
+                  setError('Unable to read the video duration. Choose a playable video.');
                   setDuration(0); return;
                 }
                 setDuration(value);
