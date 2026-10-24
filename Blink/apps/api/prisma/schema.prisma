@@ -80,6 +80,12 @@ model User {
   momentBpGifts   MomentBpGift[]
   momentReactions MomentReaction[]
 
+  // Reels: creator, views, reactions, comments
+  reels Reel[]
+  reelViews ReelView[]
+  reelReactions ReelReaction[]
+  reelComments ReelComment[]
+
   // Main Inbox
   conversationMemberships ConversationMember[]
   messages                Message[]
@@ -1035,4 +1041,73 @@ model TaskRewardReceipt {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+}
+
+
+// ======================================================
+// BLINK REELS — independently published vertical videos
+// ======================================================
+
+model Reel {
+  id String @id @default(cuid())
+  authorId String
+  videoKey String @unique
+  thumbnailKey String @unique
+  videoMime String @db.VarChar(70)
+  caption String? @db.VarChar(1000)
+  durationSeconds Float?
+  coverTimeSeconds Float @default(0)
+  createdAt DateTime @default(now())
+
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  views ReelView[]
+  reactions ReelReaction[]
+  comments ReelComment[]
+
+  @@index([createdAt, id])
+  @@index([authorId, createdAt])
+}
+
+model ReelView {
+  reelId String
+  viewerId String
+  viewedAt DateTime @default(now())
+
+  reel Reel @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  viewer User @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+
+  @@id([reelId, viewerId])
+  @@index([viewerId])
+}
+
+model ReelReaction {
+  reelId String
+  userId String
+  emoji String @db.VarChar(16)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reel Reel @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([reelId, userId])
+  @@index([reelId, emoji])
+}
+
+model ReelComment {
+  id String @id @default(cuid())
+  reelId String
+  authorId String
+  parentId String?
+  body String @db.VarChar(600)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+
+  reel Reel @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent ReelComment? @relation("ReelCommentThreads", fields: [parentId], references: [id], onDelete: SetNull)
+  replies ReelComment[] @relation("ReelCommentThreads")
+
+  @@index([reelId, createdAt])
+  @@index([parentId])
 }
