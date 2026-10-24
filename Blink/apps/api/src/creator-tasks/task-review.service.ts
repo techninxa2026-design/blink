@@ -127,26 +127,38 @@ export class TaskReviewService {
         data: { reviewStatus: verdict, reviewNote: note?.trim() || null, reviewedAt: new Date() },
       });
       if (updated.count !== 1) throw new ConflictException('Already reviewed.');
-      const amount = step.rewardBpSnapshot;
-      if (verdict === 'APPROVED' && Number(amount) > 0) {
-        await tx.taskRewardReceipt.create({
-          data: { stepId: step.id, userId: step.participation.participantId, amount },
-        });
-        await tx.user.update({
-          where: { id: step.participation.participantId },
-          data: { blinkPoints: { increment: amount } },
-        });
-        await tx.taskParticipation.update({
-          where: { id: participationId }, data: { earnedBp: { increment: amount } },
-        });
-      }
       const pending = await tx.taskParticipationStep.count({
         where: { participationId, reviewStatus: 'PENDING' },
       });
+      let creditedBp = 0;
       if (pending === 0) {
+        // Only pay once *all* submitted answers have been reviewed.
+        // Parent participation lock above serializes concurrent reviewer clicks.
+        const approved = await tx.taskParticipationStep.findMany({
+          where: { participationId, reviewStatus: 'APPROVED' },
+          select: { id: true, rewardBpSnapshot: true },
+        });
+        const totalCents = approved.reduce(
+          (sum, answer) => sum + Math.round(Number(answer.rewardBpSnapshot) * 100), 0,
+        );
+        creditedBp = totalCents / 100;
+        for (const answer of approved) {
+          if (Number(answer.rewardBpSnapshot) > 0) {
+            await tx.taskRewardReceipt.create({
+              data: { stepId: answer.id, userId: step.participation.participantId,
+                amount: answer.rewardBpSnapshot },
+            });
+          }
+        }
+        if (totalCents > 0) {
+          await tx.user.update({
+            where: { id: step.participation.participantId },
+            data: { blinkPoints: { increment: creditedBp.toFixed(2) } },
+          });
+        }
         await tx.taskParticipation.update({
           where: { id: participationId },
-          data: { status: 'REVIEWED', reviewedAt: new Date() },
+          data: { status: 'REVIEWED', reviewedAt: new Date(), earnedBp: creditedBp.toFixed(2) },
         });
       }
       const updatedParticipation = await tx.taskParticipation.findUniqueOrThrow({
@@ -156,7 +168,7 @@ export class TaskReviewService {
       return { status: updatedParticipation.status,
         earnedBp: Number(updatedParticipation.earnedBp),
         reviewedItem: step.id, decision: verdict,
-        awardedBp: verdict === 'APPROVED' ? Number(amount) : 0 };
+        awardedBp: creditedBp };
     });
     return result;
   }
