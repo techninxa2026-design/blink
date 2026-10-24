@@ -5,6 +5,7 @@ export type CreatorTask = {
   title: string;
   description: string;
   rewardBp: number;
+  legacyUnallocatedBp?: number;
   images: { id: string; url: string | null }[];
   status: 'DRAFT' | 'PUBLISHED';
   videoUrl: string | null;

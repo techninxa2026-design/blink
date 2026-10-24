@@ -61,6 +61,11 @@ export class CreatorTasksService {
       // Reward lives on each checklist item; parent BP is always its calculated sum.
       rewardBp: Math.round(row.checklists.reduce((sum: number, g: any) =>
         sum + g.items.reduce((sub: number, item: any) => sub + Number(item.rewardBp), 0), 0) * 100) / 100,
+      // Older tasks used one parent-level BP value. Don't silently assign that
+      // amount to an arbitrary item; show a migration warning to the creator.
+      legacyUnallocatedBp: row.checklists.every((g: any) =>
+        g.items.every((item: any) => Number(item.rewardBp) === 0))
+        ? Number(row.rewardBp) : 0,
       images: row.images.map((image: { id: string }) => ({ id: image.id, url: row.status === 'PUBLISHED' ? '/task-media/images/' + image.id : null })),
       description: row.description, status: row.status, createdAt: row.createdAt,
       updatedAt: row.updatedAt, publishedAt: row.publishedAt,

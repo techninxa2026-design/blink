@@ -27,6 +27,7 @@ export default function CreatorDashboardPage({
   const [loading, setLoading] = useState(true);
   const [screen, setScreen] = useState<'dashboard' | 'create'>('dashboard');
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [oldUnallocatedBp, setOldUnallocatedBp] = useState(0);
   const [showPreview, setShowPreview] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -78,6 +79,7 @@ export default function CreatorDashboardPage({
 
   function clearEditor() {
     setEditingId(null);
+    setOldUnallocatedBp(0);
     setShowPreview(false);
     setTitle('');
     setDescription('');
@@ -95,6 +97,7 @@ export default function CreatorDashboardPage({
   function createTask() { clearEditor(); setNotice(''); setScreen('create'); }
   function editTask(task: CreatorTask) {
     setEditingId(task.id);
+    setOldUnallocatedBp(task.legacyUnallocatedBp ?? 0);
     setShowPreview(false);
     setTitle(task.title);
     setDescription(task.description);
@@ -338,6 +341,11 @@ export default function CreatorDashboardPage({
                   <h3>03 · Named checklists</h3>
                   <p className="bm-muted">Every checklist item is an individual task with its own BP value (0–5). The total is calculated automatically.</p>
                   <div className="ct-bp-summary"><span>Combined task BP</span><strong>{totalBp.toFixed(2)} BP</strong></div>
+                  {oldUnallocatedBp > 0 && <p className="ct-legacy-bp-alert">
+                    Your older task had {oldUnallocatedBp.toFixed(2)} BP set at the parent level.
+                    Assign that amount across individual checklist items before saving.
+                    The old amount is not automatically assigned to a particular item.
+                  </p>}
                   {groups.map((group, index) => (
                     <div className="ct-group" key={group.key}>
                       <div className="ct-group-head"><strong>Checklist {index + 1}</strong><button type="button" className="ct-text-danger" onClick={() => setGroups((old) => old.filter((g) => g.key !== group.key))}>Remove</button></div>
