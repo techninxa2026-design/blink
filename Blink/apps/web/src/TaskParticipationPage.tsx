@@ -37,6 +37,7 @@ export default function TaskParticipationPage({
   const [checked, setChecked] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [checking, setChecking] = useState(false);
   const [editing, setEditing] = useState(true);
   const [dirty, setDirty] = useState(false);
@@ -55,6 +56,7 @@ export default function TaskParticipationPage({
   const response = saved?.steps.find((step) => step.checklistItemId === selectedId);
   const savedCount = items.filter((item) => saved?.steps.some((step) => step.checklistItemId === item.id)).length;
   const completedCount = items.filter((item) => checked.includes(item.id)).length;
+  const locked = Boolean(saved && saved.status !== 'DRAFT');
 
   useEffect(() => {
     let live = true;
@@ -79,7 +81,7 @@ export default function TaskParticipationPage({
       setVideo(null);
       setUploadedVideoId(null);
       setRemoveSavedVideo(false);
-      setEditing(!selected);
+      setEditing(!selected && (!own || own.status === 'DRAFT'));
       setDirty(false);
     }).catch((err: unknown) => {
       if (live) setError(err instanceof Error ? err.message : 'Could not load this participation.');
@@ -118,7 +120,7 @@ export default function TaskParticipationPage({
     setError('');
     setNotice('');
     setDirty(false);
-    setEditing(!record);
+    setEditing(!record && (!saved || saved.status === 'DRAFT'));
   }
 
   function selectItem(itemId: string) {
@@ -148,7 +150,7 @@ export default function TaskParticipationPage({
 
   async function saveStep(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!selected || saving) return;
+    if (!selected || saving || locked) return;
     setSaving(true);
     setError('');
     setNotice('');
@@ -201,7 +203,7 @@ export default function TaskParticipationPage({
   }
 
   async function toggleComplete(itemId: string, value: boolean) {
-    if (saving || checking) return;
+    if (saving || checking || locked) return;
     const next = value ? [...new Set([...checked, itemId])] : checked.filter((id) => id !== itemId);
     setChecking(true);
     setError('');
@@ -216,6 +218,28 @@ export default function TaskParticipationPage({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to update the checklist.');
     } finally { setChecking(false); }
+  }
+
+  async function submitForReview() {
+    if (saving || submitting || checking || locked || dirty) return;
+    if (!saved?.steps.length) {
+      setError('Save at least one checklist-item answer before submitting.');
+      return;
+    }
+    if (!window.confirm('Submit your saved answers for creator verification? After submitting, explanations and files cannot be edited. BP is earned only for approved answers.')) return;
+    setSubmitting(true); setError(''); setNotice('');
+    try {
+      await participationRequest('/' + encodeURIComponent(taskId) + '/submit', 'POST');
+      const updated = await participationRequest<TaskParticipation>(
+        '/' + encodeURIComponent(taskId) + '/me',
+      );
+      setSaved(updated);
+      setEditing(false);
+      setDirty(false);
+      setNotice('Submitted. Your creator can now verify each checklist answer.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not submit your answers.');
+    } finally { setSubmitting(false); }
   }
 
   const currentStep: TaskItemResponse | undefined = response;
@@ -249,10 +273,29 @@ export default function TaskParticipationPage({
           </div>
           {notice && <div className="ct-notice ct-success" role="status">{notice}</div>}
           {error && <div className="ct-notice ct-error" role="alert">{error}</div>}
+          <div className="tp-submission-banner">
+            <div>
+              <strong>{saved?.status === 'REVIEWED' ? 'Verification finished' :
+                saved?.status === 'SUBMITTED' ? 'Submitted — awaiting creator review' :
+                  'Your answers are saved as drafts'}</strong>
+              <p>{saved?.status === 'REVIEWED'
+                ? 'Approved item rewards have been credited to your Blink BP balance.'
+                : saved?.status === 'SUBMITTED'
+                  ? 'Evidence is locked. The creator can approve or reject each checklist answer.'
+                  : 'Save each checklist answer, then submit your work for verification.'}</p>
+            </div>
+            {locked ? <span className="tp-submitted-chip">{saved?.status === 'REVIEWED' ? 'Reviewed' : 'In review'}</span>
+              : <button type="button" className="tp-submit-action"
+                  disabled={submitting || saving || checking || dirty || !saved?.steps.length}
+                  onClick={() => void submitForReview()}>
+                  {submitting ? 'Submitting…' : 'Submit for Verification →'}
+                </button>}
+          </div>
+          {dirty && !locked && <p className="tp-muted">Save your current edits before submitting.</p>}
           <div className="tp-summary">
             <div><strong>{savedCount}/{items.length}</strong><span>Responses saved</span></div>
             <div><strong>{completedCount}/{items.length}</strong><span>Items checked</span></div>
-            <div><strong>{Number(task.rewardBp ?? 0).toFixed(2)} BP</strong><span>Total of all item rewards; not yet awarded</span></div>
+            <div><strong>{Number(saved?.earnedBp ?? 0).toFixed(2)} BP</strong><span>Verified BP earned · {Number(task.rewardBp ?? 0).toFixed(2)} BP possible</span></div>
           </div>
           <div className="tp-layout">
             <aside className="tp-reference">
@@ -266,14 +309,16 @@ export default function TaskParticipationPage({
                       const isSaved = saved?.steps.some((step) => step.checklistItemId === item.id);
                       return <div className={'tp-picker-row' + (selectedId === item.id ? ' active' : '')} key={item.id}>
                         <input type="checkbox" aria-label={'Mark ' + item.text + ' completed'}
-                          checked={checked.includes(item.id)} disabled={checking || saving}
+                          checked={checked.includes(item.id)} disabled={checking || saving || locked}
                           onChange={(event) => void toggleComplete(item.id, event.target.checked)} />
                         <button type="button" className="tp-picker-button"
                           aria-current={selectedId === item.id ? 'step' : undefined}
                           onClick={() => selectItem(item.id)}>
                           <span className="tp-picker-title">{item.text}</span>
                           <strong className="tp-item-reward">{Number(item.rewardBp ?? 0).toFixed(2)} BP</strong>
-                          <small>{isSaved ? 'Response saved' : 'Add response'} →</small>
+                          <small>{saved?.steps.find((step) => step.checklistItemId === item.id)?.reviewStatus === 'APPROVED'
+                            ? '✓ Verified' : saved?.steps.find((step) => step.checklistItemId === item.id)?.reviewStatus === 'REJECTED'
+                              ? '✕ Rejected' : isSaved ? (locked ? '⏳ In review' : 'Response saved') : (locked ? 'Not submitted' : 'Add response')} →</small>
                         </button>
                       </div>;
                     })}
@@ -319,6 +364,14 @@ export default function TaskParticipationPage({
                     <div className="tp-saved-response">
                       <span className="tp-draft-badge">Saved for this item</span>
                       <h3>Your explanation</h3>
+                      {locked && <div className="tp-item-review-status">
+                        <span className={'tp-review-badge ' + currentStep.reviewStatus.toLowerCase()}>
+                          {currentStep.reviewStatus === 'APPROVED'
+                            ? '✓ Approved · +' + currentStep.rewardBpSnapshot.toFixed(2) + ' BP'
+                            : currentStep.reviewStatus === 'REJECTED' ? '✕ Rejected · 0 BP' : '⏳ Awaiting review'}
+                        </span>
+                        {currentStep.reviewNote && <p>Creator note: {currentStep.reviewNote}</p>}
+                      </div>}
                       <p className="tp-description">{currentStep.explanation || 'No explanation yet.'}</p>
                       <h3>Supporting images ({currentStep.images.length})</h3>
                       {currentStep.images.length ? <div className="tp-photo-grid">
@@ -330,7 +383,7 @@ export default function TaskParticipationPage({
                       {currentStep.videoUploadId && playback
                         ? <video className="tp-evidence-video" src={playback} controls playsInline preload="metadata" />
                         : <p>{currentStep.videoUploadId ? 'Preparing private video playback…' : 'No video added yet.'}</p>}
-                      <button type="button" className="bm-primary" onClick={() => setEditing(true)}>✎ Edit this item's response</button>
+                      {!locked && <button type="button" className="bm-primary" onClick={() => setEditing(true)}>✎ Edit this item's response</button>}
                     </div>
                   ) : (
                     <form className="tp-item-editor" onSubmit={(event) => void saveStep(event)}>
