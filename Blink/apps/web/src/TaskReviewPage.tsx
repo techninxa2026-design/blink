@@ -122,6 +122,11 @@ export default function TaskReviewPage({ taskId, theme, onToggleTheme, onBack }:
           <span className="bm-eyebrow">BLINK / CREATOR REVIEWS</span>
           <h1>Task Verification</h1>
           <p>{data?.task.title ?? 'Review participant answers'}</p>
+          <button className="bm-outline" type="button" disabled={Boolean(busyId)}
+            onClick={() => void load().catch((err: unknown) =>
+              setError(err instanceof Error ? err.message : 'Unable to refresh submissions.'))}>
+            ↻ Refresh participant queue
+          </button>
         </div>
         {error && <p className="ct-notice ct-error" role="alert">{error}</p>}
         {message && <p className="ct-notice ct-success" role="status">{message}</p>}
