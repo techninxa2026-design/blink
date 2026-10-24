@@ -226,7 +226,7 @@ export class SecretsService {
     });
 
     return {
-      points: user?.blinkPoints ?? 0,
+      points: Number(user?.blinkPoints ?? 0),
       correctGuessReward: CORRECT_GUESS_BP,
     };
   }

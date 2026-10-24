@@ -1414,7 +1414,7 @@ export default function App() {
           <div className="home-header-right">
             {bpBalance !== null && (
               <span className="home-bp-pill">
-                🟠 {bpBalance.toFixed(1)} BP
+                🟠 {bpBalance.toFixed(2)} BP
               </span>
             )}
 

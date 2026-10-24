@@ -106,7 +106,8 @@ model User {
   ExchangeChatMessages   ExchangeChatMessage[] @relation("ExchangeChatSender")
 
   // Blink Secrets and Hearts
-  blinkPoints          Int                   @default(0)
+  blinkPoints          Decimal               @default(0) @db.Decimal(16, 2)
+  taskRewardReceipts   TaskRewardReceipt[]
   blinkSecretsCreated  BlinkSecret[]         @relation("BlinkSecretCreator")
   blinkSecretGuesses   BlinkSecretGuess[]
   blinkSecretRewards   BlinkSecretReward[]
@@ -924,12 +925,28 @@ model TaskImage {
   @@index([userId, createdAt])
 }
 
+enum TaskSubmissionStatus {
+  DRAFT
+  SUBMITTED
+  REVIEWED
+}
+
+enum TaskReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model TaskParticipation {
   id String @id @default(cuid())
   taskId String
   participantId String
   explanation String @default("") @db.Text
   checkedItems Json?
+  status TaskSubmissionStatus @default(DRAFT)
+  submittedAt DateTime?
+  reviewedAt DateTime?
+  earnedBp Decimal @default(0) @db.Decimal(10, 2)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -970,6 +987,10 @@ model TaskParticipationStep {
   participationId String
   checklistItemId String
   explanation String @default("") @db.Text
+  reviewStatus TaskReviewStatus @default(PENDING)
+  reviewNote String? @db.VarChar(500)
+  rewardBpSnapshot Decimal @default(0) @db.Decimal(4, 2)
+  reviewedAt DateTime?
   videoUploadId String? @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -977,6 +998,7 @@ model TaskParticipationStep {
   participation TaskParticipation @relation(fields: [participationId], references: [id], onDelete: Cascade)
   videoUpload TaskParticipationVideo? @relation(fields: [videoUploadId], references: [id], onDelete: SetNull)
   images TaskParticipationImage[]
+  rewardReceipt TaskRewardReceipt?
 
   @@unique([participationId, checklistItemId])
   @@index([participationId, updatedAt])
@@ -999,4 +1021,17 @@ model TaskParticipationVideo {
   step TaskParticipationStep?
 
   @@index([userId, updatedAt])
+}
+
+model TaskRewardReceipt {
+  id String @id @default(cuid())
+  stepId String @unique
+  userId String
+  amount Decimal @db.Decimal(4, 2)
+  createdAt DateTime @default(now())
+
+  step TaskParticipationStep @relation(fields: [stepId], references: [id], onDelete: Restrict)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }
