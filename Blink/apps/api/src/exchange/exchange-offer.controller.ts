@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { ExchangeOfferService } from './Exchange-offer.service';
+import { ExchangeOfferService } from './exchange-offer.service';
 
 type AuthRequest = {
   user: {

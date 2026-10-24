@@ -25,7 +25,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import {
   ExchangeService,
   Exchange_MEDIA_DIR,
-} from './Exchange.service';
+} from './exchange.service';
 
 type AuthenticatedRequest = {
   user: { userId: string };
