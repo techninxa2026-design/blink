@@ -60,7 +60,6 @@ export function paintFaceFilter(
 ): void {
   if (!points?.length || filter === 'none') return;
   const xs = points.map((point) => point.x * width);
-  const ys = points.map((point) => point.y * height);
   const size = Math.max(75, (Math.max(...xs) - Math.min(...xs)) * 1.1);
   const anchor = (index: number): [number, number] => {
     const p = points[index] ?? points[1];
