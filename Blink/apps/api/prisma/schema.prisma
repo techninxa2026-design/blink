@@ -832,7 +832,7 @@ model BusinessMeeting {
   @@index([connectionId, startsAt])
 }
 
-/* Creator tasks: one-level named checklists and original-quality video uploads. */
+// Creator tasks: named checklists and original-quality video uploads.
 enum CreatorTaskStatus {
   DRAFT
   PUBLISHED

@@ -72,7 +72,7 @@ export class CreatorTasksService {
     return rows.map((row) => this.present(row));
   }
 
-  async published(userId: string, pageInput?: string, queryInput?: string) {
+  async published(_userId: string, pageInput?: string, queryInput?: string) {
     const page = Math.min(1000, Math.max(1, Number(pageInput || '1') || 1));
     const query = (queryInput || '').trim().slice(0, 100);
     const rows = await this.prisma.creatorTask.findMany({
@@ -172,13 +172,28 @@ export class CreatorTasksService {
 
   async remove(userId: string, id: string) {
     await this.professional(userId);
-    await this.mine(userId, id);
+    const task = await this.mine(userId, id);
     await this.prisma.creatorTask.deleteMany({ where: { id, creatorId: userId } });
+    // Keep unrelated tasks' media safe; video uploads are unique per task.
+    if (task.videoUploadId) {
+      const media = await this.prisma.taskVideoUpload.findUnique({
+        where: { id: task.videoUploadId }, select: { storageKey: true },
+      });
+      await this.prisma.taskVideoUpload.deleteMany({ where: { id: task.videoUploadId, userId } });
+      if (media?.storageKey) await unlink(join(VIDEOS, media.storageKey)).catch(() => {});
+    }
     return { deleted: true };
   }
 
   async startUpload(userId: string, body: StartVideoDto) {
     await this.professional(userId);
+    // Limit simultaneous unfinished uploads per creator.
+    const unfinished = await this.prisma.taskVideoUpload.count({
+      where: { userId, completed: false },
+    });
+    if (unfinished >= 3) {
+      throw new ConflictException('You have 3 unfinished uploads. Complete them before starting another.');
+    }
     const ext = MIME_EXT[body.mimeType];
     if (!ext) throw new BadRequestException('Upload an MP4, WebM, or MOV video.');
     if (!Number.isSafeInteger(body.totalBytes) || body.totalBytes <= 0 ||
@@ -255,7 +270,7 @@ export class CreatorTasksService {
   async finishUpload(userId: string, id: string) {
     const upload = await this.ownedUpload(userId, id);
     if (upload.completed) return { uploadId: id };
-    return this.locked(id, async () => {
+    const result = await this.locked(id, async () => {
       const row = await this.ownedUpload(userId, id);
       if (row.completed) return { uploadId: id };
       const count = Math.ceil(Number(row.totalBytes) / row.chunkBytes);
@@ -285,9 +300,11 @@ export class CreatorTasksService {
       await this.prisma.taskVideoUpload.update({
         where: { id }, data: { completed: true, storageKey: key },
       });
-      await rm(join(SESSIONS, id), { recursive: true, force: true }).catch(() => {});
       return { uploadId: id };
     });
+    // Remove chunk files only after releasing the lock (important on Windows).
+    await rm(join(SESSIONS, id), { recursive: true, force: true }).catch(() => {});
+    return result;
   }
 
   async streamVideo(id: string, response: Response, range?: string) {

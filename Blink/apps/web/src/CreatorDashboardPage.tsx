@@ -26,6 +26,7 @@ export default function CreatorDashboardPage({
   const [loading, setLoading] = useState(true);
   const [screen, setScreen] = useState<'dashboard' | 'create'>('dashboard');
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [groups, setGroups] = useState<DraftChecklist[]>([makeChecklist()]);
@@ -71,6 +72,7 @@ export default function CreatorDashboardPage({
 
   function clearEditor() {
     setEditingId(null);
+    setShowPreview(false);
     setTitle('');
     setDescription('');
     setGroups([makeChecklist()]);
@@ -83,6 +85,7 @@ export default function CreatorDashboardPage({
   function createTask() { clearEditor(); setNotice(''); setScreen('create'); }
   function editTask(task: CreatorTask) {
     setEditingId(task.id);
+    setShowPreview(false);
     setTitle(task.title);
     setDescription(task.description);
     setGroups(task.checklists.length
@@ -255,9 +258,20 @@ export default function CreatorDashboardPage({
                   <button type="button" className="bm-outline ct-add-checklist" disabled={groups.length >= 12} onClick={() => setGroups((old) => [...old, makeChecklist()])}>＋ Add another checklist</button>
                 </section>
               </div>
+              {showPreview && <section className="bm-card ct-preview-task">
+                <span className="bm-eyebrow">TASK PREVIEW</span>
+                <h2>{title.trim() || 'Untitled task'}</h2>
+                <p>{description || 'Your description will appear here.'}</p>
+                {videoPreview && <video src={videoPreview} controls playsInline />}
+                {groups.map((group) => <div key={group.key}>
+                  <h3>{group.name || 'Unnamed checklist'}</h3>
+                  {group.items.filter((item) => item.text.trim()).map((item) => <p key={item.key}>☐ {item.text}</p>)}
+                </div>)}
+              </section>}
               <div className="ct-form-footer">
                 <p>Save a private draft or publish your task to the community directory.</p>
                 <div className="ct-top-actions">
+                  <button type="button" className="bm-outline" onClick={() => setShowPreview((value) => !value)}>{showPreview ? 'Hide Preview' : 'Preview Task'}</button>
                   <button type="button" className="bm-outline" disabled={busy} onClick={() => void saveTask('DRAFT')}>Save Draft</button>
                   <button type="submit" className="bm-primary" disabled={busy}>{busy ? 'Saving / uploading…' : 'Publish Task →'}</button>
                 </div>

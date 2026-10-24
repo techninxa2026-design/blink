@@ -88,3 +88,9 @@
 .ct-progress-badge { background:rgba(251,108,0,.1);color:#fb6c00;border-radius:15px;padding:6px 10px;font-size:12px;font-weight:800; }
 @media(max-width:970px) { .ct-editor-grid,.ct-detail-grid { grid-template-columns:1fr; } .ct-directory { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:650px) { .ct-stats { grid-template-columns:1fr 1fr; } .ct-directory { grid-template-columns:1fr; } .ct-task-row { align-items:flex-start; } .ct-list { padding:18px; } .ct-search { flex-wrap:wrap; } }
+
+.ct-preview-task { margin-top:20px; }
+.ct-preview-task h2 { font-size:24px;margin:9px 0; }
+.ct-preview-task p { white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6; }
+.ct-preview-task video { display:block;max-width:540px;width:100%;max-height:300px;margin:12px 0;background:#111;border-radius:12px; }
+.ct-preview-task h3 { margin-top:20px;font-size:16px; }

@@ -1461,6 +1461,10 @@ export default function App() {
                 💱 <span>Blink Market</span>
               </button>
 
+              <button onClick={() => goTo('/tasks')}>
+                🎯 <span>Blink Tasks</span>
+              </button>
+
               <button onClick={() => goTo('/secrets')}>
                 🤫 <span>Blink Secrets</span>
               </button>
