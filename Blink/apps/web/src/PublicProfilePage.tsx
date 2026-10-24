@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from 'react';
 import './PublicProfilePage.css';
+import ProfileReels from './ProfileReels';
 import { NotesRow, useActiveCheckins } from './CheckinPreview';
 
 const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '');
@@ -33,6 +34,7 @@ type Props = {
   userId: string;
   onBack: () => void;
   onMyProfile: () => void;
+  onOpenReel: (id: string) => void;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
 };
@@ -54,6 +56,7 @@ export default function PublicProfilePage({
   userId,
   onBack,
   onMyProfile,
+  onOpenReel,
   theme,
   onToggleTheme,
 }: Props) {
@@ -369,6 +372,7 @@ async function unfriend() {
                 </div>
               )}
             </section>
+            <ProfileReels userId={profile.id} onOpenReel={onOpenReel} />
           </>
         )}
       </div>

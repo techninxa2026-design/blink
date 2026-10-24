@@ -21,6 +21,8 @@ import ProfilePage from './ProfilePage';
 import FriendsPage from './FriendsPage';
 import PublicProfilePage from './PublicProfilePage';
 import InboxPage from './InboxPage';
+import ReelsPage from './ReelsPage';
+import ReelsUploader from './ReelsUploader';
 import CheckinsPage from './CheckinsPage';
 import IrlPage from './IrlPage';
 import BusinessMatchPage from './BusinessMatchPage';
@@ -79,6 +81,9 @@ type Route =
   | 'profile'
   | 'public-profile'
   | 'connections'
+  | 'reels'
+  | 'reel-detail'
+  | 'reel-create'
   | 'checkins'
   | 'irl'
   | 'secrets'
@@ -101,6 +106,7 @@ const NAV = [
   { label: 'Home', icon: '⌂', path: '/home' },
   { label: 'Connections', icon: '♧', path: '/connections' },
   { label: 'Capture', icon: '+', path: '' },
+  { label: 'Reels', icon: '▶', path: '/reels' },
   { label: 'Checkins', icon: '⌖', path: '/checkins' },
   { label: 'IRL', icon: '▣', path: '/irl' },
 ] as const;
@@ -148,6 +154,7 @@ function messageOf(
 }
 
 function routeFromPath(path: string): Route {
+  if (/^\/reels\/[^/]+$/.test(path) && path !== '/reels/create') return 'reel-detail';
   if (/^\/creator-dashboard\/reviews\/[^/]+$/.test(path)) return 'task-reviews';
   if (/^\/tasks\/[^/]+\/participate$/.test(path)) return 'task-participate';
   if (/^\/tasks\/[^/]+$/.test(path)) return 'task-detail';
@@ -161,6 +168,8 @@ function routeFromPath(path: string): Route {
 
   const map: Record<string, Route> = {
     '/home': 'home',
+    '/reels': 'reels',
+    '/reels/create': 'reel-create',
     '/profile': 'profile',
     '/connections': 'connections',
     '/checkins': 'checkins',
@@ -373,6 +382,8 @@ export default function App() {
     setSelectedNav(
       path === '/home'
         ? 'Home'
+        : path.startsWith('/reels')
+          ? 'Reels'
         : path === '/connections'
           ? 'Connections'
           : path === '/checkins'
@@ -1316,6 +1327,26 @@ export default function App() {
 
   // OTHER EXISTING PAGES
 
+  if (route === 'reels' || route === 'reel-detail') {
+    const id = route === 'reel-detail'
+      ? window.location.pathname.match(/^\/reels\/([^/]+)$/)?.[1] : undefined;
+    return protectedScreen(
+      <ReelsPage initialReelId={id ? decodeURIComponent(id) : undefined}
+        currentUserId={user?.id ?? ''}
+        theme={theme} onToggleTheme={toggleTheme}
+        onBack={() => goTo('/home')}
+        onCreate={() => goTo('/reels/create')}
+        onOpenProfile={(id) => id === user?.id ? goTo('/profile') : openPublicProfile(id)} />,
+      'Blink Reels',
+    );
+  }
+  if (route === 'reel-create') return protectedScreen(
+    <ReelsUploader theme={theme} onToggleTheme={toggleTheme}
+      onBack={() => goTo('/reels')}
+      onPublished={(reel) => goTo('/reels/' + encodeURIComponent(reel.id))} />,
+    'Blink Reels Studio',
+  );
+
   if (route === 'public-profile') {
     return protectedScreen(
       publicProfileId ? (
@@ -1323,6 +1354,7 @@ export default function App() {
           userId={decodeURIComponent(publicProfileId)}
           onBack={() => goTo('/connections')}
           onMyProfile={() => goTo('/profile')}
+          onOpenReel={(id) => goTo('/reels/' + encodeURIComponent(id))}
           theme={theme}
           onToggleTheme={toggleTheme}
         />
@@ -1509,6 +1541,7 @@ export default function App() {
     return protectedScreen(
       <ProfilePage
         onBack={() => goTo('/home')}
+        onOpenReel={(id) => goTo('/reels/' + encodeURIComponent(id))}
         theme={theme}
         onToggleTheme={toggleTheme}
       />,
@@ -2426,8 +2459,10 @@ export default function App() {
                   </div>
 
                   <div className="capture-action-row">
-                    <label className="capture-gallery-button">
-                      🖼️ Gallery
+                    <label className="capture-gallery-button capture-gallery-upgraded">
+                      <span className="capture-gallery-art" aria-hidden="true">▧</span>
+                      <span className="capture-gallery-copy"><strong>Gallery</strong><small>Browse photos &amp; videos</small></span>
+                      <span className="capture-gallery-arrow" aria-hidden="true">↗</span>
 
                       <input
                         type="file"

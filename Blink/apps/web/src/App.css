@@ -2300,3 +2300,42 @@ textarea {
     font-size: 23px;
   }
 }
+
+/* A real Gallery action in the existing Moment capture camera. */
+.capture-gallery-button.capture-gallery-upgraded {
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  padding:9px 13px;min-height:52px;min-width:165px;
+  border-radius:14px;border:1px solid #ff8a45;
+  background:linear-gradient(110deg,#412620,#251c27);color:#fff;
+  box-shadow:0 4px 15px #0004;cursor:pointer;transition:background .2s,border-color .2s;
+}
+.capture-gallery-button.capture-gallery-upgraded:hover{
+  border-color:#ffb273;background:linear-gradient(110deg,#754020,#352331);
+}
+.capture-gallery-art{display:grid;place-items:center;border-radius:10px;background:#ff6b00;
+  color:#fff;font-size:25px;width:37px;height:37px;flex-shrink:0}
+.capture-gallery-copy{display:flex;flex-direction:column;gap:4px;align-items:flex-start;line-height:1.1}
+.capture-gallery-copy strong{font-size:13px}.capture-gallery-copy small{font-size:10px;color:#fbd9bf;white-space:nowrap}
+.capture-gallery-arrow{font-size:18px;color:#ff9d61;margin-left:auto}
+@media(max-width:520px){
+  .capture-gallery-button.capture-gallery-upgraded{min-width:115px;padding:7px;gap:5px;min-height:45px}
+  .capture-gallery-copy small{display:none}
+  .capture-gallery-art{height:29px;width:29px;font-size:19px}
+  .capture-gallery-arrow{display:none}
+}
+
+/* Six-icon bottom navigation: Home, Connections, Capture, Reels, Checkins, IRL. */
+.home-bottom-nav {
+  grid-template-columns: repeat(6,minmax(0,1fr));
+  width:min(760px,calc(100vw - 120px));
+}
+@media(max-width:720px){
+  .home-bottom-nav {width:calc(100vw - 18px);grid-template-columns:repeat(6,minmax(0,1fr));}
+}
+@media(max-width:420px){
+  .home-bottom-nav {padding-inline:3px;gap:0}
+  .bottom-nav-item {gap:2px;min-width:0;padding-inline:0}
+  .nav-symbol {width:35px;height:35px;font-size:21px}
+  .nav-label {font-size:8px;letter-spacing:-.15px}
+  .capture-nav .nav-symbol {width:43px;height:43px}
+}

@@ -916,6 +916,7 @@ export default function InboxPage({
                             <video src={mediaUrls[message.id]} controls playsInline /> :
                             <img src={mediaUrls[message.id]} alt="Shared photo" />
                           ) : <span className="inbox-media-loading" role="status">Loading {message.mediaType === 'video' ? 'video' : 'photo'}…</span>}
+                          {message.body && <p className="inbox-reel-share-text">{renderMessageText(message.body)}</p>}
                         </div>
                       )) : editingId === message.id ? (
                         <div className="inbox-edit-box">

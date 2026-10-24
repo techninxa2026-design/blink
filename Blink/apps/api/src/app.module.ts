@@ -15,6 +15,7 @@ import { SecretsModule } from './secrets/secrets.module';
 import { HeartsModule } from './hearts/hearts.module';
 import { BusinessMatchModule } from './business-match/business-match.module';
 import { CreatorTasksModule } from './creator-tasks/creator-tasks.module';
+import { ReelsModule } from './reels/reels.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -31,6 +32,7 @@ import { CreatorTasksModule } from './creator-tasks/creator-tasks.module';
     HeartsModule,
     BusinessMatchModule,
     CreatorTasksModule,
+    ReelsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
