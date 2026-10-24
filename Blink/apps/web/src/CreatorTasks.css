@@ -161,3 +161,5 @@
 .ct-item-bp-badge {display:inline-flex;margin-left:auto;padding:5px 9px;border-radius:99px;background:#fff0dd;color:#a84a00;border:1px solid #ffd3b0;font-size:11px;white-space:nowrap;font-weight:800;}
 .ct-check-item .ct-item-text {flex:1;min-width:0;overflow-wrap:anywhere;}
 @media(max-width:550px){.ct-item-bp {flex-basis:92px;min-width:80px;}}
+
+.ct-review-action{background:#fb6c00;border:1px solid #de5700;color:#fff;padding:10px 14px;border-radius:10px;font-weight:850;cursor:pointer}.ct-review-action:hover{background:#d95800}.ct-review-action:focus-visible{outline:3px solid #fb6c0066;outline-offset:2px}

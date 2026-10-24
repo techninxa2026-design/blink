@@ -14,13 +14,14 @@ type Props = {
   onBack: () => void;
   onBrowse: () => void;
   onOpenTask: (id: string) => void;
+  onReviewTask: (id: string) => void;
 };
 let nextItemKey = 0;
 function makeChecklist(): DraftChecklist {
   return { key: ++nextItemKey, name: 'Task completion checklist', items: [{ key: ++nextItemKey, text: '', rewardBp: '0' }] };
 }
 export default function CreatorDashboardPage({
-  theme, onToggleTheme, onBack, onBrowse, onOpenTask,
+  theme, onToggleTheme, onBack, onBrowse, onOpenTask, onReviewTask,
 }: Props) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [tasks, setTasks] = useState<CreatorTask[]>([]);
@@ -272,7 +273,7 @@ export default function CreatorDashboardPage({
                   <div className="ct-task-main"><h3>{task.title}</h3><p>{task.rewardBp ?? 0} BP · {task.images?.length ?? 0} images · {task.checklists.length} checklists · {taskSteps(task)} steps · {new Date(task.updatedAt).toLocaleDateString()}</p></div>
                   <span className={'ct-status ' + (task.status === 'PUBLISHED' ? 'published' : 'draft')}>{task.status === 'PUBLISHED' ? 'Published' : 'Draft'}</span>
                   <div className="ct-row-actions">
-                    {task.status === 'PUBLISHED' && <button className="bm-outline" type="button" onClick={() => onOpenTask(task.id)}>View</button>}
+                    {task.status === 'PUBLISHED' && <><button className="bm-outline" type="button" onClick={() => onOpenTask(task.id)}>View</button><button className="ct-review-action" type="button" onClick={() => onReviewTask(task.id)}>✅ Review Answers</button></>}
                     <button className="bm-outline" type="button" onClick={() => editTask(task)}>Edit</button>
                     <button className="ct-danger" type="button" disabled={busy} onClick={() => void deleteTask(task)}>Delete</button>
                   </div>

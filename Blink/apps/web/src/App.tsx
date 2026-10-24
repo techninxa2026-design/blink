@@ -23,6 +23,7 @@ import IrlPage from './IrlPage';
 import BusinessMatchPage from './BusinessMatchPage';
 import BusinessDashboardPage from './BusinessDashboardPage';
 import CreatorDashboardPage from './CreatorDashboardPage';
+import TaskReviewPage from './TaskReviewPage';
 import CreatorTasksPage from './CreatorTasksPage';
 import TaskParticipationPage from './TaskParticipationPage';
 import { NotesRow, useActiveCheckins } from './CheckinPreview';
@@ -80,6 +81,7 @@ type Route =
   | 'hearts'
   | 'business-match'
   | 'creator-dashboard'
+  | 'task-reviews'
   | 'business-dashboard'
   | 'tasks'
   | 'task-detail'
@@ -142,6 +144,7 @@ function messageOf(
 }
 
 function routeFromPath(path: string): Route {
+  if (/^\/creator-dashboard\/reviews\/[^/]+$/.test(path)) return 'task-reviews';
   if (/^\/tasks\/[^/]+\/participate$/.test(path)) return 'task-participate';
   if (/^\/tasks\/[^/]+$/.test(path)) return 'task-detail';
   if (/^\/profile\/user\/[^/]+$/.test(path)) {
@@ -1211,6 +1214,19 @@ export default function App() {
     );
   }
 
+  if (route === 'task-reviews') {
+    const id = window.location.pathname.match(/^\/creator-dashboard\/reviews\/([^/]+)$/)?.[1];
+    if (id) return protectedScreen(
+      <TaskReviewPage
+        taskId={decodeURIComponent(id)}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        onBack={() => goTo('/creator-dashboard')}
+      />,
+      'Task Reviews',
+    );
+  }
+
   if (route === 'creator-dashboard') {
     return protectedScreen(
       <CreatorDashboardPage
@@ -1219,6 +1235,7 @@ export default function App() {
         onBack={() => goTo('/settings')}
         onBrowse={() => goTo('/tasks')}
         onOpenTask={(id) => goTo('/tasks/' + encodeURIComponent(id))}
+        onReviewTask={(id) => goTo('/creator-dashboard/reviews/' + encodeURIComponent(id))}
       />,
       'Creator Dashboard',
     );
