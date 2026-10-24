@@ -50,3 +50,11 @@ export class StartParticipationVideoDto {
   @Min(1)
   totalBytes!: number;
 }
+
+export class UpdateChecklistDto {
+  @IsArray()
+  @ArrayMaxSize(100)
+  @IsString({ each: true })
+  @MaxLength(64, { each: true })
+  checkedItemIds!: string[];
+}

@@ -9,7 +9,7 @@ import type { Response } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { JwtAuthGuard, type AuthenticatedUser } from '../auth/jwt-auth.guard';
 import { TaskParticipationsService, PARTICIPATION_CHUNK_SIZE } from './task-participations.service';
-import { SaveParticipationDto, SaveParticipationStepDto, StartParticipationVideoDto } from './task-participations.dto';
+import { SaveParticipationDto, SaveParticipationStepDto, StartParticipationVideoDto, UpdateChecklistDto } from './task-participations.dto';
 
 type AuthRequest = { user: AuthenticatedUser };
 
@@ -36,6 +36,12 @@ export class TaskParticipationsController {
     return this.service.deleteUnattached(req.user.userId, id);
   }
 
+
+  @Put(':taskId/checklist')
+  updateChecklist(@Req() req: AuthRequest, @Param('taskId') taskId: string,
+    @Body() input: UpdateChecklistDto) {
+    return this.service.saveChecklist(req.user.userId, taskId, input.checkedItemIds);
+  }
 
   @Put(':taskId/steps/:itemId')
   saveStep(@Req() req: AuthRequest, @Param('taskId') taskId: string,
