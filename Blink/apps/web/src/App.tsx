@@ -287,6 +287,7 @@ export default function App() {
   const [viewerMusicUrl, setViewerMusicUrl] = useState('');
   const [musicPlaying, setMusicPlaying] = useState(false);
   const captureMusicRef = useRef<HTMLAudioElement | null>(null);
+  const captureTrackRequestRef = useRef(0);
   const viewerMusicRef = useRef<HTMLAudioElement | null>(null);
   const [recording, setRecording] = useState(false);
   const [cameraError, setCameraError] = useState('');
@@ -734,18 +735,24 @@ export default function App() {
     setFaceFilterError('');
     void loadFaceLandmarker().then((detector) => {
       if (!alive) return;
-      const frame = () => {
+      let lastDetectAt = 0;
+      const frame = (now: number) => {
         if (!alive) return;
         request = requestAnimationFrame(frame);
         if (video.readyState < 2 || !video.videoWidth || !video.videoHeight) return;
-        overlay.width = video.videoWidth;
-        overlay.height = video.videoHeight;
+        // Avoid resetting canvas every frame: it destroys frame buffers and
+        // causes flicker. Face tracking runs at most ~12 FPS on modest phones.
+        if (overlay.width !== video.videoWidth || overlay.height !== video.videoHeight) {
+          overlay.width = video.videoWidth;
+          overlay.height = video.videoHeight;
+        }
         const ctx = overlay.getContext('2d');
         if (!ctx) return;
-        if (video.currentTime !== lastFrame) {
+        if (video.currentTime !== lastFrame && now - lastDetectAt > 80) {
           lastFrame = video.currentTime;
+          lastDetectAt = now;
           try {
-            lastFaceRef.current = detector.detectForVideo(video, performance.now()).faceLandmarks[0] ?? null;
+            lastFaceRef.current = detector.detectForVideo(video, now).faceLandmarks[0] ?? null;
           } catch {
             lastFaceRef.current = null;
           }
@@ -765,13 +772,32 @@ export default function App() {
     };
   }, [stream, captureOpen, capturedUrl, captureMode, faceFilter]);
 
-  useEffect(() => {
-    let alive = true;
+  // Picking a soundtrack starts the preview immediately; no player controls.
+  // The audio element stays mounted throughout camera/review mode transitions.
+  function chooseCaptureMusic(trackId: string) {
+    const request = ++captureTrackRequestRef.current;
+    setMusicChoice(trackId);
     setCaptureMusicUrl('');
-    if (!musicChoice || !captureOpen) return;
-    void makeMusicUrl(musicChoice).then((url) => { if (alive) setCaptureMusicUrl(url); });
-    return () => { alive = false; };
-  }, [musicChoice, captureOpen]);
+    const audio = captureMusicRef.current;
+    if (audio) { audio.pause(); audio.currentTime = 0; }
+    if (!trackId || !captureOpen) return;
+    void makeMusicUrl(trackId).then((url) => {
+      if (captureTrackRequestRef.current !== request) return;
+      setCaptureMusicUrl(url);
+      const player = captureMusicRef.current;
+      if (!player) return;
+      player.src = url;
+      player.volume = .55;
+      player.loop = true;
+      void player.play().catch(() => {
+        setCameraError('Your browser blocked soundtrack autoplay. Select the track again to start its preview.');
+      });
+    }).catch(() => setCameraError('Unable to preview this track.'));
+  }
+
+  useEffect(() => {
+    if (!capturedUrl) captureMusicRef.current?.pause();
+  }, [capturedUrl]);
 
   useEffect(() => {
     let alive = true;
@@ -840,6 +866,7 @@ export default function App() {
     setFaceFilter('none');
     setFaceFilterError('');
     setMusicChoice('');
+    ++captureTrackRequestRef.current;
     setCaptureMusicUrl('');
     captureMusicRef.current?.pause();
     setSelectedNav('Home');
@@ -863,6 +890,9 @@ export default function App() {
     setFaceFilter('none');
     setFaceFilterError('');
     setMusicChoice('');
+    ++captureTrackRequestRef.current;
+    setCaptureMusicUrl('');
+    captureMusicRef.current?.pause();
     setCameraError('');
     setSelectedNav('Capture');
     setCaptureOpen(true);
@@ -2122,6 +2152,7 @@ export default function App() {
             aria-modal="true"
             aria-label="Create a Moment"
           >
+            <audio ref={captureMusicRef} src={captureMusicUrl} loop preload="auto" aria-hidden="true" />
             <div className="capture-topbar">
               <button
                 type="button"
@@ -2276,7 +2307,7 @@ export default function App() {
 
               {!capturedUrl && captureMode === 'photo' && !recording && (
                 <div className="capture-filters" aria-label="Photo face filters">
-                  <div className="capture-feature-heading"><strong>✨ Face filters</strong><small>Photo only · follows your face</small></div>
+                  <div className="capture-feature-heading"><strong>✨ Blink AR Lenses</strong><small>Photo only · live face tracking</small></div>
                   <div className="capture-filter-scroll">
                     {FACE_FILTERS.map((item) => (
                       <button key={item.id} type="button" className={'capture-filter-option' + (faceFilter === item.id ? ' selected' : '')}
@@ -2313,22 +2344,23 @@ export default function App() {
                       <small>For photos and videos · Blink Originals</small></div>
                     <div className="capture-music-list">
                       <button type="button" className={'capture-music-option' + (!musicChoice ? ' selected' : '')}
-                        onClick={() => { setMusicChoice(''); captureMusicRef.current?.pause(); }}>
+                        onClick={() => chooseCaptureMusic('')}>
                         <span>🔇</span><strong>No music</strong>
                       </button>
                       {MUSIC_TRACKS.map((track) => (
                         <button type="button" key={track.id}
                           aria-pressed={musicChoice === track.id}
                           className={'capture-music-option' + (musicChoice === track.id ? ' selected' : '')}
-                          onClick={() => { setMusicChoice(track.id); captureMusicRef.current?.pause(); }}>
+                          onClick={() => chooseCaptureMusic(track.id)}>
                           <span>{track.emoji}</span>
                           <strong>{track.title}</strong><small>{track.mood}</small>
                         </button>
                       ))}
                     </div>
-                    {musicChoice && <div className="capture-music-preview">
-                      <span>♪ {musicTrack(musicChoice)?.title}</span>
-                      <audio ref={captureMusicRef} src={captureMusicUrl} controls loop preload="auto" aria-label="Preview selected soundtrack"/>
+                    {musicChoice && <div className="capture-music-preview" role="status">
+                      <span className="capture-playing-bars" aria-hidden="true"><i/><i/><i/><i/></span>
+                      <span>♪ {musicTrack(musicChoice)?.title} · Preview playing</span>
+                      <small>Tap another song to switch or No music to stop.</small>
                     </div>}
                     <p className="capture-music-note">Music plays with this Moment in Blink. Original video sound stays intact; no copyrighted catalog songs are used.</p>
                   </div>
