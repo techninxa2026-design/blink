@@ -10,7 +10,7 @@ import {
 import './App.css';
 import './MomentCreative.css';
 import { FACE_FILTERS, loadFaceLandmarker, paintFaceFilter, type FaceFilter, type FacePoint } from './MomentFaceFilters';
-import { MUSIC_TRACKS, makeMusicUrl, musicTrack } from './MomentMusic';
+import { MUSIC_TRACKS, makeMusicUrl, makeMusicUrlSync, musicTrack } from './MomentMusic';
 import MomentActions from './MomentActions';
 
 import SecretsPage from './SecretsPage';
@@ -786,24 +786,27 @@ export default function App() {
   // Picking a soundtrack starts the preview immediately; no player controls.
   // The audio element stays mounted throughout camera/review mode transitions.
   function chooseCaptureMusic(trackId: string) {
-    const request = ++captureTrackRequestRef.current;
+    ++captureTrackRequestRef.current;
     setMusicChoice(trackId);
     setCaptureMusicUrl('');
+    setCameraError('');
     const audio = captureMusicRef.current;
     if (audio) { audio.pause(); audio.currentTime = 0; }
     if (!trackId || !captureOpen) return;
-    void makeMusicUrl(trackId).then((url) => {
-      if (captureTrackRequestRef.current !== request) return;
+    try {
+      // Playback starts inside the user's actual click, before any async step.
+      const url = makeMusicUrlSync(trackId);
       setCaptureMusicUrl(url);
-      const player = captureMusicRef.current;
-      if (!player) return;
-      player.src = url;
-      player.volume = .55;
-      player.loop = true;
-      void player.play().catch(() => {
-        setCameraError('Your browser blocked soundtrack autoplay. Select the track again to start its preview.');
+      if (!audio) return;
+      audio.src = url;
+      audio.volume = 0.55;
+      audio.loop = true;
+      void audio.play().catch(() => {
+        setCameraError('Your browser paused the preview. Tap Play preview to start it.');
       });
-    }).catch(() => setCameraError('Unable to preview this track.'));
+    } catch {
+      setCameraError('Unable to preview this track. Try another soundtrack.');
+    }
   }
 
   useEffect(() => {
@@ -1306,12 +1309,51 @@ export default function App() {
 
   // AUTH GUARD FOR ALL OTHER PAGES
 
+  // One shared bottom navigation for every authenticated Blink page.
+  const sharedNavigation = (
+<nav
+          className="home-bottom-nav"
+          aria-label="Main navigation"
+        >
+          {NAV.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              className={`bottom-nav-item ${
+                selectedNav === item.label
+                  ? 'selected'
+                  : ''
+              } ${
+                item.label === 'Capture'
+                  ? 'capture-nav'
+                  : ''
+              }`}
+              aria-label={item.label}
+              onClick={() =>
+                item.label === 'Capture'
+                  ? openCapture()
+                  : goTo(item.path)
+              }
+            >
+              <span className="nav-symbol">
+                {item.icon}
+              </span>
+
+              <span className="nav-label">
+                {item.label}
+              </span>
+            </button>
+          ))}
+        </nav>
+  );
+
+
   const protectedScreen = (
     content: ReactNode,
     title: string,
   ) =>
     token() ? (
-      content
+      <>{content}{sharedNavigation}</>
     ) : (
       <main className="blink-guard">
         <h1>Sign in to use {title}</h1>
@@ -1813,19 +1855,7 @@ export default function App() {
     </h1>
   </div>
 
-  <div className="blink-moment-heading-actions">
-    <span className="feed-count">
-      {moments.length} moments
-    </span>
-
-    <button
-      type="button"
-      className="feed-create-button"
-      onClick={openCapture}
-    >
-      + Create
-    </button>
-  </div>
+  {/* Creation is accessible from the persistent Capture button. */}
 </div>
 
 
@@ -1927,50 +1957,11 @@ export default function App() {
                   Load more moments
                 </button>
               )}
-
-              <p className="swipe-hint">
-                Select a moment to view it
-              </p>
             </>
           )}
         </section>
 
-        {/* STICKY TRANSPARENT NAVBAR */}
-
-        <nav
-          className="home-bottom-nav"
-          aria-label="Main navigation"
-        >
-          {NAV.map((item) => (
-            <button
-              key={item.label}
-              type="button"
-              className={`bottom-nav-item ${
-                selectedNav === item.label
-                  ? 'selected'
-                  : ''
-              } ${
-                item.label === 'Capture'
-                  ? 'capture-nav'
-                  : ''
-              }`}
-              aria-label={item.label}
-              onClick={() =>
-                item.label === 'Capture'
-                  ? openCapture()
-                  : goTo(item.path)
-              }
-            >
-              <span className="nav-symbol">
-                {item.icon}
-              </span>
-
-              <span className="nav-label">
-                {item.label}
-              </span>
-            </button>
-          ))}
-        </nav>
+        {sharedNavigation}
 
         {/* FLOATING INBOX */}
 
@@ -2392,8 +2383,14 @@ export default function App() {
                     </div>
                     {musicChoice && <div className="capture-music-preview" role="status">
                       <span className="capture-playing-bars" aria-hidden="true"><i/><i/><i/><i/></span>
-                      <span>♪ {musicTrack(musicChoice)?.title} · Preview playing</span>
-                      <small>Tap another song to switch or No music to stop.</small>
+                      <span>♪ {musicTrack(musicChoice)?.title} · Soundtrack selected</span>
+                       <button type="button" className="capture-audio-retry" onClick={() => {
+                         const player = captureMusicRef.current;
+                         if (!player) return;
+                         player.currentTime = 0;
+                         void player.play().then(() => setCameraError('')).catch(() => setCameraError('Please allow audio in your browser and tap Play preview.'));
+                       }}>▶ Play preview</button>
+                      <small>Choose another track or No music to stop.</small>
                     </div>}
                     <p className="capture-music-note">Music plays with this Moment in Blink. Original video sound stays intact; no copyrighted catalog songs are used.</p>
                   </div>
