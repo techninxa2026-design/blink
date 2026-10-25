@@ -226,7 +226,7 @@ export default function ReelsPage({
       <button type="button" onClick={onBack}>← Home</button>
       <strong>blink<span>●</span> Reels</strong>
       <div><button type="button" onClick={onToggleTheme}>{theme === 'light' ? '☾' : '☀'}</button>
-        <button type="button" className="br-primary small" onClick={onCreate}>＋ Create</button></div>
+</div>
     </header>
     <div className="br-container br-reels-feed">
       <div className="br-feed-heading">
