@@ -16,7 +16,6 @@ export default function PlanDateTimePicker({ value, onChange }: Props) {
   const [offset, setOffset] = useState(0);
   const today = new Date();
   const first = new Date(today.getFullYear(), today.getMonth() + offset, 1);
-  const days = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
   const firstWeekday = first.getDay();
   const selectedDate = value ? value.substring(0,10) : '';
   const hours24 = value ? Number(value.substring(11,13)) : 18;
