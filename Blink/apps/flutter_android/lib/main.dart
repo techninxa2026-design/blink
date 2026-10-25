@@ -1,3 +1,4 @@
+import 'inbox_screen.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -60,7 +61,7 @@ class _BlinkAppState extends State<BlinkApp> {
                 0 => MomentsFeed(token: token!),
                 1 => const Center(child: Text('Reels — next migration module')),
                 2 => const Center(child: Text('Capture — next migration module')),
-                3 => const Center(child: Text('Inbox — next migration module')),
+                3 => InboxScreen(token: token!),
                 _ => Center(child: Text('Hello, ${user?['name'] ?? 'Blink user'}')),
               },
               bottomNavigationBar: NavigationBar(
