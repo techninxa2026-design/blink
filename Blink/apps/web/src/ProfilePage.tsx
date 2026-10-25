@@ -607,9 +607,7 @@ async function deleteMoment() {
               )}
             </div>
 
-            <p className="profile-bio">
-              {profile.bio || 'Your Blink bio will appear here.'}
-            </p>
+            {profile.bio && <p className="profile-bio">{profile.bio}</p>}
             <div className="profile-stats" aria-label="Profile connections">
               {([
                 ['Followers', profile.followersCount],
@@ -817,7 +815,7 @@ async function deleteMoment() {
             )}
           </section>}
           {(profileTab === 'All' || profileTab === 'Reels') && <section className="profile-reels-section"><h2>My Reels</h2><ProfileReels owner onOpenReel={onOpenReel} /></section>}
-          {profileTab === 'More' && <section className="profile-about-card"><h2>More</h2><p className="profile-empty">More Blink features will appear here.</p></section>}
+          {profileTab === 'More' && <section className="profile-more-empty" aria-label="More features" />}
 
 {peopleModal && (
           <div className="profile-people-overlay" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) setPeopleModal(null); }}>
