@@ -292,7 +292,6 @@ export default function App() {
   const faceOverlayRef = useRef<HTMLCanvasElement | null>(null);
   const lastFaceRef = useRef<FacePoint[] | null>(null);
   const [musicChoice, setMusicChoice] = useState('');
-  const [captureMusicUrl, setCaptureMusicUrl] = useState('');
   const [viewerMusicUrl, setViewerMusicUrl] = useState('');
   const [musicPlaying, setMusicPlaying] = useState(false);
   const captureMusicRef = useRef<HTMLAudioElement | null>(null);
@@ -790,15 +789,13 @@ export default function App() {
   function chooseCaptureMusic(trackId: string) {
     ++captureTrackRequestRef.current;
     setMusicChoice(trackId);
-    setCaptureMusicUrl('');
     setCaptureMusicError('');
     const audio = captureMusicRef.current;
-    if (audio) { audio.pause(); audio.currentTime = 0; }
+    if (audio) { audio.pause(); audio.removeAttribute('src'); audio.load(); }
     if (!trackId || !captureOpen) return;
     try {
       // Playback starts inside the user's actual click, before any async step.
       const url = makeMusicUrlSync(trackId);
-      setCaptureMusicUrl(url);
       if (!audio) return;
       audio.src = url;
       audio.volume = 0.55;
@@ -884,7 +881,6 @@ export default function App() {
     setMusicChoice('');
     setCaptureMusicError('');
     ++captureTrackRequestRef.current;
-    setCaptureMusicUrl('');
     captureMusicRef.current?.pause();
     setSelectedNav('Home');
   }
@@ -909,7 +905,6 @@ export default function App() {
     setMusicChoice('');
     setCaptureMusicError('');
     ++captureTrackRequestRef.current;
-    setCaptureMusicUrl('');
     captureMusicRef.current?.pause();
     setCameraError('');
     setSelectedNav('Capture');
@@ -2181,7 +2176,7 @@ export default function App() {
             aria-modal="true"
             aria-label="Create a Moment"
           >
-            <audio ref={captureMusicRef} src={captureMusicUrl} loop preload="auto" aria-hidden="true" />
+            <audio ref={captureMusicRef} loop preload="auto" aria-hidden="true" />
             <div className="capture-topbar">
               <button
                 type="button"
