@@ -297,16 +297,15 @@ async searchUsers(userId: string, query?: string) {
     );
   }
 
-  if (!search) return [];
-
+  // Empty query returns the signed-up public user directory. Never expose
+  // email, phone or password fields. Search filters the same directory.
   return this.prisma.user.findMany({
     where: {
       id: { not: userId },
-      name: { contains: search },
+      ...(search ? { name: { contains: search } } : {}),
     },
     select: publicUserSelect,
     orderBy: { name: 'asc' },
-    take: 20,
   });
 }
 
