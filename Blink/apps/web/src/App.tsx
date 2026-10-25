@@ -1319,7 +1319,9 @@ export default function App() {
               key={item.label}
               type="button"
               className={`bottom-nav-item ${
-                selectedNav === item.label
+                selectedNav === item.label &&
+                (route === 'home' || route === 'connections' || route === 'irl' ||
+                 route === 'checkins' || route === 'reels' || route === 'reel-detail' || route === 'reel-create')
                   ? 'selected'
                   : ''
               } ${
