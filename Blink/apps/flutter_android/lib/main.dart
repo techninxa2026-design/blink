@@ -1,3 +1,4 @@
+import 'reels_screen.dart';
 import 'inbox_screen.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -59,7 +60,7 @@ class _BlinkAppState extends State<BlinkApp> {
               ),
               body: switch (tab) {
                 0 => MomentsFeed(token: token!),
-                1 => const Center(child: Text('Reels — next migration module')),
+                1 => ReelsScreen(token: token!),
                 2 => const Center(child: Text('Capture — next migration module')),
                 3 => InboxScreen(token: token!),
                 _ => Center(child: Text('Hello, ${user?['name'] ?? 'Blink user'}')),
