@@ -295,10 +295,11 @@ export default function ReelsPage({
           </article>
           <div className="br-feed-rail">
             <strong>Explore Reels</strong><p>Swipe up for the next Reel.</p>
-            <button type="button" onClick={onCreate}>＋ Create Reel</button>
+            
             {loadingMore && <p>Loading more…</p>}
           </div>
         </div>}
+      <button type="button" className="br-create-floating" onClick={onCreate}>＋ Create Reel</button>
       {panel && <div className="br-panel-backdrop" onClick={() => setPanel(null)}>
         <section className="br-panel" role="dialog" aria-modal="true"
           aria-label={panel === 'comments' ? 'Reel comments' : 'Share Reel to Inbox'}
