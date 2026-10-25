@@ -301,6 +301,7 @@ export default function App() {
   const captureFilterScrollRef = useRef<HTMLDivElement | null>(null);
   const [recording, setRecording] = useState(false);
   const [cameraError, setCameraError] = useState('');
+  const [captureMusicError, setCaptureMusicError] = useState('');
   const [uploading, setUploading] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -790,7 +791,7 @@ export default function App() {
     ++captureTrackRequestRef.current;
     setMusicChoice(trackId);
     setCaptureMusicUrl('');
-    setCameraError('');
+    setCaptureMusicError('');
     const audio = captureMusicRef.current;
     if (audio) { audio.pause(); audio.currentTime = 0; }
     if (!trackId || !captureOpen) return;
@@ -803,10 +804,10 @@ export default function App() {
       audio.volume = 0.55;
       audio.loop = true;
       void audio.play().catch(() => {
-        setCameraError('Your browser paused the preview. Tap Play preview to start it.');
+        setCaptureMusicError('Preview paused by your browser. Press Play preview to start the soundtrack.');
       });
     } catch {
-      setCameraError('Unable to preview this track. Try another soundtrack.');
+      setCaptureMusicError('Unable to prepare this soundtrack. Try another track.');
     }
   }
 
@@ -881,6 +882,7 @@ export default function App() {
     setFaceFilter('none');
     setFaceFilterError('');
     setMusicChoice('');
+    setCaptureMusicError('');
     ++captureTrackRequestRef.current;
     setCaptureMusicUrl('');
     captureMusicRef.current?.pause();
@@ -905,6 +907,7 @@ export default function App() {
     setFaceFilter('none');
     setFaceFilterError('');
     setMusicChoice('');
+    setCaptureMusicError('');
     ++captureTrackRequestRef.current;
     setCaptureMusicUrl('');
     captureMusicRef.current?.pause();
@@ -2387,6 +2390,7 @@ export default function App() {
                         </button>
                       ))}
                     </div>
+                    {captureMusicError && <p className="capture-music-alert" role="alert">🔊 {captureMusicError}</p>}
                     {musicChoice && <div className="capture-music-preview" role="status">
                       <span className="capture-playing-bars" aria-hidden="true"><i/><i/><i/><i/></span>
                       <span>♪ {musicTrack(musicChoice)?.title} · Soundtrack selected</span>
@@ -2394,7 +2398,7 @@ export default function App() {
                          const player = captureMusicRef.current;
                          if (!player) return;
                          player.currentTime = 0;
-                         void player.play().then(() => setCameraError('')).catch(() => setCameraError('Please allow audio in your browser and tap Play preview.'));
+                         void player.play().then(() => setCaptureMusicError('')).catch(() => setCaptureMusicError('Allow audio in your browser, then tap Play preview.'));
                        }}>▶ Play preview</button>
                       <small>Choose another track or No music to stop.</small>
                     </div>}
