@@ -114,3 +114,11 @@
   .br-gallery-large,.br-camera-large{padding:12px;min-height:190px}.br-gallery-large strong,.br-camera-large strong{font-size:15px}
   .br-card{padding:16px}.br-feed-heading{padding:0 8px}
 }
+
+/* One visible, thumb-friendly create action outside the reel grid. */
+.br-create-floating{position:fixed;right:clamp(18px,3vw,42px);bottom:calc(106px + env(safe-area-inset-bottom));z-index:36;min-height:52px;border:0;border-radius:18px;padding:13px 20px;background:#fb6c00;color:white;font-size:14px;font-weight:850;box-shadow:0 12px 34px #c54b0060;transition:transform .2s,box-shadow .2s}
+.br-create-floating:hover{transform:translateY(-3px);box-shadow:0 16px 36px #c54b007b}
+.br-feed-arrows button{display:grid;place-items:center;border:1px solid var(--br-border);background:var(--br-card);color:var(--br-accent);box-shadow:0 4px 18px #0001;transition:.18s}
+.br-feed-arrows button:hover:not(:disabled){border-color:var(--br-accent);background:color-mix(in srgb,var(--br-card) 80%,#fb6c00);transform:scale(1.05)}
+.br-feed-arrows button:disabled{opacity:.3;cursor:not-allowed}
+@media(max-width:560px){.br-create-floating{right:14px;bottom:calc(97px + env(safe-area-inset-bottom));font-size:13px;padding:12px 14px}}
