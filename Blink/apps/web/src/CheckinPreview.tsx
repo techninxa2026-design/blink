@@ -34,7 +34,7 @@ export function useActiveCheckins(enabled = true) {
 }
 
 export function CheckinTile({ item, onClick }: { item: ActiveCheckin; onClick?: () => void }) {
-  const contents = <><span className="blink-ci-tile-emoji">{item.emoji}</span><span className="blink-ci-tile-copy"><strong>{item.user?.name || 'Blink friend'}</strong><span>{item.status}</span>{item.note && <small>{item.note}</small>}</span></>;
+  const contents = <><span className="blink-ci-tile-copy"><strong>{item.user?.name || 'Blink friend'}</strong><span>{item.status} {item.emoji}</span>{item.note && <small>{item.note}</small>}</span></>;
   return onClick ? <button type="button" className="blink-ci-tile" onClick={onClick}>{contents}<span aria-hidden="true">›</span></button> : <div className="blink-ci-tile">{contents}</div>;
 }
 
@@ -89,20 +89,20 @@ export function NotesRow({ items, onOpenProfile, onCreate, onEditOwn, onDeleteOw
   }
   return <>
     <div className="blink-notes-row" aria-label="Friends' notes">
-      {onCreate && !sorted.some(item => item.userId === me) && <button type="button" className="blink-note-person" onClick={onCreate}><span className="blink-note-bubble blink-note-add">Write a note +</span><span className="blink-note-avatar blink-note-avatar-empty">＋</span><span className="blink-note-name">Your note</span></button>}
+      {onCreate && !sorted.some(item => item.userId === me) && <button type="button" className="blink-note-person" onClick={onCreate}><span className="blink-note-bubble blink-note-add">Post a Checkins +</span><span className="blink-note-avatar blink-note-avatar-empty">＋</span><span className="blink-note-name">Your Checkins</span></button>}
       {sorted.map(item => <button type="button" key={item.id} className="blink-note-person" onClick={() => { setSelected(item); setReply(''); setError(''); setSent(false); }} aria-label={`Open ${item.user?.name || 'friend'}'s Check-In`}>
-        <span className="blink-note-bubble"><span>{item.emoji} {item.status}</span></span>
+        <span className="blink-note-bubble"><span>{item.status} {item.emoji}</span></span>
         <span className="blink-note-avatar">{item.user?.avatarKey ? <img src={avatar(item.user.avatarKey)} alt="" /> : <span>{(item.user?.name || 'B').slice(0,1).toUpperCase()}</span>}</span>
         <span className="blink-note-name">{item.userId === me ? 'You' : item.user?.name || 'Friend'}</span>
       </button>)}
-      {showEmpty && !sorted.length && !onCreate && <p className="blink-ci-preview-empty">No active notes yet.</p>}
+      {showEmpty && !sorted.length && !onCreate && <p className="blink-ci-preview-empty">No active Check-Ins yet.</p>}
     </div>
     {selected && <div className="blink-note-overlay" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !sending) setSelected(null); }}>
       <section className="blink-note-dialog" role="dialog" aria-modal="true" aria-label="Check-In note">
         <button type="button" className="blink-note-close" aria-label="Close" onClick={() => setSelected(null)}>×</button>
         <div className="blink-note-dialog-avatar">{selected.user?.avatarKey ? <img src={avatar(selected.user.avatarKey)} alt=""/> : (selected.user?.name || 'B').slice(0,1)}</div>
-        <h3>{selected.userId === me ? 'Your note' : `${selected.user?.name || 'Friend'}'s note`}</h3>
-        <div className="blink-note-dialog-content"><strong>{selected.emoji} {selected.status}</strong>{selected.note && <p>{selected.note}</p>}</div>
+        <h3>{selected.userId === me ? 'Your Checkins' : `${selected.user?.name || 'Friend'}'s Check-In`}</h3>
+        <div className="blink-note-dialog-content"><strong>{selected.status} {selected.emoji}</strong>{selected.note && <p>{selected.note}</p>}</div>
         {selected.userId === me && (onEditOwn || onDeleteOwn) && <div className="blink-note-own-actions">{onEditOwn && <button type="button" onClick={() => { const item = selected; setSelected(null); onEditOwn(item); }}>✎ Edit note</button>}{onDeleteOwn && <button type="button" className="blink-note-delete" onClick={() => { const item = selected; setSelected(null); onDeleteOwn(item); }}>Delete note</button>}</div>}
         {selected.userId !== me && <div>
           {sent ? <div><p role="status" className="blink-note-success">{sentKind === 'reaction' ? 'Reaction' : 'Reply'} sent privately to Blink Inbox! 🧡</p><button type="button" className="blink-note-profile-link" onClick={() => { window.location.assign('/inbox'); }}>Open Inbox →</button><button type="button" className="blink-note-profile-link" onClick={() => setSent(false)}>Send another</button></div> : <>

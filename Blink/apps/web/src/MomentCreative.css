@@ -162,3 +162,18 @@
   .capture-filter-option{flex-basis:71px;min-height:79px;}
 }
 @media(prefers-reduced-motion:reduce){.capture-playing-bars i{animation:none}}
+
+/* Horizontal swipe stays functional without a distracting system scrollbar. */
+.capture-filter-scroll{scrollbar-width:none;-ms-overflow-style:none;overscroll-behavior-x:contain;scroll-padding-inline:12px}
+.capture-filter-scroll::-webkit-scrollbar{display:none}
+.capture-filter-option{transition:transform .18s,border-color .18s,box-shadow .18s}
+.capture-filter-option:hover,.capture-filter-option:focus-visible{transform:translateY(-2px);box-shadow:0 6px 15px #0004}
+.capture-music-list{scrollbar-color:#fb6c00 #28242b;scrollbar-width:thin}
+
+.capture-filter-navigator{display:flex;gap:8px;align-items:center;min-width:0;width:100%}
+.capture-filter-navigator .capture-filter-scroll{flex:1;min-width:0}
+.capture-filter-arrow{flex:0 0 34px;display:grid;place-items:center;height:57px;border:1px solid #fb6c0070;border-radius:12px;background:#fb6c0025;color:#ff9b58;font-size:31px;cursor:pointer}
+.capture-filter-arrow:hover,.capture-filter-arrow:focus-visible{background:#fb6c00;color:#fff}
+.capture-filter-scroll:focus-visible{outline:2px solid #fb6c00;border-radius:12px}
+
+.capture-music-alert{margin:2px 0;padding:11px 14px;border:1px solid #fca55d;border-radius:12px;background:#663015;color:#ffdfb9;font-size:12px;line-height:1.55}

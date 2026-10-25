@@ -2339,3 +2339,21 @@ textarea {
   .nav-label {font-size:8px;letter-spacing:-.15px}
   .capture-nav .nav-symbol {width:43px;height:43px}
 }
+
+/* Consistent navigation on every signed-in route, including dark mode. */
+.home-bottom-nav{
+  --home-text:var(--text);--home-muted:var(--muted);--home-surface:var(--card-bg);--home-border:var(--border);
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  max-width:calc(100vw - 16px);padding:8px;z-index:40;
+}
+.home-bottom-nav .bottom-nav-item{transition:transform .18s ease,background .18s ease;color:var(--text)}
+.home-bottom-nav .bottom-nav-item:hover,.home-bottom-nav .bottom-nav-item:focus-visible{background:var(--soft-brand);transform:translateY(-2px)}
+.home-bottom-nav .bottom-nav-item:not(.selected) .nav-symbol{color:var(--text)}
+.home-bottom-nav .capture-nav .nav-symbol{background:var(--brand)!important;color:white!important}
+.home-bottom-nav .nav-label{font-size:clamp(9px,.85vw,12px);font-weight:700;color:var(--muted)}
+.home-bottom-nav .selected .nav-label{color:var(--brand)}
+.home-brand{background:white;border-radius:13px;padding:4px 12px;width:max-content;margin:auto}
+:root[data-theme="dark"] .home-brand{box-shadow:0 2px 14px #0005}
+.blink-home .home-feed{padding-bottom:105px}
+.capture-audio-retry{border:1px solid #ff984b;border-radius:10px;padding:9px 14px;background:#fb6c00;color:#fff;font-weight:750;cursor:pointer}
+@media(max-width:600px){.home-bottom-nav{min-height:60px;padding:4px;width:calc(100vw - 16px)}.home-bottom-nav .nav-label{font-size:9px}}

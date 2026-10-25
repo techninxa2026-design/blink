@@ -22,7 +22,7 @@ function sampleWave(phase: number, wave: MusicTrack['wave']) {
   return Math.sin(phase);
 }
 /** Offline deterministic synthesis; no third-party audio or licensing required. */
-export async function makeMusicUrl(id: string): Promise<string> {
+export function makeMusicUrlSync(id: string): string {
   const cached = sounds.get(id);
   if (cached) return cached;
   const track = musicTrack(id);
@@ -59,4 +59,10 @@ export async function makeMusicUrl(id: string): Promise<string> {
   const url = URL.createObjectURL(new Blob([buffer], { type: 'audio/wav' }));
   sounds.set(id, url);
   return url;
+}
+
+// Older viewers keep the Promise API. Capture uses the synchronous version
+// so its play() happens inside the original user gesture.
+export async function makeMusicUrl(id: string): Promise<string> {
+  return makeMusicUrlSync(id);
 }

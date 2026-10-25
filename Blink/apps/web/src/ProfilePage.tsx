@@ -16,12 +16,20 @@ type Profile = {
   id: string;
   name: string;
   bio: string | null;
+  email?: string;
+  phoneNumber?: string;
+  college?: string | null;
+  highSchool?: string | null;
+  occupation?: string | null;
+  workplace?: string | null;
   avatarKey: string | null;
   coverKey: string | null;
   followersCount: number;
   followingCount: number;
   connectionsCount: number;
 };
+
+type ProfileFriend = { friendshipId: string; user: { id: string; name: string; bio: string | null; avatarKey: string | null } };
 
 type ProfileMoment = {
   id: string;
@@ -33,6 +41,7 @@ type ProfileMoment = {
 type ProfilePageProps = {
   onBack: () => void;
   onOpenReel: (id: string) => void;
+  onOpenProfile: (id: string) => void;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
 };
@@ -52,19 +61,26 @@ function mediaUrl(value: string) {
 export default function ProfilePage({
   onBack,
   onOpenReel,
+  onOpenProfile,
   theme,
   onToggleTheme,
 }: ProfilePageProps) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const { items: activeCheckins } = useActiveCheckins();
   const [moments, setMoments] = useState<ProfileMoment[]>([]);
-  const [mediaTab, setMediaTab] = useState<'moments' | 'reels'>('moments');
+  const [profileTab, setProfileTab] = useState<'All' | 'About' | 'Friends' | 'Moments' | 'Reels' | 'Check-ins' | 'More'>('All');
+  const [friends, setFriends] = useState<ProfileFriend[]>([]);
+  const [peopleModal, setPeopleModal] = useState<'Followers' | 'Following' | 'Connections' | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [editBio, setEditBio] = useState('');
+  const [editCollege, setEditCollege] = useState('');
+  const [editHighSchool, setEditHighSchool] = useState('');
+  const [editOccupation, setEditOccupation] = useState('');
+  const [editWorkplace, setEditWorkplace] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState('');
@@ -105,9 +121,10 @@ const [deleteError, setDeleteError] = useState('');
           Authorization: `Bearer ${token}`,
         };
 
-        const [profileResponse, momentsResponse] = await Promise.all([
+        const [profileResponse, momentsResponse, friendsResponse] = await Promise.all([
           fetch(`${API_URL}/profile/me`, { headers }),
           fetch(`${API_URL}/moments/mine`, { headers }),
+          fetch(`${API_URL}/friends`, { headers }),
         ]);
 
         if (!profileResponse.ok || !momentsResponse.ok) {
@@ -121,6 +138,7 @@ const [deleteError, setDeleteError] = useState('');
         if (!cancelled) {
           setProfile(profileData);
           setMoments(momentsData);
+          if (friendsResponse.ok) setFriends((await friendsResponse.json()) as ProfileFriend[]);
         }
       } catch (err) {
         if (!cancelled) {
@@ -150,6 +168,10 @@ const [deleteError, setDeleteError] = useState('');
 
     setEditName(profile.name);
     setEditBio(profile.bio || '');
+    setEditCollege(profile.college || '');
+    setEditHighSchool(profile.highSchool || '');
+    setEditOccupation(profile.occupation || '');
+    setEditWorkplace(profile.workplace || '');
     setSaveError('');
     setSaveSuccess('');
     setIsEditing(true);
@@ -203,6 +225,10 @@ const [deleteError, setDeleteError] = useState('');
         body: JSON.stringify({
           name,
           bio,
+          college: editCollege.trim(),
+          highSchool: editHighSchool.trim(),
+          occupation: editOccupation.trim(),
+          workplace: editWorkplace.trim(),
         }),
       });
 
@@ -552,7 +578,7 @@ async function deleteMoment() {
     onClick={() => avatarInputRef.current?.click()}
     disabled={uploadingImage !== null}
   >
-    {uploadingImage === 'avatar' ? '…' : '📷'}
+    {uploadingImage === 'avatar' ? '…' : <svg aria-hidden="true" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h3l2-2h6l2 2h3v12H4z"/><circle cx="12" cy="13" r="3.5"/></svg>}
   </button>
 </div>
 {uploadError && (
@@ -576,14 +602,23 @@ async function deleteMoment() {
                   className="profile-edit-button"
                   onClick={startEditing}
                 >
-                  Edit Profile
+                  <span aria-hidden="true">✎</span> Edit Profile
                 </button>
               )}
             </div>
 
-            <p className="profile-bio">
-              {profile.bio || 'Your Blink bio will appear here.'}
-            </p>
+            {profile.bio && <p className="profile-bio">{profile.bio}</p>}
+            <div className="profile-stats" aria-label="Profile connections">
+              {([
+                ['Followers', profile.followersCount],
+                ['Following', profile.followingCount],
+                ['Connections', profile.connectionsCount],
+              ] as const).map(([label, count]) => (
+                <button key={label} type="button" className="profile-stat-button" onClick={() => setPeopleModal(label)}>
+                  <strong>{count}</strong><span>{label}</span>
+                </button>
+              ))}
+            </div>
 
             {saveSuccess && (
               <p
@@ -601,7 +636,7 @@ async function deleteMoment() {
                 onSubmit={saveProfile}
               >
                 <label htmlFor="profile-edit-name">
-                  Display name
+                  Name
                 </label>
 
                 <input
@@ -636,6 +671,16 @@ async function deleteMoment() {
                 <span className="profile-bio-counter">
                   {editBio.length}/300
                 </span>
+                <div className="profile-edit-group-label">🎓 Education</div>
+                <label htmlFor="profile-edit-college">College or university</label>
+                <input id="profile-edit-college" maxLength={160} value={editCollege} placeholder="Add your college" onChange={e => setEditCollege(e.target.value)} disabled={isSaving} />
+                <label htmlFor="profile-edit-high-school">High school</label>
+                <input id="profile-edit-high-school" maxLength={160} value={editHighSchool} placeholder="Add your high school" onChange={e => setEditHighSchool(e.target.value)} disabled={isSaving} />
+                <div className="profile-edit-group-label">💼 Work</div>
+                <label htmlFor="profile-edit-occupation">Occupation</label>
+                <input id="profile-edit-occupation" maxLength={160} value={editOccupation} placeholder="What do you do?" onChange={e => setEditOccupation(e.target.value)} disabled={isSaving} />
+                <label htmlFor="profile-edit-workplace">Workplace (optional)</label>
+                <input id="profile-edit-workplace" maxLength={160} value={editWorkplace} placeholder="Where do you work?" onChange={e => setEditWorkplace(e.target.value)} disabled={isSaving} />
 
                 {saveError && (
                   <p
@@ -669,39 +714,49 @@ async function deleteMoment() {
               </form>
             )}
 
-            {/* Profile statistics */}
-            <div className="profile-stats">
-              <div>
-                <strong>{profile.followersCount}</strong>
-                <span>Followers</span>
-              </div>
-
-              <div>
-                <strong>{profile.followingCount}</strong>
-                <span>Following</span>
-              </div>
-
-              <div>
-                <strong>{profile.connectionsCount}</strong>
-                <span>Connections</span>
-              </div>
-            </div>
           </section>
 
+          <nav className="profile-sections-nav" aria-label="Profile sections">
+            {(['All','About','Friends','Moments','Reels','Check-ins','More'] as const).map(tab => (
+              <button key={tab} type="button" className={profileTab === tab ? 'active' : ''} aria-current={profileTab === tab ? 'page' : undefined} onClick={() => setProfileTab(tab)}>{tab}</button>
+            ))}
+          </nav>
+          {(profileTab === 'All' || profileTab === 'About') && (
+            <section className="profile-about-card" aria-label="About me">
+              <h2>About me</h2>
+              <p className="profile-about-intro">{profile.bio || 'Share a little about yourself with your Blink connections.'}</p>
+              <div className="profile-about-grid">
+                <div><span>🎓 College / University</span><strong>{profile.college || 'Not added yet'}</strong></div>
+                <div><span>🏫 High school</span><strong>{profile.highSchool || 'Not added yet'}</strong></div>
+                <div><span>💼 Occupation</span><strong>{profile.occupation || 'Not added yet'}</strong></div>
+                <div><span>🏢 Workplace</span><strong>{profile.workplace || 'Not added yet'}</strong></div>
+                <div><span>✉ Email</span><strong>{profile.email || 'Not available'}</strong></div>
+                <div><span>☎ Phone</span><strong>{profile.phoneNumber || 'Not available'}</strong></div>
+              </div>
+              <button type="button" className="profile-about-edit" onClick={startEditing}>✎ Edit About</button>
+            </section>
+          )}
+          {(profileTab === 'All' || profileTab === 'Friends') && (
+            <section className="profile-about-card" aria-label="My friends">
+              <h2>Friends <small>({friends.length})</small></h2>
+              {friends.length ? <div className="profile-friends-list">{friends.map(friend => (
+                <button key={friend.friendshipId} type="button" onClick={() => onOpenProfile(friend.user.id)}>
+                  {friend.user.avatarKey ? <img src={mediaUrl(friend.user.avatarKey)} alt="" /> : <span>{friend.user.name.slice(0,1).toUpperCase()}</span>}
+                  <strong>{friend.user.name}</strong>
+                </button>
+              ))}</div> : <p className="profile-empty">Your connections will appear here.</p>}
+            </section>
+          )}
+          {(profileTab === 'All' || profileTab === 'Check-ins') && (
           <section className="blink-ci-profile" aria-label="My Check-In">
             <div className="blink-ci-preview-head"><h2>🧡 My Check-In</h2></div>
             {activeCheckins.find(item => item.userId === profile.id) ?
               <NotesRow items={activeCheckins.filter(item => item.userId === profile.id)} ownId={profile.id} /> :
               <p className="blink-ci-preview-empty">You have no active Check-In.</p>}
           </section>
+          )}
 
-          <nav className="profile-media-tabs" aria-label="My media tabs">
-            <button type="button" className={mediaTab === 'moments' ? 'active' : ''}
-              onClick={() => setMediaTab('moments')}>▧ Moments</button>
-            <button type="button" className={mediaTab === 'reels' ? 'active' : ''}
-              onClick={() => setMediaTab('reels')}>▶ Reels</button>
-          </nav>
-          {mediaTab === 'moments' ? <section className="profile-moments">
+          {(profileTab === 'All' || profileTab === 'Moments') && <section className="profile-moments">
             <div className="profile-section-heading">
               <h2>My Moments</h2>
               <span>{moments.length} moments</span>
@@ -758,8 +813,25 @@ async function deleteMoment() {
                 ))}
               </div>
             )}
-          </section> : <ProfileReels owner onOpenReel={onOpenReel} />}
+          </section>}
+          {(profileTab === 'All' || profileTab === 'Reels') && <section className="profile-reels-section"><h2>My Reels</h2><ProfileReels owner onOpenReel={onOpenReel} /></section>}
+          {profileTab === 'More' && <section className="profile-more-empty" aria-label="More features" />}
 
+{peopleModal && (
+          <div className="profile-people-overlay" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) setPeopleModal(null); }}>
+            <section className="profile-people-dialog" role="dialog" aria-modal="true" aria-label={peopleModal}>
+              <header><h2>{peopleModal} <span>({friends.length})</span></h2><button type="button" aria-label="Close" onClick={() => setPeopleModal(null)}>×</button></header>
+              <p>Friends on Blink are automatically your followers and following.</p>
+              <div className="profile-people-list">
+                {friends.map(friend => <button type="button" key={friend.friendshipId} onClick={() => { setPeopleModal(null); onOpenProfile(friend.user.id); }}>
+                  {friend.user.avatarKey ? <img alt="" src={mediaUrl(friend.user.avatarKey)} /> : <span>{friend.user.name.slice(0,1).toUpperCase()}</span>}
+                  <strong>{friend.user.name}</strong><small>View profile ›</small>
+                </button>)}
+                {!friends.length && <p>No connections yet.</p>}
+              </div>
+            </section>
+          </div>
+        )}
 {momentToDelete && (
   <div
     className="profile-delete-overlay"

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import './IrlPage.css';
+import PlanDateTimePicker from './PlanDateTimePicker';
 const API = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '');
 type Interest = { id: string; userId: string; reply: string; user: { id: string; name: string } };
 type Invitation = { id: string; recipientId: string; status: 'PENDING' | 'ACCEPTED' | 'DECLINED'; recipient?: { id: string; name: string }; plan?: { id: string; title: string; startsAt: string; creator: { name: string } } };
@@ -73,7 +74,13 @@ export default function IrlPage({ onBack, theme, onToggleTheme }: { onBack: () =
   }, [inboxPlanId, openInbox]);
   const refresh = useCallback(async () => { try { const nextPlans = await request('/irl/plans'); setPlans(nextPlans || []); setError(''); } catch (e) { setError(e instanceof Error ? e.message : 'Could not load plans.'); } finally { setLoading(false); } }, []);
   useEffect(() => { void refresh(); }, [refresh]);
-  async function create(e: FormEvent) { e.preventDefault(); setSaving(true); setError(''); try {
+  async function create(e: FormEvent) {
+    e.preventDefault();
+    if (!startsAt || !Number.isFinite(new Date(startsAt).getTime()) || new Date(startsAt).getTime() <= Date.now()) {
+      setError('Choose a future date and time for your plan.'); return;
+    }
+    setSaving(true); setError('');
+    try {
     await request('/irl/plans', 'POST', { title, category, description, place, startsAt: new Date(startsAt).toISOString() });
     setCompose(false); setTitle(''); setDescription(''); setPlace(''); setStartsAt(''); setMessage('Your IRL plan is live!'); await refresh();
   } catch (e) { setError(e instanceof Error ? e.message : 'Could not create plan.'); } finally { setSaving(false); } }
@@ -132,6 +139,6 @@ export default function IrlPage({ onBack, theme, onToggleTheme }: { onBack: () =
         </form>
       </section>
     </div>}
-    {compose && <div className="irl-overlay"  onMouseDown={e => { if (e.target === e.currentTarget) setCompose(false); }}><section className="irl-modal" role="dialog" aria-modal="true" aria-label="Create an IRL plan"><div className="irl-modal-head"><div><span className="irl-eyebrow">LET'S MAKE IT HAPPEN</span><h2>Create a plan ✦</h2></div><button onClick={() => setCompose(false)} aria-label="Close">×</button></div><form onSubmit={e => void create(e)}><label>What's the plan?<input required maxLength={120} value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Football this Saturday" /></label><label>Category<select value={category} onChange={e => setCategory(e.target.value)}>{categories.map(c => <option key={c}>{c}</option>)}</select></label><label>When?<input required type="datetime-local" value={startsAt} onChange={e => setStartsAt(e.target.value)}/></label><label>Suggested place (optional)<input maxLength={180} value={place} onChange={e => setPlace(e.target.value)} placeholder="e.g. Dhanmondi Lake" /></label><label>Tell your friends more<textarea rows={4} maxLength={1000} value={description} onChange={e => setDescription(e.target.value)} placeholder="What's the vibe? What should people bring?" /></label><p className="irl-hint">🔒 Only your Blink friends can see and reply.</p><button className="irl-primary irl-submit" type="submit" disabled={saving}>{saving ? 'Creating…' : 'Publish plan →'}</button></form></section></div>}
+    {compose && <div className="irl-overlay"  onMouseDown={e => { if (e.target === e.currentTarget) setCompose(false); }}><section className="irl-modal" role="dialog" aria-modal="true" aria-label="Create an IRL plan"><div className="irl-modal-head"><div><span className="irl-eyebrow">LET'S MAKE IT HAPPEN</span><h2>Create a plan ✦</h2></div><button onClick={() => setCompose(false)} aria-label="Close">×</button></div><form onSubmit={e => void create(e)}><label>What's the plan?<input required maxLength={120} value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Football this Saturday" /></label><label>Category<select value={category} onChange={e => setCategory(e.target.value)}>{categories.map(c => <option key={c}>{c}</option>)}</select></label><div className="irl-plan-time"><span className="irl-plan-label">When?</span><PlanDateTimePicker value={startsAt} onChange={setStartsAt}/></div><label>Suggested place (optional)<input maxLength={180} value={place} onChange={e => setPlace(e.target.value)} placeholder="e.g. Dhanmondi Lake" /></label><label>Tell your friends more<textarea rows={4} maxLength={1000} value={description} onChange={e => setDescription(e.target.value)} placeholder="What's the vibe? What should people bring?" /></label><p className="irl-hint">🔒 Only your Blink friends can see and reply.</p><button className="irl-primary irl-submit" type="submit" disabled={saving}>{saving ? 'Creating…' : 'Publish plan →'}</button></form></section></div>}
   </main>;
 }

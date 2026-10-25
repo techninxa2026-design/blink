@@ -10,7 +10,7 @@ import {
 import './App.css';
 import './MomentCreative.css';
 import { FACE_FILTERS, loadFaceLandmarker, paintFaceFilter, type FaceFilter, type FacePoint } from './MomentFaceFilters';
-import { MUSIC_TRACKS, makeMusicUrl, musicTrack } from './MomentMusic';
+import { MUSIC_TRACKS, makeMusicUrl, makeMusicUrlSync, musicTrack } from './MomentMusic';
 import MomentActions from './MomentActions';
 
 import SecretsPage from './SecretsPage';
@@ -292,14 +292,15 @@ export default function App() {
   const faceOverlayRef = useRef<HTMLCanvasElement | null>(null);
   const lastFaceRef = useRef<FacePoint[] | null>(null);
   const [musicChoice, setMusicChoice] = useState('');
-  const [captureMusicUrl, setCaptureMusicUrl] = useState('');
   const [viewerMusicUrl, setViewerMusicUrl] = useState('');
   const [musicPlaying, setMusicPlaying] = useState(false);
   const captureMusicRef = useRef<HTMLAudioElement | null>(null);
   const captureTrackRequestRef = useRef(0);
   const viewerMusicRef = useRef<HTMLAudioElement | null>(null);
+  const captureFilterScrollRef = useRef<HTMLDivElement | null>(null);
   const [recording, setRecording] = useState(false);
   const [cameraError, setCameraError] = useState('');
+  const [captureMusicError, setCaptureMusicError] = useState('');
   const [uploading, setUploading] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -786,24 +787,25 @@ export default function App() {
   // Picking a soundtrack starts the preview immediately; no player controls.
   // The audio element stays mounted throughout camera/review mode transitions.
   function chooseCaptureMusic(trackId: string) {
-    const request = ++captureTrackRequestRef.current;
+    ++captureTrackRequestRef.current;
     setMusicChoice(trackId);
-    setCaptureMusicUrl('');
+    setCaptureMusicError('');
     const audio = captureMusicRef.current;
-    if (audio) { audio.pause(); audio.currentTime = 0; }
+    if (audio) { audio.pause(); audio.removeAttribute('src'); audio.load(); }
     if (!trackId || !captureOpen) return;
-    void makeMusicUrl(trackId).then((url) => {
-      if (captureTrackRequestRef.current !== request) return;
-      setCaptureMusicUrl(url);
-      const player = captureMusicRef.current;
-      if (!player) return;
-      player.src = url;
-      player.volume = .55;
-      player.loop = true;
-      void player.play().catch(() => {
-        setCameraError('Your browser blocked soundtrack autoplay. Select the track again to start its preview.');
+    try {
+      // Playback starts inside the user's actual click, before any async step.
+      const url = makeMusicUrlSync(trackId);
+      if (!audio) return;
+      audio.src = url;
+      audio.volume = 0.55;
+      audio.loop = true;
+      void audio.play().catch(() => {
+        setCaptureMusicError('Preview paused by your browser. Press Play preview to start the soundtrack.');
       });
-    }).catch(() => setCameraError('Unable to preview this track.'));
+    } catch {
+      setCaptureMusicError('Unable to prepare this soundtrack. Try another track.');
+    }
   }
 
   useEffect(() => {
@@ -877,8 +879,8 @@ export default function App() {
     setFaceFilter('none');
     setFaceFilterError('');
     setMusicChoice('');
+    setCaptureMusicError('');
     ++captureTrackRequestRef.current;
-    setCaptureMusicUrl('');
     captureMusicRef.current?.pause();
     setSelectedNav('Home');
   }
@@ -901,8 +903,8 @@ export default function App() {
     setFaceFilter('none');
     setFaceFilterError('');
     setMusicChoice('');
+    setCaptureMusicError('');
     ++captureTrackRequestRef.current;
-    setCaptureMusicUrl('');
     captureMusicRef.current?.pause();
     setCameraError('');
     setSelectedNav('Capture');
@@ -1306,12 +1308,53 @@ export default function App() {
 
   // AUTH GUARD FOR ALL OTHER PAGES
 
+  // One shared bottom navigation for every authenticated Blink page.
+  const sharedNavigation = (
+<nav
+          className="home-bottom-nav"
+          aria-label="Main navigation"
+        >
+          {NAV.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              className={`bottom-nav-item ${
+                selectedNav === item.label &&
+                (route === 'home' || route === 'connections' || route === 'irl' ||
+                 route === 'checkins' || route === 'reels' || route === 'reel-detail' || route === 'reel-create')
+                  ? 'selected'
+                  : ''
+              } ${
+                item.label === 'Capture'
+                  ? 'capture-nav'
+                  : ''
+              }`}
+              aria-label={item.label}
+              onClick={() =>
+                item.label === 'Capture'
+                  ? (route !== 'home' ? (goTo('/home'), openCapture()) : openCapture())
+                  : goTo(item.path)
+              }
+            >
+              <span className="nav-symbol">
+                {item.icon}
+              </span>
+
+              <span className="nav-label">
+                {item.label}
+              </span>
+            </button>
+          ))}
+        </nav>
+  );
+
+
   const protectedScreen = (
     content: ReactNode,
     title: string,
   ) =>
     token() ? (
-      content
+      <>{content}{sharedNavigation}</>
     ) : (
       <main className="blink-guard">
         <h1>Sign in to use {title}</h1>
@@ -1541,6 +1584,7 @@ export default function App() {
     return protectedScreen(
       <ProfilePage
         onBack={() => goTo('/home')}
+        onOpenProfile={openPublicProfile}
         onOpenReel={(id) => goTo('/reels/' + encodeURIComponent(id))}
         theme={theme}
         onToggleTheme={toggleTheme}
@@ -1564,7 +1608,7 @@ export default function App() {
           Exchange post not found.
         </main>
       ),
-      'Blink Market',
+      'Blink Services',
     );
   }
 
@@ -1577,7 +1621,7 @@ export default function App() {
         theme={theme}
         onToggleTheme={toggleTheme}
       />,
-      'Blink Market',
+      'Blink Services',
     );
   }
 
@@ -1687,7 +1731,7 @@ export default function App() {
               </button>
 
               <button onClick={() => goTo('/Exchange')}>
-                💱 <span>Blink Market</span>
+                💱 <span>Blink Services</span>
               </button>
 
               <button onClick={() => goTo('/tasks')}>
@@ -1813,19 +1857,7 @@ export default function App() {
     </h1>
   </div>
 
-  <div className="blink-moment-heading-actions">
-    <span className="feed-count">
-      {moments.length} moments
-    </span>
-
-    <button
-      type="button"
-      className="feed-create-button"
-      onClick={openCapture}
-    >
-      + Create
-    </button>
-  </div>
+  {/* Creation is accessible from the persistent Capture button. */}
 </div>
 
 
@@ -1927,50 +1959,11 @@ export default function App() {
                   Load more moments
                 </button>
               )}
-
-              <p className="swipe-hint">
-                Select a moment to view it
-              </p>
             </>
           )}
         </section>
 
-        {/* STICKY TRANSPARENT NAVBAR */}
-
-        <nav
-          className="home-bottom-nav"
-          aria-label="Main navigation"
-        >
-          {NAV.map((item) => (
-            <button
-              key={item.label}
-              type="button"
-              className={`bottom-nav-item ${
-                selectedNav === item.label
-                  ? 'selected'
-                  : ''
-              } ${
-                item.label === 'Capture'
-                  ? 'capture-nav'
-                  : ''
-              }`}
-              aria-label={item.label}
-              onClick={() =>
-                item.label === 'Capture'
-                  ? openCapture()
-                  : goTo(item.path)
-              }
-            >
-              <span className="nav-symbol">
-                {item.icon}
-              </span>
-
-              <span className="nav-label">
-                {item.label}
-              </span>
-            </button>
-          ))}
-        </nav>
+        {sharedNavigation}
 
         {/* FLOATING INBOX */}
 
@@ -2185,7 +2178,7 @@ export default function App() {
             aria-modal="true"
             aria-label="Create a Moment"
           >
-            <audio ref={captureMusicRef} src={captureMusicUrl} loop preload="auto" aria-hidden="true" />
+            <audio ref={captureMusicRef} loop preload="auto" aria-hidden="true" />
             <div className="capture-topbar">
               <button
                 type="button"
@@ -2341,7 +2334,9 @@ export default function App() {
               {!capturedUrl && captureMode === 'photo' && !recording && (
                 <div className="capture-filters" aria-label="Photo face filters">
                   <div className="capture-feature-heading"><strong>✨ Blink AR Lenses</strong><small>Photo only · live face tracking</small></div>
-                  <div className="capture-filter-scroll">
+                  <div className="capture-filter-navigator">
+                    <button type="button" className="capture-filter-arrow" aria-label="Scroll lenses left" onClick={() => captureFilterScrollRef.current?.scrollBy({left:-240,behavior:'smooth'})}>‹</button>
+                    <div className="capture-filter-scroll" ref={captureFilterScrollRef} role="region" aria-label="Blink AR lenses" tabIndex={0}>
                     {FACE_FILTERS.map((item) => (
                       <button key={item.id} type="button" className={'capture-filter-option' + (faceFilter === item.id ? ' selected' : '')}
                         aria-pressed={faceFilter === item.id}
@@ -2350,6 +2345,8 @@ export default function App() {
                         <small>{item.label}</small>
                       </button>
                     ))}
+                    </div>
+                    <button type="button" className="capture-filter-arrow" aria-label="Scroll lenses right" onClick={() => captureFilterScrollRef.current?.scrollBy({left:240,behavior:'smooth'})}>›</button>
                   </div>
                 </div>
               )}
@@ -2390,10 +2387,17 @@ export default function App() {
                         </button>
                       ))}
                     </div>
+                    {captureMusicError && <p className="capture-music-alert" role="alert">🔊 {captureMusicError}</p>}
                     {musicChoice && <div className="capture-music-preview" role="status">
                       <span className="capture-playing-bars" aria-hidden="true"><i/><i/><i/><i/></span>
-                      <span>♪ {musicTrack(musicChoice)?.title} · Preview playing</span>
-                      <small>Tap another song to switch or No music to stop.</small>
+                      <span>♪ {musicTrack(musicChoice)?.title} · Soundtrack selected</span>
+                       <button type="button" className="capture-audio-retry" onClick={() => {
+                         const player = captureMusicRef.current;
+                         if (!player) return;
+                         player.currentTime = 0;
+                         void player.play().then(() => setCaptureMusicError('')).catch(() => setCaptureMusicError('Allow audio in your browser, then tap Play preview.'));
+                       }}>▶ Play preview</button>
+                      <small>Choose another track or No music to stop.</small>
                     </div>}
                     <p className="capture-music-note">Music plays with this Moment in Blink. Original video sound stays intact; no copyrighted catalog songs are used.</p>
                   </div>

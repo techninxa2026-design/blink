@@ -11,14 +11,9 @@ import './ExchangePage.css';
 // If using a Vite proxy, change both to '/blink-api'.
 const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '');
 
-const kinds = [
-  'OFFER',
-  'REQUEST',
-  'ADVICE',
-  'COLLABORATION',
-] as const;
+const kinds = ['OFFER', 'REQUEST', 'COLLABORATION'] as const;
 
-type Kind = (typeof kinds)[number];
+type Kind = 'OFFER' | 'REQUEST' | 'ADVICE' | 'COLLABORATION';
 type Status = 'OPEN' | 'CLOSED';
 
 type ExchangeMedia = {
@@ -60,8 +55,8 @@ type Props = {
 };
 
 const kindLabels: Record<Kind, string> = {
-  OFFER: 'Offering help',
-  REQUEST: 'Looking for help',
+  OFFER: 'Offering Service',
+  REQUEST: 'Looking For Service',
   ADVICE: 'Advice',
   COLLABORATION: 'Collaboration',
 };
@@ -99,7 +94,7 @@ async function api<T>(
 
   if (!token) {
     throw new Error(
-      'Please sign in to use Blink Market.',
+      'Please sign in to use Blink Services.',
     );
   }
 
@@ -373,7 +368,7 @@ export default function ExchangePage({
       setNotice(
         editingId
           ? 'Your post was updated.'
-          : 'Your post is live on Blink Market.',
+          : 'Your service is live on Blink!',
       );
 
       closeComposer();
@@ -417,7 +412,7 @@ export default function ExchangePage({
       );
 
       setNotice(
-        'Your Market post was deleted.',
+        'Your service post was deleted.',
       );
 
       refresh();
@@ -448,7 +443,7 @@ export default function ExchangePage({
         </button>
 
         <span className="Exchange-brand">
-          Blink <strong>Market</strong>
+          Blink <strong>Services</strong>
         </span>
 
         <button
@@ -469,13 +464,13 @@ export default function ExchangePage({
         <section className="Exchange-hero">
           <div>
             <span className="Exchange-eyebrow">
-              PEOPLE HELPING PEOPLE
+              BLINK HELPING PEOPLE
             </span>
 
             <h1>
-              Small Markets.
+              Big Market.
               <br />
-              <em>Real opportunities.</em>
+              <em>Huge Opportunities.</em>
             </h1>
 
             <p>
@@ -496,7 +491,7 @@ export default function ExchangePage({
           >
             {composerOpen
               ? '× Close'
-              : '+ Create Market'}
+              : '+ Create Service'}
           </button>
         </section>
 
@@ -527,7 +522,7 @@ export default function ExchangePage({
             <div className="Exchange-section-head">
               <h2>
                 {editingId
-                  ? 'Edit your Market'
+                  ? 'Edit your Service'
                   : 'What would you like to share?'}
               </h2>
             </div>
@@ -535,7 +530,7 @@ export default function ExchangePage({
             <form onSubmit={savePost}>
 
               <label>
-                Market type
+                Service type
 
                 <select
                   value={draftKind}
@@ -684,7 +679,7 @@ export default function ExchangePage({
                     ? 'Saving…'
                     : editingId
                       ? 'Save changes'
-                      : 'Publish Market'}
+                      : 'Publish Service'}
                 </button>
               </div>
             </form>
@@ -695,7 +690,7 @@ export default function ExchangePage({
 
         <section className="Exchange-toolbar">
           <div className="Exchange-section-head">
-            <h2>Explore Markets</h2>
+            <h2>Explore Services</h2>
 
             <span>
               {result?.total ?? 0} posts
@@ -704,7 +699,7 @@ export default function ExchangePage({
 
           <div className="Exchange-filterbar">
             <input
-              aria-label="Search Markets"
+              aria-label="Search Services"
               placeholder="Search skills, services or opportunities…"
               value={search}
               onChange={(e) => {
@@ -714,7 +709,7 @@ export default function ExchangePage({
             />
 
             <select
-              aria-label="Exchange type"
+              aria-label="Service type"
               value={kind}
               onChange={(e) => {
                 setKind(
@@ -750,8 +745,8 @@ export default function ExchangePage({
               }}
             >
               {mine
-                ? '✓ My posts'
-                : 'My posts'}
+                ? '✓ My Services'
+                : 'My Services'}
             </button>
           </div>
         </section>
@@ -760,7 +755,7 @@ export default function ExchangePage({
 
         {loading && (
           <p className="Exchange-state">
-            Loading Markets…
+            Loading Services…
           </p>
         )}
 
@@ -770,7 +765,7 @@ export default function ExchangePage({
           !error &&
           result?.items.length === 0 && (
             <div className="Exchange-empty">
-              No matching Markets yet.
+              No matching services yet.
               Be the first to create one!
             </div>
           )}

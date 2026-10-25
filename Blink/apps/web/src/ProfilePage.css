@@ -519,3 +519,50 @@
     height: 30px;
   }
 }
+
+/* Profile redesign: compact stats, accessible modal, and section-based layout. */
+.profile-container{padding-bottom:130px;max-width:1200px}
+.profile-topbar img{background:#fff;border-radius:10px;padding:3px 9px;box-sizing:content-box}
+.profile-details{padding-bottom:12px}
+.profile-details .profile-name-row{position:relative;min-height:55px;justify-content:center;padding:0 clamp(12px,12vw,175px)}
+.profile-details .profile-name-row h1{font-size:clamp(25px,3.2vw,38px);overflow-wrap:anywhere}
+.profile-edit-button{position:absolute;right:clamp(10px,3vw,32px);top:4px;background:var(--card-bg);display:inline-flex;gap:7px;align-items:center;border-radius:13px}
+.profile-bio{margin:6px auto 12px}
+.profile-stats{margin:0 auto 18px;padding:8px 4px;gap:clamp(12px,2vw,30px);border:0;max-width:420px}
+.profile-stat-button{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:90px;padding:9px 14px;border:1px solid transparent;border-radius:15px;color:var(--text);background:transparent;cursor:pointer}
+.profile-stat-button:hover,.profile-stat-button:focus-visible{background:var(--soft-brand);border-color:var(--border)}
+.profile-stat-button strong{font-size:21px}
+.profile-stat-button span{font-size:12px;color:var(--muted)}
+.profile-sections-nav{display:flex;gap:6px;padding:12px 0;border-block:1px solid var(--border);overflow-x:auto;scrollbar-width:none;margin:10px 0 24px}
+.profile-sections-nav::-webkit-scrollbar{display:none}
+.profile-sections-nav button{flex:1 0 auto;border:0;border-radius:10px;padding:12px 16px;background:transparent;color:var(--muted);font-weight:750;cursor:pointer}
+.profile-sections-nav button.active{background:var(--brand);color:#fff}
+.profile-sections-nav button:not(.active):hover{background:var(--soft-brand);color:var(--text)}
+.profile-about-card,.profile-reels-section{padding:clamp(16px,3vw,26px);margin:18px 0;border:1px solid var(--border);border-radius:22px;background:var(--card-bg);color:var(--text)}
+.profile-about-card h2,.profile-reels-section h2{font-size:21px;margin:0 0 16px}
+.profile-about-card h2 small{color:var(--muted);font-weight:500}
+.profile-about-intro{font-size:14px;color:var(--muted)}
+.profile-about-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.profile-about-grid>div{min-width:0;padding:14px;border:1px solid var(--border);border-radius:14px;background:var(--page-bg)}
+.profile-about-grid span,.profile-about-grid strong{display:block;overflow-wrap:anywhere}
+.profile-about-grid span{color:var(--muted);font-size:12px;margin-bottom:6px}
+.profile-about-grid strong{font-size:14px}
+.profile-about-edit{margin-top:16px;padding:10px 16px;background:var(--soft-brand);border:1px solid var(--brand);color:var(--brand);border-radius:12px;font-weight:750;cursor:pointer}
+.profile-friends-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.profile-friends-list button{display:flex;align-items:center;gap:10px;min-height:65px;padding:9px;border:1px solid var(--border);border-radius:12px;background:var(--page-bg);color:var(--text);text-align:left;cursor:pointer}
+.profile-friends-list button:hover{border-color:var(--brand)}
+.profile-friends-list img,.profile-friends-list button>span{display:grid;place-items:center;width:42px;height:42px;border-radius:50%;object-fit:cover;background:var(--brand);color:white;font-weight:800}
+.profile-edit-form{max-width:690px;border-color:var(--border);background:var(--card-bg)}
+.profile-edit-group-label{margin:15px 0 5px;font-size:15px;font-weight:850;color:var(--brand);border-top:1px solid var(--border);padding-top:14px}
+.profile-people-overlay{position:fixed;inset:0;z-index:120;background:#0009;display:grid;place-items:center;padding:16px}
+.profile-people-dialog{width:min(100%,510px);max-height:80dvh;display:flex;flex-direction:column;overflow:hidden;background:var(--card-bg);color:var(--text);border-radius:22px;box-shadow:0 30px 80px #0005}
+.profile-people-dialog>header{display:flex;justify-content:space-between;align-items:center;padding:20px 22px 12px;border-bottom:1px solid var(--border)}
+.profile-people-dialog h2{margin:0;font-size:23px}.profile-people-dialog h2 span{font-size:15px;color:var(--muted)}
+.profile-people-dialog>header button{background:transparent;border:0;font-size:29px;color:var(--text);cursor:pointer}
+.profile-people-dialog>p{padding:0 22px;color:var(--muted);font-size:13px}
+.profile-people-list{overflow-y:auto;padding:4px 22px 20px}
+.profile-people-list button{display:flex;align-items:center;gap:11px;width:100%;text-align:left;padding:12px 0;border:0;border-bottom:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer}
+.profile-people-list button:hover strong{color:var(--brand)}
+.profile-people-list img,.profile-people-list button>span{display:grid;place-items:center;width:45px;height:45px;border-radius:50%;background:var(--brand);color:white;object-fit:cover}
+.profile-people-list button small{margin-left:auto;color:var(--muted)}
+@media(max-width:650px){.profile-details .profile-name-row{padding:0;display:flex;flex-direction:column;gap:7px}.profile-edit-button{position:static}.profile-about-grid{grid-template-columns:1fr}.profile-stat-button{min-width:0;flex:1}.profile-stats{gap:3px}.profile-sections-nav button{padding:11px 14px}}

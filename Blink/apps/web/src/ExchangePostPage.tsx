@@ -686,11 +686,11 @@ export default function ExchangePostPage({
           onClick={onBack}
         >
           <span>←</span>
-          All Exchanges
+          All Services
         </button>
 
         <div className="ed-brand">
-          Blink <span>Exchange</span>
+          Blink <span>Services</span>
         </div>
 
         <button
@@ -704,7 +704,7 @@ export default function ExchangePostPage({
 
       {loading && (
         <div className="ed-loading">
-          Loading Exchange…
+          Loading Service…
         </div>
       )}
 
@@ -781,7 +781,7 @@ export default function ExchangePostPage({
             <div className="ed-post-body">
 
               <div className="ed-section-label">
-                ABOUT THIS Exchange
+                ABOUT THIS SERVICE
               </div>
 
               <p className="ed-description">
@@ -1074,10 +1074,10 @@ export default function ExchangePostPage({
 
                   <span>
                     {threadId
-                      ? 'Private Exchange chat'
+                      ? 'Private Service chat'
                       : isOwner
                         ? 'Choose someone from Messages'
-                        : 'Discuss this Exchange privately'}
+                        : 'Discuss this Service privately'}
                   </span>
                 </div>
 
@@ -1176,7 +1176,7 @@ export default function ExchangePostPage({
                     ) : (
                       <>
                         <h3>
-                          Interested in this Exchange?
+                          Interested in this Service?
                         </h3>
 
                         <p>
@@ -1198,7 +1198,7 @@ export default function ExchangePostPage({
                           }
                         >
                           {post.status === 'CLOSED'
-                            ? 'Exchange closed'
+                            ? 'Service closed'
                             : starting
                               ? 'Starting…'
                               : 'Start conversation →'}

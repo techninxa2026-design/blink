@@ -13,6 +13,10 @@ const UPLOAD_DIR = join(__dirname, '..', '..', 'uploads');
 type UpdateProfileBody = {
   name?: string;
   bio?: string | null;
+  college?: string | null;
+  highSchool?: string | null;
+  occupation?: string | null;
+  workplace?: string | null;
 };
 
 @Injectable()
@@ -30,6 +34,10 @@ export class ProfileService {
         phoneNumber: true,
         avatarKey: true,
         bio: true,
+        college: true,
+        highSchool: true,
+        occupation: true,
+        workplace: true,
         coverKey: true,
         createdAt: true,
         _count: {
@@ -64,8 +72,8 @@ export class ProfileService {
       bio: user.bio,
       coverKey: user.coverKey,
       createdAt: user.createdAt,
-      followersCount: user._count.receivedRequests,
-      followingCount: user._count.sentRequests,
+      followersCount: connections,
+      followingCount: connections,
       connectionsCount: connections,
     };
   }
@@ -113,6 +121,20 @@ export class ProfileService {
       }
 
       data.bio = bio || null;
+    }
+
+    // Optional education and work details; trim and validate on the server.
+    for (const field of ['college', 'highSchool', 'occupation', 'workplace'] as const) {
+      const value = body[field];
+      if (value === undefined) continue;
+      if (value !== null && typeof value !== 'string') {
+        throw new BadRequestException(`${field} must be text.`);
+      }
+      const cleaned = typeof value === 'string' ? value.trim() : '';
+      if (cleaned.length > 160) {
+        throw new BadRequestException(`${field} cannot exceed 160 characters.`);
+      }
+      data[field] = cleaned || null;
     }
 
     if (Object.keys(data).length === 0) {
@@ -223,6 +245,10 @@ async getPublicProfile(viewerId: string, userId: string) {
       id: true,
       name: true,
       bio: true,
+      college: true,
+      highSchool: true,
+      occupation: true,
+      workplace: true,
       avatarKey: true,
       coverKey: true,
       createdAt: true,

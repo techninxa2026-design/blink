@@ -117,7 +117,7 @@ export default function FriendsPage({
   const [incoming, setIncoming] = useState<FriendRequest[]>([]);
   const [outgoing, setOutgoing] = useState<FriendRequest[]>([]);
   const [friends, setFriends] = useState<Friend[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -146,60 +146,30 @@ export default function FriendsPage({
 
   useEffect(() => {
     const search = query.trim();
-
-    if (!search) {
-      setResults([]);
-      setLoading(false);
-      return;
-    }
-
     let cancelled = false;
     const controller = new AbortController();
-
+    // Show every public Blink member immediately, then filter as they type.
     const timeout = window.setTimeout(async () => {
       setLoading(true);
-
       try {
-        const token = getToken();
-
-        if (!token) {
-          throw new Error('Please sign in again.');
-        }
-
+        const auth = getToken();
+        if (!auth) throw new Error('Please sign in again.');
         const response = await fetch(
           `${API_URL}/friends/search?q=${encodeURIComponent(search)}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-            signal: controller.signal,
-          },
+          { headers: { Authorization: `Bearer ${auth}` }, signal: controller.signal },
         );
-
-        if (!response.ok) {
-          throw new Error('Could not search users.');
-        }
-
+        if (!response.ok) throw new Error('Could not load Blink users.');
         const users = (await response.json()) as PublicUser[];
-
-        if (!cancelled) {
-          setResults(users);
-          setError('');
-        }
+        if (!cancelled) { setResults(users); setError(''); }
       } catch (err) {
-        if (!cancelled && !controller.signal.aborted) {
-          setError(
-            err instanceof Error ? err.message : 'Search failed.',
-          );
-        }
+        if (!cancelled && !controller.signal.aborted)
+          setError(err instanceof Error ? err.message : 'Could not load Blink users.');
       } finally {
         if (!cancelled) setLoading(false);
       }
-    }, 300);
+    }, search ? 200 : 0);
+    return () => { cancelled = true; window.clearTimeout(timeout); controller.abort(); };
 
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timeout);
-      controller.abort();
-    };
   }, [query]);
 
 
@@ -334,7 +304,7 @@ async function unfriend(userId: string, name: string) {
             />
 
             {loading ? (
-              <p className="friends-empty">Searching...</p>
+              <p className="friends-empty">Loading Blink members…</p>
             ) : !query.trim() ? (
               <p className="friends-empty">
                 Enter a name to find someone on Blink.

@@ -226,7 +226,7 @@ export default function ReelsPage({
       <button type="button" onClick={onBack}>← Home</button>
       <strong>blink<span>●</span> Reels</strong>
       <div><button type="button" onClick={onToggleTheme}>{theme === 'light' ? '☾' : '☀'}</button>
-        <button type="button" className="br-primary small" onClick={onCreate}>＋ Create</button></div>
+</div>
     </header>
     <div className="br-container br-reels-feed">
       <div className="br-feed-heading">
@@ -247,10 +247,10 @@ export default function ReelsPage({
             if (Math.abs(delta) > 55) navigate(delta > 0 ? 1 : -1);
           }}>
           <div className="br-feed-arrows">
-            <button type="button" aria-label="Previous Reel" disabled={index === 0} onClick={() => navigate(-1)}>⌃</button>
+            <button type="button" aria-label="Previous Reel" disabled={index === 0} onClick={() => navigate(-1)}><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 15 6-6 6 6"/></svg></button>
             <span>{index + 1} / {reels.length}{nextOffset !== null ? '+' : ''}</span>
             <button type="button" aria-label="Next Reel" disabled={index === reels.length - 1 && nextOffset === null}
-              onClick={() => index === reels.length-1 ? void loadMore() : navigate(1)}>⌄</button>
+              onClick={() => index === reels.length-1 ? void loadMore() : navigate(1)}><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
           </div>
           <article className="br-viewer" aria-label="Current Reel">
             <video key={reel.id} ref={videoRef} className="br-player" playsInline muted={muted}
@@ -295,10 +295,11 @@ export default function ReelsPage({
           </article>
           <div className="br-feed-rail">
             <strong>Explore Reels</strong><p>Swipe up for the next Reel.</p>
-            <button type="button" onClick={onCreate}>＋ Create Reel</button>
+            
             {loadingMore && <p>Loading more…</p>}
           </div>
         </div>}
+      <button type="button" className="br-create-floating" onClick={onCreate}>＋ Create Reel</button>
       {panel && <div className="br-panel-backdrop" onClick={() => setPanel(null)}>
         <section className="br-panel" role="dialog" aria-modal="true"
           aria-label={panel === 'comments' ? 'Reel comments' : 'Share Reel to Inbox'}
