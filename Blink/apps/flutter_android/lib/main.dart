@@ -1,3 +1,4 @@
+import 'capture_screen.dart';
 import 'reels_screen.dart';
 import 'inbox_screen.dart';
 import 'dart:convert';
@@ -61,7 +62,7 @@ class _BlinkAppState extends State<BlinkApp> {
               body: switch (tab) {
                 0 => MomentsFeed(token: token!),
                 1 => ReelsScreen(token: token!),
-                2 => const Center(child: Text('Capture — next migration module')),
+                2 => CaptureScreen(token: token!),
                 3 => InboxScreen(token: token!),
                 _ => Center(child: Text('Hello, ${user?['name'] ?? 'Blink user'}')),
               },
@@ -71,7 +72,7 @@ class _BlinkAppState extends State<BlinkApp> {
                 destinations: const [
                   NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
                   NavigationDestination(icon: Icon(Icons.play_circle_outline), label: 'Reels'),
-                  NavigationDestination(icon: Icon(Icons.add_circle_outline), label: 'Create'),
+                  NavigationDestination(icon: Icon(Icons.add_circle_outline), label: 'Capture'),
                   NavigationDestination(icon: Icon(Icons.chat_bubble_outline), label: 'Inbox'),
                   NavigationDestination(icon: Icon(Icons.person_outline), label: 'Profile'),
                 ],
