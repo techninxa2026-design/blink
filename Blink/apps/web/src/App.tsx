@@ -1583,6 +1583,7 @@ export default function App() {
     return protectedScreen(
       <ProfilePage
         onBack={() => goTo('/home')}
+        onOpenProfile={openPublicProfile}
         onOpenReel={(id) => goTo('/reels/' + encodeURIComponent(id))}
         theme={theme}
         onToggleTheme={toggleTheme}
