@@ -34,7 +34,7 @@ export function useActiveCheckins(enabled = true) {
 }
 
 export function CheckinTile({ item, onClick }: { item: ActiveCheckin; onClick?: () => void }) {
-  const contents = <><span className="blink-ci-tile-emoji">{item.emoji}</span><span className="blink-ci-tile-copy"><strong>{item.user?.name || 'Blink friend'}</strong><span>{item.status}</span>{item.note && <small>{item.note}</small>}</span></>;
+  const contents = <><span className="blink-ci-tile-copy"><strong>{item.user?.name || 'Blink friend'}</strong><span>{item.status} {item.emoji}</span>{item.note && <small>{item.note}</small>}</span></>;
   return onClick ? <button type="button" className="blink-ci-tile" onClick={onClick}>{contents}<span aria-hidden="true">›</span></button> : <div className="blink-ci-tile">{contents}</div>;
 }
 
