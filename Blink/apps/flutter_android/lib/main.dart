@@ -1,3 +1,4 @@
+import 'profile_screen.dart';
 import 'capture_screen.dart';
 import 'reels_screen.dart';
 import 'inbox_screen.dart';
@@ -64,7 +65,7 @@ class _BlinkAppState extends State<BlinkApp> {
                 1 => ReelsScreen(token: token!),
                 2 => CaptureScreen(token: token!),
                 3 => InboxScreen(token: token!),
-                _ => Center(child: Text('Hello, ${user?['name'] ?? 'Blink user'}')),
+                _ => ProfileScreen(token: token!),
               },
               bottomNavigationBar: NavigationBar(
                 selectedIndex: tab,
