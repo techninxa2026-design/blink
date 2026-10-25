@@ -94,7 +94,7 @@ async function api<T>(
 
   if (!token) {
     throw new Error(
-      'Please sign in to use Blink Market.',
+      'Please sign in to use Blink Services.',
     );
   }
 
@@ -368,7 +368,7 @@ export default function ExchangePage({
       setNotice(
         editingId
           ? 'Your post was updated.'
-          : 'Your post is live on Blink Market.',
+          : 'Your service is live on Blink!',
       );
 
       closeComposer();
@@ -679,7 +679,7 @@ export default function ExchangePage({
                     ? 'Saving…'
                     : editingId
                       ? 'Save changes'
-                      : 'Publish Market'}
+                      : 'Publish Service'}
                 </button>
               </div>
             </form>
@@ -709,7 +709,7 @@ export default function ExchangePage({
             />
 
             <select
-              aria-label="Exchange type"
+              aria-label="Service type"
               value={kind}
               onChange={(e) => {
                 setKind(
