@@ -596,15 +596,7 @@ async function deleteMoment() {
             <div className="profile-name-row">
               <h1>{profile.name}</h1>
 
-              {!isEditing && (
-                <button
-                  type="button"
-                  className="profile-edit-button"
-                  onClick={startEditing}
-                >
-                  <span aria-hidden="true">✎</span> Edit Profile
-                </button>
-              )}
+              
             </div>
 
             {profile.bio && <p className="profile-bio">{profile.bio}</p>}
