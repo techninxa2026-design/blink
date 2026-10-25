@@ -1608,7 +1608,7 @@ export default function App() {
           Exchange post not found.
         </main>
       ),
-      'Blink Market',
+      'Blink Services',
     );
   }
 
@@ -1621,7 +1621,7 @@ export default function App() {
         theme={theme}
         onToggleTheme={toggleTheme}
       />,
-      'Blink Market',
+      'Blink Services',
     );
   }
 
@@ -1731,7 +1731,7 @@ export default function App() {
               </button>
 
               <button onClick={() => goTo('/Exchange')}>
-                💱 <span>Blink Market</span>
+                💱 <span>Blink Services</span>
               </button>
 
               <button onClick={() => goTo('/tasks')}>
