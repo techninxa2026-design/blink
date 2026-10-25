@@ -247,10 +247,10 @@ export default function ReelsPage({
             if (Math.abs(delta) > 55) navigate(delta > 0 ? 1 : -1);
           }}>
           <div className="br-feed-arrows">
-            <button type="button" aria-label="Previous Reel" disabled={index === 0} onClick={() => navigate(-1)}>⌃</button>
+            <button type="button" aria-label="Previous Reel" disabled={index === 0} onClick={() => navigate(-1)}><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 15 6-6 6 6"/></svg></button>
             <span>{index + 1} / {reels.length}{nextOffset !== null ? '+' : ''}</span>
             <button type="button" aria-label="Next Reel" disabled={index === reels.length - 1 && nextOffset === null}
-              onClick={() => index === reels.length-1 ? void loadMore() : navigate(1)}>⌄</button>
+              onClick={() => index === reels.length-1 ? void loadMore() : navigate(1)}><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
           </div>
           <article className="br-viewer" aria-label="Current Reel">
             <video key={reel.id} ref={videoRef} className="br-player" playsInline muted={muted}
