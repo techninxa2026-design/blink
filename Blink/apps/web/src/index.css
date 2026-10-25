@@ -376,3 +376,19 @@ button {
     max-height: 58dvh;
   }
 }
+
+/* Shared typography and scroll system across all feature pages. */
+:root{--blink-font:Inter,"Segoe UI",Roboto,Arial,sans-serif;--blink-base-size:16px}
+html{font-size:var(--blink-base-size);overflow-x:clip;scrollbar-color:var(--brand) var(--page-bg);scrollbar-width:thin}
+body,#root{max-width:100%;overflow-x:clip}
+body,button,input,select,textarea{font-family:var(--blink-font)}
+button,input,select,textarea{font-size:inherit}
+h1,h2,h3,h4{line-height:1.18;letter-spacing:-.025em}
+p{line-height:1.55}
+*::-webkit-scrollbar{width:9px;height:9px}
+*::-webkit-scrollbar-track{background:var(--page-bg);border-radius:12px}
+*::-webkit-scrollbar-thumb{background:var(--brand);border-radius:12px;border:2px solid var(--page-bg)}
+*::-webkit-scrollbar-thumb:hover{background:#d85900}
+:root[data-theme="dark"]{scrollbar-color:#fb6c00 #201e1b}
+:where(.capture-filter-scroll,.blink-notes-row,.friends-tabs,.ci-emojis,.irl-filters,.profile-media-tabs){scrollbar-width:none;-ms-overflow-style:none}
+:where(.capture-filter-scroll,.blink-notes-row,.friends-tabs,.ci-emojis,.irl-filters,.profile-media-tabs)::-webkit-scrollbar{display:none}
