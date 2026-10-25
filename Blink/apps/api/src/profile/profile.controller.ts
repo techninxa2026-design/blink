@@ -40,6 +40,10 @@ interface AuthenticatedRequest extends Request {
 type UpdateProfileBody = {
   name?: string;
   bio?: string | null;
+  college?: string | null;
+  highSchool?: string | null;
+  occupation?: string | null;
+  workplace?: string | null;
 };
 
 function imageUploadOptions(maxBytes: number) {
