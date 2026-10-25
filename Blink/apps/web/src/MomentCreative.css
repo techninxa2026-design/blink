@@ -162,3 +162,10 @@
   .capture-filter-option{flex-basis:71px;min-height:79px;}
 }
 @media(prefers-reduced-motion:reduce){.capture-playing-bars i{animation:none}}
+
+/* Horizontal swipe stays functional without a distracting system scrollbar. */
+.capture-filter-scroll{scrollbar-width:none;-ms-overflow-style:none;overscroll-behavior-x:contain;scroll-padding-inline:12px}
+.capture-filter-scroll::-webkit-scrollbar{display:none}
+.capture-filter-option{transition:transform .18s,border-color .18s,box-shadow .18s}
+.capture-filter-option:hover,.capture-filter-option:focus-visible{transform:translateY(-2px);box-shadow:0 6px 15px #0004}
+.capture-music-list{scrollbar-color:#fb6c00 #28242b;scrollbar-width:thin}
