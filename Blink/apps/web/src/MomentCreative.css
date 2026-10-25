@@ -175,3 +175,5 @@
 .capture-filter-arrow{flex:0 0 34px;display:grid;place-items:center;height:57px;border:1px solid #fb6c0070;border-radius:12px;background:#fb6c0025;color:#ff9b58;font-size:31px;cursor:pointer}
 .capture-filter-arrow:hover,.capture-filter-arrow:focus-visible{background:#fb6c00;color:#fff}
 .capture-filter-scroll:focus-visible{outline:2px solid #fb6c00;border-radius:12px}
+
+.capture-music-alert{margin:2px 0;padding:11px 14px;border:1px solid #fca55d;border-radius:12px;background:#663015;color:#ffdfb9;font-size:12px;line-height:1.55}
