@@ -1,0 +1,29 @@
+
+/* Blink native-feeling, keyboard accessible IRL date/time picker. */
+.blink-date-time{width:100%;position:relative;display:grid;gap:11px;color:var(--irl-text)}
+.blink-date-trigger{display:flex;align-items:center;gap:13px;width:100%;padding:13px 16px;border:1px solid var(--irl-border);border-radius:15px;background:var(--irl-surface);color:var(--irl-text);text-align:left;cursor:pointer;box-shadow:0 4px 20px #00000008}
+.blink-date-trigger>span:first-child{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:#fff0e5;font-size:24px}
+.blink-date-trigger>span:nth-child(2){display:grid;gap:4px;flex:1}.blink-date-trigger strong{font-size:15px}.blink-date-trigger small{font-size:11px;color:var(--irl-muted)}
+.blink-date-trigger.active,.blink-date-trigger:hover{border-color:#fb6c00}
+.blink-date-chevron{font-size:19px;color:var(--irl-orange)}
+.blink-calendar{border:1px solid var(--irl-border);background:var(--irl-surface);border-radius:19px;padding:16px;box-shadow:0 13px 38px #0002}
+.blink-calendar-head,.blink-calendar-head>div{display:flex;align-items:center;justify-content:space-between;gap:7px}
+.blink-calendar-head strong{font-size:16px}.blink-calendar-head button{width:34px;height:34px;border:1px solid var(--irl-border);border-radius:11px;background:var(--irl-surface);color:var(--irl-text);font-size:25px;line-height:1;cursor:pointer}
+.blink-calendar-head button:hover:not(:disabled){border-color:var(--irl-orange);color:var(--irl-orange)}
+.blink-calendar-head button:disabled{opacity:.25;cursor:not-allowed}
+.blink-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin-top:13px}
+.blink-calendar-weekday{text-align:center;font-size:11px;color:var(--irl-muted);font-weight:800;padding:6px 0}
+.blink-calendar-grid button{height:39px;display:grid;place-items:center;padding:0;border:1px solid transparent;border-radius:11px;background:transparent;color:var(--irl-text);font-size:13px;cursor:pointer}
+.blink-calendar-grid button:hover:not(:disabled){background:#fff0e5;border-color:#ffc496;color:#ab4800}
+.blink-calendar-grid button.today{border-color:var(--irl-orange)}
+.blink-calendar-grid button.selected,.blink-calendar-grid button.selected:hover{background:#fb6c00;color:#fff;border-color:#fb6c00;font-weight:850}
+.blink-calendar-grid button:disabled{color:var(--irl-muted);opacity:.3;cursor:not-allowed}
+.blink-calendar-foot{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--irl-border);margin-top:13px;padding-top:12px;color:var(--irl-muted);font-size:12px}
+.blink-calendar-foot>span{color:var(--irl-orange)}.blink-calendar-foot button{border:0;background:transparent;color:var(--irl-orange);font-weight:800;cursor:pointer}
+.blink-time-picker{display:flex;align-items:end;gap:8px;border:1px solid var(--irl-border);border-radius:15px;background:var(--irl-surface);padding:10px 12px}
+.blink-time-picker>span:first-child{font-size:22px;align-self:center;padding:0 6px}
+.blink-time-picker label{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;font-size:11px!important;color:var(--irl-muted)}
+.blink-time-picker select{width:100%;padding:8px 7px!important;border-radius:9px!important;font-size:16px!important;color:var(--irl-text);font-weight:800;background:var(--irl-surface)!important}
+.blink-time-colon{font-weight:900;align-self:end;padding:0 0 9px}
+.blink-datetime-tip{font-size:11px;color:var(--irl-muted);margin:0}
+@media(max-width:420px){.blink-calendar-grid button{height:35px}.blink-calendar{padding:9px}.blink-time-picker{gap:3px;padding:9px 6px}.blink-time-picker>span:first-child{display:none}.blink-date-trigger{padding:8px}}
