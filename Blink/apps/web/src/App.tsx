@@ -298,6 +298,7 @@ export default function App() {
   const captureMusicRef = useRef<HTMLAudioElement | null>(null);
   const captureTrackRequestRef = useRef(0);
   const viewerMusicRef = useRef<HTMLAudioElement | null>(null);
+  const captureFilterScrollRef = useRef<HTMLDivElement | null>(null);
   const [recording, setRecording] = useState(false);
   const [cameraError, setCameraError] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -1331,7 +1332,7 @@ export default function App() {
               aria-label={item.label}
               onClick={() =>
                 item.label === 'Capture'
-                  ? openCapture()
+                  ? (route !== 'home' ? (goTo('/home'), openCapture()) : openCapture())
                   : goTo(item.path)
               }
             >
@@ -2333,7 +2334,9 @@ export default function App() {
               {!capturedUrl && captureMode === 'photo' && !recording && (
                 <div className="capture-filters" aria-label="Photo face filters">
                   <div className="capture-feature-heading"><strong>✨ Blink AR Lenses</strong><small>Photo only · live face tracking</small></div>
-                  <div className="capture-filter-scroll">
+                  <div className="capture-filter-navigator">
+                    <button type="button" className="capture-filter-arrow" aria-label="Scroll lenses left" onClick={() => captureFilterScrollRef.current?.scrollBy({left:-240,behavior:'smooth'})}>‹</button>
+                    <div className="capture-filter-scroll" ref={captureFilterScrollRef} role="region" aria-label="Blink AR lenses" tabIndex={0}>
                     {FACE_FILTERS.map((item) => (
                       <button key={item.id} type="button" className={'capture-filter-option' + (faceFilter === item.id ? ' selected' : '')}
                         aria-pressed={faceFilter === item.id}
@@ -2342,6 +2345,8 @@ export default function App() {
                         <small>{item.label}</small>
                       </button>
                     ))}
+                    </div>
+                    <button type="button" className="capture-filter-arrow" aria-label="Scroll lenses right" onClick={() => captureFilterScrollRef.current?.scrollBy({left:240,behavior:'smooth'})}>›</button>
                   </div>
                 </div>
               )}
