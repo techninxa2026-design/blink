@@ -52,8 +52,10 @@ export class ReelsService {
   } as const;
 
   async feed(userId: string, skip = 0) {
-    if (!Number.isSafeInteger(skip) || skip < 0 || skip > 5000) throw new BadRequestException('Invalid offset.');
+    if (!Number.isSafeInteger(skip) || skip < 0 || skip > 1000000) throw new BadRequestException('Invalid offset.');
     const rows = await this.prisma.reel.findMany({
+      // Reels feed shows all OTHER members' videos, irrespective of friendship.
+      where: { authorId: { not: userId } },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       skip, take: 21, include: this.include,
     });

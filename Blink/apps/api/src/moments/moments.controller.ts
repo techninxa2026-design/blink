@@ -127,8 +127,16 @@ react(
   }
 
   @Get('mine')
-  findMine(@Req() req: AuthenticatedRequest) {
-    return this.momentsService.findMine(req.user.userId);
+  findMine(
+    @Req() req: AuthenticatedRequest,
+    @Query('skip') skip?: string,
+    @Query('take') take?: string,
+  ) {
+    return this.momentsService.findMine(
+      req.user.userId,
+      skip === undefined ? undefined : Number(skip),
+      take === undefined ? undefined : Number(take),
+    );
   }
 
     @Post(':id/view')

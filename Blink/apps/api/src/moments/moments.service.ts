@@ -33,35 +33,26 @@ export class MomentsService {
         mediaKey: file.filename,
         musicTrackId: musicTrackId || null,
         caption: caption?.trim() || null,
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        expiresAt: null, // Public Moments are retained until deleted.
       },
     });
 
     return this.formatMoment(moment);
   }
 
+  // Show every published public Moment from other authors.
   async findFeed(userId: string, skip = 0, take = 100) {
-    if (!Number.isSafeInteger(skip) || skip < 0 || skip > 50000 ||
-        !Number.isSafeInteger(take) || take < 1 || take > 100) {
-      throw new BadRequestException('Invalid Moments pagination parameters.');
-    }
+    this.validatePage(skip, take);
     const moments = await this.prisma.moment.findMany({
       where: {
         type: MomentType.PUBLIC,
         recipientId: null,
         senderId: { not: userId },
-        OR: [
-          { expiresAt: null },
-          { expiresAt: { gt: new Date() } },
-        ],
       },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      skip,
-      take,
+      skip, take,
       include: {
-        sender: {
-          select: { id: true, name: true, avatarKey: true },
-        },
+        sender: { select: { id: true, name: true, avatarKey: true } },
       },
     });
     return moments.map(moment => ({
@@ -69,7 +60,14 @@ export class MomentsService {
       sender: moment.sender,
     }));
   }
-  
+
+  private validatePage(skip: number, take: number) {
+    if (!Number.isSafeInteger(skip) || skip < 0 ||
+        !Number.isSafeInteger(take) || take < 1 || take > 100) {
+      throw new BadRequestException('Invalid Moments pagination parameters.');
+    }
+  }
+
 async react(
   userId: string,
   momentId: string,
@@ -140,13 +138,16 @@ async react(
   };
 }
 
-  async findMine(userId: string) {
+  // Optional pagination for mobile, retaining the existing web API response.
+  async findMine(userId: string, skip?: number, take?: number) {
+    const paged = skip !== undefined || take !== undefined;
+    if (paged) this.validatePage(skip ?? 0, take ?? 40);
     const moments = await this.prisma.moment.findMany({
-      where: { senderId: userId },
-      orderBy: { createdAt: 'desc' },
+      where: { senderId: userId, type: MomentType.PUBLIC, recipientId: null },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      ...(paged ? { skip: skip ?? 0, take: take ?? 40 } : {}),
     });
-
-    return moments.map((moment) => this.formatMoment(moment));
+    return moments.map(moment => this.formatMoment(moment));
   }
 
 async recordView(userId: string, momentId: string) {
@@ -158,10 +159,6 @@ async recordView(userId: string, momentId: string) {
       type: MomentType.PUBLIC,
       recipientId: null,
       senderId: { not: userId },
-      OR: [
-        { expiresAt: null },
-        { expiresAt: { gt: now } },
-      ],
     },
     select: {
       id: true,
@@ -170,7 +167,7 @@ async recordView(userId: string, momentId: string) {
   });
 
   if (!moment) {
-    throw new NotFoundException('Moment not found or has expired.');
+    throw new NotFoundException('Moment not found or not public.');
   }
 
   await this.prisma.momentView.upsert({
@@ -183,15 +180,11 @@ async recordView(userId: string, momentId: string) {
     create: {
       momentId,
       viewerId: userId,
-      expiresAt:
-        moment.expiresAt ??
-        new Date(Date.now() + 24 * 60 * 60 * 1000),
+      expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000),
     },
     update: {
       viewedAt: now,
-      expiresAt:
-        moment.expiresAt ??
-        new Date(Date.now() + 24 * 60 * 60 * 1000),
+      expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000),
     },
   });
 
@@ -284,18 +277,17 @@ async getViews(userId: string, momentId: string) {
   }
 
 
-  // Only published, non-expired public Moments can receive interactions.
+  // Only published public Moments can receive interactions.
   private async activePublicMoment(momentId: string) {
     const moment = await this.prisma.moment.findFirst({
       where: {
         id: momentId,
         type: MomentType.PUBLIC,
         recipientId: null,
-        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
       },
       select: { id: true, senderId: true },
     });
-    if (!moment) throw new NotFoundException('Moment is unavailable or expired.');
+    if (!moment) throw new NotFoundException('Moment is unavailable or not public.');
     return moment;
   }
 
