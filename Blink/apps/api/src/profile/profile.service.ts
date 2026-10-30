@@ -299,10 +299,7 @@ async getPublicProfile(viewerId: string, userId: string) {
         where: {
           senderId: userId,
           type: 'PUBLIC',
-          OR: [
-            { expiresAt: null },
-            { expiresAt: { gt: new Date() } },
-          ],
+          recipientId: null,
         },
         select: {
           id: true,
