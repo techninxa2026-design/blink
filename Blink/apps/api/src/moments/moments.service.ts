@@ -40,31 +40,36 @@ export class MomentsService {
     return this.formatMoment(moment);
   }
 
-  async findFeed() {
+  async findFeed(userId: string, skip = 0, take = 100) {
+    if (!Number.isSafeInteger(skip) || skip < 0 || skip > 50000 ||
+        !Number.isSafeInteger(take) || take < 1 || take > 100) {
+      throw new BadRequestException('Invalid Moments pagination parameters.');
+    }
     const moments = await this.prisma.moment.findMany({
       where: {
         type: MomentType.PUBLIC,
         recipientId: null,
+        senderId: { not: userId },
         OR: [
           { expiresAt: null },
           { expiresAt: { gt: new Date() } },
         ],
       },
-      orderBy: { createdAt: 'desc' },
-      take: 100,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      skip,
+      take,
       include: {
         sender: {
           select: { id: true, name: true, avatarKey: true },
         },
       },
     });
-
-    return moments.map((moment) => ({
+    return moments.map(moment => ({
       ...this.formatMoment(moment),
       sender: moment.sender,
     }));
   }
-
+  
 async react(
   userId: string,
   momentId: string,

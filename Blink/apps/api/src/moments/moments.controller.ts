@@ -5,6 +5,7 @@ import {
   Delete,
   Get,
   Param,
+  Query,
   Post,
   Req,
   UploadedFile,
@@ -115,8 +116,14 @@ react(
   }
 
   @Get()
-  findFeed() {
-    return this.momentsService.findFeed();
+  findFeed(
+    @Req() req: AuthenticatedRequest,
+    @Query('skip') skip?: string,
+    @Query('take') take?: string,
+  ) {
+    const offset = skip === undefined ? 0 : Number(skip);
+    const size = take === undefined ? 100 : Number(take);
+    return this.momentsService.findFeed(req.user.userId, offset, size);
   }
 
   @Get('mine')
