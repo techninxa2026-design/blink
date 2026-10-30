@@ -143,7 +143,7 @@ async react(
     const paged = skip !== undefined || take !== undefined;
     if (paged) this.validatePage(skip ?? 0, take ?? 40);
     const moments = await this.prisma.moment.findMany({
-      where: { senderId: userId, type: MomentType.PUBLIC, recipientId: null },
+      where: { senderId: userId }, // Every Moment created by this account.
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       ...(paged ? { skip: skip ?? 0, take: take ?? 40 } : {}),
     });
