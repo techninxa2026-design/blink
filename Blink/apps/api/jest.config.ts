@@ -2,8 +2,7 @@ import type { Config } from 'jest';
 import { pathsToModuleNameMapper } from 'ts-jest';
 import ts from 'typescript';
 
-// Path aliases (e.g. the ones added by `nest g library`) live in tsconfig.json,
-// so they are read from there instead of being duplicated here.
+// Keep the API's existing path aliases in sync with TypeScript.
 const { config: tsconfig } = ts.readConfigFile(
   './tsconfig.json',
   ts.sys.readFile,
@@ -13,36 +12,11 @@ const paths = tsconfig?.compilerOptions?.paths ?? {};
 const config: Config = {
   moduleFileExtensions: ['js', 'json', 'ts'],
   rootDir: '.',
-  testRegex: '.*\\.spec\\.ts
-  moduleNameMapper: pathsToModuleNameMapper(paths, { prefix: '<rootDir>/' }),
-  collectCoverageFrom: [
-    'src/**/*.(t|j)s',
-    'libs/**/*.(t|j)s',
-    'apps/**/*.(t|j)s',
-  ],
-  coverageDirectory: './coverage',
-  testEnvironment: 'node',
-};
-
-export default config;
-,
-  // NestJS 12 ships ESM. Run Jest TypeScript specs as ESM so @nestjs/common
-  // is imported rather than loaded through an unsupported CommonJS require.
+  testRegex: '.*[.]spec[.]ts$',
+  // NestJS 12 dependencies are ESM-only.
   extensionsToTreatAsEsm: ['.ts'],
   transform: {
-    '^.+\\.(t|j)s
-  moduleNameMapper: pathsToModuleNameMapper(paths, { prefix: '<rootDir>/' }),
-  collectCoverageFrom: [
-    'src/**/*.(t|j)s',
-    'libs/**/*.(t|j)s',
-    'apps/**/*.(t|j)s',
-  ],
-  coverageDirectory: './coverage',
-  testEnvironment: 'node',
-};
-
-export default config;
-: ['ts-jest', { useESM: true }],
+    '^.+[.](t|j)s$': ['ts-jest', { useESM: true }],
   },
   moduleNameMapper: pathsToModuleNameMapper(paths, { prefix: '<rootDir>/' }),
   collectCoverageFrom: [
