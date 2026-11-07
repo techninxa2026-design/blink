@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import type { PrismaService } from '../prisma/prisma.service';
 import type { MomentsService } from './moments.service';
 
@@ -77,4 +77,99 @@ describe('MomentsService free Blink Points gifts', () => {
       expect(userUpdate).not.toHaveBeenCalled();
     },
   );
+
+  describe('public Moments and legacy expiration timestamps', () => {
+    const legacyPublic = {
+      id: 'legacy-public',
+      senderId: 'creator',
+      type: 'PUBLIC',
+      recipientId: null as string | null,
+      expiresAt: new Date('2024-01-01T00:00:00Z'),
+    };
+
+    function fixture(moment: typeof legacyPublic | null = legacyPublic) {
+      const findUnique = jest.fn<() => Promise<typeof legacyPublic | null>>()
+        .mockResolvedValue(moment);
+      const findReaction = jest.fn<() => Promise<null>>()
+        .mockResolvedValue(null);
+      const upsert = jest.fn<() => Promise<{ id: string }>>()
+        .mockResolvedValue({ id: 'reaction-1' });
+      const award = jest.fn<() => Promise<{ id: string }>>()
+        .mockResolvedValue({ id: 'creator' });
+      const receipt = jest.fn<() => Promise<{ id: string }>>()
+        .mockResolvedValue({ id: 'gift-1' });
+      const tx = {
+        user: { update: award },
+        momentBpGift: { create: receipt },
+      };
+      const transaction = jest.fn(
+        async (work: (db: typeof tx) => Promise<unknown>) => work(tx),
+      );
+      const service = new serviceConstructor({
+        moment: { findUnique },
+        momentReaction: { findUnique: findReaction, upsert },
+        $transaction: transaction,
+      } as unknown as PrismaService);
+      return { service, findUnique, upsert, award, receipt };
+    }
+
+    it('reacts to a public Moment even with a legacy past expiresAt', async () => {
+      const { service, findUnique, upsert } = fixture();
+      await expect(service.react('viewer', 'legacy-public', '❤️'))
+        .resolves.toEqual({ ok: true, myReaction: '❤️' });
+      expect(findUnique).toHaveBeenCalledWith({
+        where: { id: 'legacy-public' },
+        select: {
+          id: true, senderId: true, type: true, recipientId: true,
+        },
+      });
+      expect(upsert).toHaveBeenCalledTimes(1);
+    });
+
+    it('awards free BP to public Moment creator even with a past expiresAt', async () => {
+      const { service, award, receipt } = fixture();
+      await expect(service.giftPoints('viewer-with-zero-bp', 'legacy-public', 10))
+        .resolves.toEqual({ ok: true, amount: 10 });
+      expect(award).toHaveBeenCalledWith({
+        where: { id: 'creator' },
+        data: { blinkPoints: { increment: 10 } },
+      });
+      expect(receipt).toHaveBeenCalledWith({
+        data: {
+          momentId: 'legacy-public',
+          senderId: 'viewer-with-zero-bp',
+          amount: 10,
+        },
+      });
+    });
+
+    it.each([
+      { ...legacyPublic, type: 'PRIVATE' },
+      { ...legacyPublic, recipientId: 'someone-else' },
+      null,
+    ])('blocks nonpublic or deleted Moments', async (moment) => {
+      const { service, upsert, award } = fixture(moment);
+      await expect(service.react('viewer', 'legacy-public', '❤️'))
+        .rejects.toThrow(NotFoundException);
+      await expect(service.giftPoints('viewer', 'legacy-public', 5))
+        .rejects.toThrow(NotFoundException);
+      expect(upsert).not.toHaveBeenCalled();
+      expect(award).not.toHaveBeenCalled();
+    });
+
+    it('only lists published public Moments in My Moments', async () => {
+      const findMany = jest.fn<() => Promise<[]>>().mockResolvedValue([]);
+      const service = new serviceConstructor({
+        moment: { findMany },
+      } as unknown as PrismaService);
+      await expect(service.findMine('viewer')).resolves.toEqual([]);
+      expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
+        where: {
+          senderId: 'viewer',
+          type: 'PUBLIC',
+          recipientId: null,
+        },
+      }));
+    });
+  });
 });
