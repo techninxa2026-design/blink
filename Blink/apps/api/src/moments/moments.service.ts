@@ -143,7 +143,13 @@ async react(
     const paged = skip !== undefined || take !== undefined;
     if (paged) this.validatePage(skip ?? 0, take ?? 40);
     const moments = await this.prisma.moment.findMany({
-      where: { senderId: userId }, // Every Moment created by this account.
+      // My Moments is the user's published public gallery, not private
+      // one-time messages. Its records must also be eligible for interactions.
+      where: {
+        senderId: userId,
+        type: MomentType.PUBLIC,
+        recipientId: null,
+      },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       ...(paged ? { skip: skip ?? 0, take: take ?? 40 } : {}),
     });
@@ -277,18 +283,27 @@ async getViews(userId: string, momentId: string) {
   }
 
 
-  // Only published public Moments can receive interactions.
+  // One eligibility rule for activity, reactions, comments, and BP gifts.
+  // Public uploads do not expire. Older published uploads may still have an
+  // expiresAt value from the previous 24-hour stories implementation: that
+  // legacy timestamp is NOT an interaction cutoff. Only PRIVATE or
+  // individually addressed Moments are excluded.
   private async activePublicMoment(momentId: string) {
-    const moment = await this.prisma.moment.findFirst({
-      where: {
-        id: momentId,
-        type: MomentType.PUBLIC,
-        recipientId: null,
+    const moment = await this.prisma.moment.findUnique({
+      where: { id: momentId },
+      select: {
+        id: true,
+        senderId: true,
+        type: true,
+        recipientId: true,
       },
-      select: { id: true, senderId: true },
     });
-    if (!moment) throw new NotFoundException('Moment is unavailable or not public.');
-    return moment;
+    if (!moment ||
+        moment.type !== MomentType.PUBLIC ||
+        moment.recipientId !== null) {
+      throw new NotFoundException('Moment is unavailable or not public.');
+    }
+    return { id: moment.id, senderId: moment.senderId };
   }
 
   
