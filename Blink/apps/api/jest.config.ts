@@ -16,7 +16,25 @@ const config: Config = {
   // NestJS 12 dependencies are ESM-only.
   extensionsToTreatAsEsm: ['.ts'],
   transform: {
-    '^.+[.](t|j)s$': ['ts-jest', { useESM: true }],
+    '^.+[.](t|j)s
+  },
+  moduleNameMapper: pathsToModuleNameMapper(paths, { prefix: '<rootDir>/' }),
+  collectCoverageFrom: [
+    'src/**/*.(t|j)s',
+    'libs/**/*.(t|j)s',
+    'apps/**/*.(t|j)s',
+  ],
+  coverageDirectory: './coverage',
+  testEnvironment: 'node',
+};
+
+export default config;
+: ['ts-jest', {
+      useESM: true,
+      // NodeNext emits CommonJS for .ts in projects without "type:module".
+      // Force real ESM output so Jest can import NestJS 12 ESM packages.
+      tsconfig: { module: 'ESNext', moduleResolution: 'Bundler' },
+    }],
   },
   moduleNameMapper: pathsToModuleNameMapper(paths, { prefix: '<rootDir>/' }),
   collectCoverageFrom: [
