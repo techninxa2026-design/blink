@@ -13,9 +13,36 @@ const paths = tsconfig?.compilerOptions?.paths ?? {};
 const config: Config = {
   moduleFileExtensions: ['js', 'json', 'ts'],
   rootDir: '.',
-  testRegex: '.*\\.spec\\.ts$',
+  testRegex: '.*\\.spec\\.ts
+  moduleNameMapper: pathsToModuleNameMapper(paths, { prefix: '<rootDir>/' }),
+  collectCoverageFrom: [
+    'src/**/*.(t|j)s',
+    'libs/**/*.(t|j)s',
+    'apps/**/*.(t|j)s',
+  ],
+  coverageDirectory: './coverage',
+  testEnvironment: 'node',
+};
+
+export default config;
+,
+  // NestJS 12 ships ESM. Run Jest TypeScript specs as ESM so @nestjs/common
+  // is imported rather than loaded through an unsupported CommonJS require.
+  extensionsToTreatAsEsm: ['.ts'],
   transform: {
-    '^.+\\.(t|j)s$': 'ts-jest',
+    '^.+\\.(t|j)s
+  moduleNameMapper: pathsToModuleNameMapper(paths, { prefix: '<rootDir>/' }),
+  collectCoverageFrom: [
+    'src/**/*.(t|j)s',
+    'libs/**/*.(t|j)s',
+    'apps/**/*.(t|j)s',
+  ],
+  coverageDirectory: './coverage',
+  testEnvironment: 'node',
+};
+
+export default config;
+: ['ts-jest', { useESM: true }],
   },
   moduleNameMapper: pathsToModuleNameMapper(paths, { prefix: '<rootDir>/' }),
   collectCoverageFrom: [
