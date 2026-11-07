@@ -539,7 +539,8 @@ export default function MomentActions({
               <div className="bma-content">
                 <div className="bma-large-emoji">🧡</div>
                 <p>Appreciate this Moment by sending Blink Points.</p>
-                <div className="bma-balance">Your balance <strong>{Number(activity?.myBalance ?? 0).toFixed(1)} BP</strong></div>
+                <div className="bma-balance">Your earned BP <strong>{Number(activity?.myBalance ?? 0).toFixed(1)} BP</strong></div>
+                <p className="bma-muted">Gifting is free. Your BP balance is never deducted.</p>
                 <div className="bma-bp-options">
                   {BP_AMOUNTS.map((amount) => (
                     <button
@@ -555,7 +556,7 @@ export default function MomentActions({
                 <button
                   type="button"
                   className="bma-primary"
-                  disabled={busy || !activity || momentOwnerId === currentUserId || Number(activity.myBalance) < giftAmount}
+                  disabled={busy || !activity || momentOwnerId === currentUserId}
                   onClick={() => void sendBp()}
                 >
                   Send {giftAmount} BP

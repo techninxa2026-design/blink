@@ -532,14 +532,11 @@ async deleteComment(
       throw new BadRequestException('You cannot gift BP to your own Moment.');
     }
 
-    // Conditional debit + credit + receipt in one transaction prevents
-    // overdrawing a wallet or awarding BP without deducting it.
+    // Free appreciation, NOT a wallet transfer. The Moment owner earns BP;
+    // the sender's existing BP balance stays unchanged, including at 0 BP.
+    // Keep the recipient award and gift receipt atomic so neither can exist
+    // without the other. Client balance must never gate a free gift.
     await this.prisma.$transaction(async (tx) => {
-      const debit = await tx.user.updateMany({
-        where: { id: userId, blinkPoints: { gte: points } },
-        data: { blinkPoints: { decrement: points } },
-      });
-      if (debit.count !== 1) throw new BadRequestException('Not enough BP.');
       await tx.user.update({
         where: { id: moment.senderId },
         data: { blinkPoints: { increment: points } },
@@ -548,7 +545,7 @@ async deleteComment(
         data: { momentId, senderId: userId, amount: points },
       });
     });
-    return { ok: true };
+    return { ok: true, amount: points };
   }
 
   private formatMoment(moment: {

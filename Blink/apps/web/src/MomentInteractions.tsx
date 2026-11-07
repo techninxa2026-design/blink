@@ -795,7 +795,7 @@ export default function MomentActions({
                 </p>
 
                 <div className="bma-balance">
-                  Your balance
+                  Your earned BP
                   <strong>
                     {balance.toFixed(1)} BP
                   </strong>
@@ -827,7 +827,6 @@ export default function MomentActions({
                   className="bma-primary"
                   disabled={
                     busy ||
-                    balance < giftAmount ||
                     momentOwnerId === currentUserId
                   }
                   onClick={() => void giftBp()}
@@ -844,8 +843,8 @@ export default function MomentActions({
                 )}
 
                 <p className="bma-muted">
-                  This transfers BP from your balance.
-                  It is not a free reaction.
+                  BP gifts are free appreciation. The recipient earns
+                  points and your balance stays unchanged.
                 </p>
               </div>
             )}
