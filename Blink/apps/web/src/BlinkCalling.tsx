@@ -208,7 +208,8 @@ class Calling {
     this.pc = pc;
     this.pendingIce = [];
     const remote = new MediaStream();
-    this.change({ local: media, remote });
+    // Keep the caller identity visible until a remote media track arrives.
+    this.change({ local: media });
     media.getTracks().forEach(track => pc.addTrack(track, media));
     pc.ontrack = event => {
       if (event.streams[0]) this.change({ remote: event.streams[0] });
