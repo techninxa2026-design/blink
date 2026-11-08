@@ -413,7 +413,16 @@ export default function InboxPage({
         finally { pollBusyRef.current = false; }
       })();
     }, 4000);
-    return () => window.clearInterval(timer);
+    // A returning browser tab must refresh immediately, not wait for the
+    // next interval; the interval itself never polls a hidden tab.
+    const onFocus = () => {
+      if (!document.hidden) void loadInbox().catch(() => {});
+    };
+    document.addEventListener('visibilitychange', onFocus);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onFocus);
+    };
   }, []);
 
   useEffect(() => {
@@ -457,23 +466,34 @@ export default function InboxPage({
   }
 
   async function uploadMedia(file: File, isPrivate = false) {
-    if (!active || sending) return;
+    if (!active || sending || sendBusyRef.current) return;
     if (!/^(image\/(jpeg|png|webp|gif)|video\/(mp4|webm|quicktime)|audio\/(webm|ogg|mp4|mpeg|wav))$/.test(file.type)) {
       setError('Please choose a supported photo or video.'); return;
     }
     if (file.size > 30 * 1024 * 1024) { setError('Maximum media size is 30 MB.'); return; }
+    sendBusyRef.current = true;
     setSending(true); setError('');
+    const conversationId = active.id;
     const form = new FormData();
     form.append('isPrivate',String(isPrivate));
     form.append('file',file);
     try {
-      const message = await apiRequest<Message>(`/inbox/conversations/${encodeURIComponent(active.id)}/media`, {method:'POST',body:form});
-      setActive(current => current?.id === active.id ? {...current,messages:[...current.messages,message]} : current);
+      const message = await apiRequest<Message>(
+        `/inbox/conversations/${encodeURIComponent(conversationId)}/media`,
+        { method: 'POST', body: form });
+      keepAcknowledgement(conversationId, message);
+      setActive(current => current?.id === conversationId
+        ? { ...current, messages: [...current.messages.filter(
+          item => item.id !== message.id), message] } : current);
       await loadInbox();
       if (file === selectedMedia) clearSelectedMedia();
       if (file === voiceFile) discardVoice();
     } catch(err) { setError(err instanceof Error ? err.message : 'Upload failed.'); }
-    finally { setSending(false); if(fileInputRef.current) fileInputRef.current.value=''; }
+    finally {
+      sendBusyRef.current = false;
+      setSending(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   }
 
   function chooseMedia(file: File) {
@@ -755,8 +775,10 @@ export default function InboxPage({
         const result = await apiRequest<ConversationDetail>(
           `/inbox/conversations/${encodeURIComponent(active.id)}`,
         );
-        setActive(result);
-        await markConversationRead(result.id);
+        if (activeIdRef.current === result.id) {
+          setActive(mergeAcknowledged(result));
+          await markConversationRead(result.id);
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not refresh.');
@@ -824,7 +846,7 @@ export default function InboxPage({
                   {!friends.some((friend) => friend.name.toLowerCase().includes(friendSearch.trim().toLowerCase())) && <p>No matching friends.</p>}
                 </div>
               )}
-              {groupPicker && <button type="button" className="inbox-group-create" disabled={groupBusy || !groupName.trim() || groupSelected.length < 2} onClick={() => void createGroup()}>{groupBusy ? "Creating…" : `Create group (${groupSelected.length} friends)`}</button>}
+              {groupPicker && <button type="button" className="inbox-group-create" disabled={groupBusy || !groupName.trim() || groupSelected.length < 1} onClick={() => void createGroup()}>{groupBusy ? "Creating…" : `Create group (${groupSelected.length} friends)`}</button>}
             </div>
           )}
 
