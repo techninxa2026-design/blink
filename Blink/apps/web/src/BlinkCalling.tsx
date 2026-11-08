@@ -39,7 +39,6 @@ class Calling {
   private isCaller = false;
   private turnConfigured = false;
   private restartAttempted = false;
-  private restartInProgress = false;
   private localCandidates = 0;
   private remoteCandidates = 0;
   private candidateRelayFailures = 0;
@@ -321,29 +320,23 @@ class Calling {
     const callId = this.state.callId;
     const pc = this.pc;
     if (!callId || !pc || this.state.status === 'idle') return;
-    // After requesting an ICE restart, the old connection can stay in
-    // "failed" until new SDP and candidates arrive; let the retry timer decide.
+    // During a restart the old ICE state remains failed until SDP settles.
+    // Give the new candidate pair 20 seconds instead of ending immediately.
     if (this.restartAttempted) return;
     this.restartAttempted = true;
-    this.restartInProgress = true;
     this.change({ status: 'connecting' });
     this.armMediaTimeout(callId, 20000);
-    try {
-      if (!this.isCaller) {
-        await this.ack('call-ice-restart-request', { callId });
-        return;
-      }
-      // Only the original caller creates ICE restart offers to avoid glare.
-      pc.restartIce();
-      const offer = await pc.createOffer();
-      if (this.state.callId !== callId) return;
-      await pc.setLocalDescription(offer);
-      await this.ack('call-offer', { callId, sdp: {
-        type: offer.type, sdp: offer.sdp,
-      } });
-    } finally {
-      this.restartInProgress = false;
+    if (!this.isCaller) {
+      await this.ack('call-ice-restart-request', { callId });
+      return;
     }
+    pc.restartIce();
+    const offer = await pc.createOffer();
+    if (this.state.callId !== callId) return;
+    await pc.setLocalDescription(offer);
+    await this.ack('call-offer', { callId, sdp: {
+      type: offer.type, sdp: offer.sdp,
+    } });
   }
 
   private async createOffer() {
@@ -412,7 +405,6 @@ class Calling {
     this.isCaller = false;
     this.turnConfigured = false;
     this.restartAttempted = false;
-    this.restartInProgress = false;
     this.localCandidates = 0;
     this.remoteCandidates = 0;
     this.candidateRelayFailures = 0;
