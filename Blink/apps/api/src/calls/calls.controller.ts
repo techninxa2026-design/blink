@@ -18,7 +18,10 @@ export class CallsController {
   constructor(private readonly config: ConfigService) {}
 
   @Get('ice')
-  ice(@Req() request: AuthenticatedRequest): { iceServers: IceServerConfig[] } {
+  ice(@Req() request: AuthenticatedRequest): {
+    iceServers: IceServerConfig[];
+    turnConfigured: boolean;
+  } {
     const urls = (value: string) => value.split(',').map(v => v.trim()).filter(Boolean);
     const stun = urls(this.config.get<string>('CALL_STUN_URLS') ??
       'stun:stun.l.google.com:19302');
@@ -35,6 +38,8 @@ export class CallsController {
         .update(username).digest('base64');
       iceServers.push({ urls: turnUrls, username, credential });
     }
-    return { iceServers };
+    // Report deployment capability, never any TURN shared secret.
+    // A STUN-only result can ring and answer but still fail ICE across NATs.
+    return { iceServers, turnConfigured: turnUrls.length > 0 && sharedSecret.length >= 16 };
   }
 }
