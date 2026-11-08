@@ -1,3 +1,4 @@
+import { confirmAction } from './BlinkDialogs';
 
 import {
   useCallback,
@@ -284,7 +285,7 @@ export default function ExchangePriceOfferPanel({
         ? 'Accept this price offer? The decision cannot be changed.'
         : 'Decline this price offer? The decision cannot be changed.';
 
-    if (!window.confirm(confirmation)) {
+    if (!await confirmAction(confirmation)) {
       return;
     }
 

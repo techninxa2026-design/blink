@@ -1,3 +1,4 @@
+import BlinkLoading from './BlinkLoading';
 
 import {
   useEffect,
@@ -68,7 +69,7 @@ export default function ProfilePage({
   const [profile, setProfile] = useState<Profile | null>(null);
   const { items: activeCheckins } = useActiveCheckins();
   const [moments, setMoments] = useState<ProfileMoment[]>([]);
-  const [profileTab, setProfileTab] = useState<'All' | 'About' | 'Friends' | 'Moments' | 'Reels' | 'Check-ins' | 'More'>('All');
+  const [profileTab, setProfileTab] = useState<'All' | 'About' | 'Friends' | 'Moments' | 'Reels' | 'Check-ins'>('All');
   const [friends, setFriends] = useState<ProfileFriend[]>([]);
   const [peopleModal, setPeopleModal] = useState<'Followers' | 'Following' | 'Connections' | null>(null);
   const [loading, setLoading] = useState(true);
@@ -489,7 +490,7 @@ async function deleteMoment() {
       </header>
 
       {loading && (
-        <p className="profile-message">Loading profile…</p>
+        <div className="profile-container"><BlinkLoading label="Loading profile…" layout="profile" count={1} /></div>
       )}
 
       {error && (
@@ -709,7 +710,7 @@ async function deleteMoment() {
           </section>
 
           <nav className="profile-sections-nav" aria-label="Profile sections">
-            {(['All','About','Friends','Moments','Reels','Check-ins','More'] as const).map(tab => (
+            {(['All','About','Friends','Moments','Reels','Check-ins'] as const).map(tab => (
               <button key={tab} type="button" className={profileTab === tab ? 'active' : ''} aria-current={profileTab === tab ? 'page' : undefined} onClick={() => setProfileTab(tab)}>{tab}</button>
             ))}
           </nav>
@@ -807,7 +808,6 @@ async function deleteMoment() {
             )}
           </section>}
           {(profileTab === 'All' || profileTab === 'Reels') && <section className="profile-reels-section"><h2>My Reels</h2><ProfileReels owner onOpenReel={onOpenReel} /></section>}
-          {profileTab === 'More' && <section className="profile-more-empty" aria-label="More features" />}
 
 {peopleModal && (
           <div className="profile-people-overlay" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) setPeopleModal(null); }}>

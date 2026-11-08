@@ -1,3 +1,4 @@
+import { confirmAction } from './BlinkDialogs';
 import { useEffect, useMemo, useState } from 'react';
 import './BusinessMatchPage.css';
 import './CreatorTasks.css';
@@ -85,7 +86,7 @@ export default function TaskReviewPage({ taskId, theme, onToggleTheme, onBack }:
 
   async function decide(entry: ReviewSubmission, step: ReviewStep, decision: 'APPROVED' | 'REJECTED') {
     if (busyId || step.status !== 'PENDING') return;
-    if (decision === 'APPROVED' && !window.confirm(
+    if (decision === 'APPROVED' && !await confirmAction(
       'Approve "' + step.title + '" for ' + entry.participant.name +
       '? ' + step.rewardBp.toFixed(2) + ' BP will be credited immediately and cannot be awarded twice.'
     )) return;

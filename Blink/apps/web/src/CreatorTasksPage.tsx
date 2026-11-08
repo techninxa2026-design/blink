@@ -1,3 +1,4 @@
+import BlinkLoading from './BlinkLoading';
 import { useEffect, useState, type FormEvent } from 'react';
 import './BusinessMatchPage.css';
 import './CreatorTasks.css';
@@ -74,7 +75,7 @@ export default function CreatorTasksPage({
       <div className="bm-container ct-container">
         {taskId ? <>
           <button className="bm-outline ct-back" type="button" onClick={onBrowse}>← All Tasks</button>
-          {loading ? <div className="bm-card bm-empty"><h2>Loading task…</h2></div>
+          {loading ? <BlinkLoading label="Loading task…" count={2} />
           : error || !task ? <section className="bm-card bm-empty">
               <h2>Task unavailable</h2><p role="alert">{error || 'Task not found.'}</p>
               <button className="bm-primary" type="button" onClick={onBrowse}>All Tasks</button>
@@ -131,7 +132,7 @@ export default function CreatorTasksPage({
                     ))}
                   </div>
                 ))}
-                <p className="bm-muted ct-small">These checkmarks are only a local preview; submissions and participant completion history are not implemented yet.</p>
+                <p className="bm-muted ct-small">Use these checkmarks to preview your progress. Choose Participate to save your responses and submit them for review.</p>
               </section>
             </div>
           </>}
@@ -170,7 +171,7 @@ export default function CreatorTasksPage({
               </article>
             ))}
           </div>
-          {loading && <p className="bm-muted">Loading tasks…</p>}
+          {loading && <BlinkLoading label="Loading tasks…" />}
           {!loading && !error && tasks.length === 0 && (
             <div className="bm-card bm-empty"><h2>No tasks found</h2><p>Try another search or check back for new creator tasks.</p></div>
           )}

@@ -1,3 +1,4 @@
+import { confirmAction } from './BlinkDialogs';
 
 import {
   useCallback,
@@ -310,7 +311,7 @@ export default function MomentActions({
   async function deleteComment(id: string) {
     if (
       busy ||
-      !window.confirm('Delete this comment?')
+      !await confirmAction('Delete this comment?')
     ) {
       return;
     }

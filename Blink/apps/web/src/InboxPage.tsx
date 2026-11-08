@@ -1,7 +1,9 @@
+import { confirmAction, promptAction } from './BlinkDialogs';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import './InboxPage.css';
 import { SOCIAL_API_URL } from './blinkSocialApi';
+import { BlinkIcon } from './BlinkIcon';
 import { blinkCalls } from './BlinkCalling';
 import { blinkCallLabel, readBlinkCallRecord } from './blinkCallHistory';
 
@@ -313,9 +315,9 @@ export default function InboxPage({
   async function groupAction(action: 'rename' | 'add' | 'remove' | 'leave', targetId?: string) {
     if (!active?.isGroup || groupBusy) return;
     const id = active.id;
-    if (action === 'leave' && !window.confirm('Leave this group?')) return;
-    if (action === 'remove' && !window.confirm('Remove this member?')) return;
-    const name = action === 'rename' ? window.prompt('New group name', active.groupName ?? '') : null;
+    if (action === 'leave' && !await confirmAction('Leave this group?')) return;
+    if (action === 'remove' && !await confirmAction('Remove this member?')) return;
+    const name = action === 'rename' ? await promptAction('New group name', active.groupName ?? '') : null;
     if (action === 'rename' && name === null) return;
     setGroupBusy(true); setError('');
     try {
@@ -699,8 +701,8 @@ export default function InboxPage({
     if (action === 'edit') {
       setEditingId(message.id); setEditDraft(message.body ?? ''); setActionMessageId(null); return;
     }
-    if (action === 'unsend' && !window.confirm('Unsend this message for everyone?')) return;
-    if (action === 'hide' && !window.confirm('Delete this message from your Inbox only?')) return;
+    if (action === 'unsend' && !await confirmAction('Unsend this message for everyone?')) return;
+    if (action === 'hide' && !await confirmAction('Delete this message from your Inbox only?')) return;
     setActionBusy(true); setError('');
     try {
       const path = `/inbox/messages/${encodeURIComponent(message.id)}`;
@@ -754,8 +756,8 @@ export default function InboxPage({
   async function manageConversation(action: 'mute'|'delete'|'block') {
     if (!active || chatBusy) return;
     const id = active.id; const other = active.otherUser?.id;
-    if (action === 'delete' && !window.confirm('Delete this conversation for you? Your friend will keep their messages. New messages will make the chat reappear.')) return;
-    if (action === 'block' && !window.confirm(active.blockedByMe ? 'Unblock this user?' : 'Block this user? Neither of you will be able to send new messages.')) return;
+    if (action === 'delete' && !await confirmAction('Delete this conversation for you? Your friend will keep their messages. New messages will make the chat reappear.')) return;
+    if (action === 'block' && !await confirmAction(active.blockedByMe ? 'Unblock this user?' : 'Block this user? Neither of you will be able to send new messages.')) return;
     setChatBusy(true); setError('');
     try {
       if (action === 'mute') await apiRequest(`/inbox/conversations/${encodeURIComponent(id)}/mute`, { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ muted: !active.muted }) });
@@ -798,13 +800,13 @@ export default function InboxPage({
   })();
 
   return (
-    <main className="blink-inbox">
+    <main className={`blink-inbox ${active ? 'has-active-chat' : 'shows-conversations'}`}>
       <header className="inbox-topbar">
         <button type="button" onClick={onBack}>
           ← Back
         </button>
         <h1>Inbox</h1>
-        <button type="button" onClick={onToggleTheme}>
+        <button type="button" onClick={onToggleTheme} aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}>
           {theme === 'light' ? '☾' : '☀'}
         </button>
       </header>
@@ -855,7 +857,10 @@ export default function InboxPage({
             </div>
           )}
 
-          {loading && <p className="inbox-empty">Loading conversations...</p>}
+          {loading && <div className="polish-skeleton-list" role="status" aria-label="Loading conversations">
+            {[0, 1, 2, 3, 4].map(i => <div className="polish-skeleton-row" key={i}><span /><div><i /><i /></div></div>)}
+            <span className="polish-sr-only">Loading conversations…</span>
+          </div>}
 
           {!loading && conversations.length === 0 && (
             <div className="inbox-empty">
@@ -906,7 +911,7 @@ export default function InboxPage({
           ))}
         </aside>
 
-        <section className="inbox-chat">
+        <section className="inbox-chat" aria-label="Conversation">
           {error && (
             <p className="inbox-error" role="alert">
               {error}
@@ -922,6 +927,8 @@ export default function InboxPage({
           ) : (
             <>
               <div className="inbox-chat-header">
+                <button type="button" className="inbox-mobile-back" aria-label="Back to conversations"
+                  onClick={() => { setActive(null); activeIdRef.current = null; aroundRef.current = null; setSearchOpen(false); setChatMenuOpen(false); }}>←</button>
                 {active.otherUser && (
                   <>
                     <UserAvatar user={active.otherUser} />
@@ -946,13 +953,13 @@ export default function InboxPage({
                         title="Start voice call"
                         onClick={() => void blinkCalls.start(
                           active.otherUser!.id, active.otherUser!.name, 'audio')}>
-                        ☎ Call
+                        <BlinkIcon name="phone" size={19} /><span className="inbox-call-label">Call</span>
                       </button>
                       <button type="button" aria-label="Video call"
                         title="Start video call"
                         onClick={() => void blinkCalls.start(
                           active.otherUser!.id, active.otherUser!.name, 'video')}>
-                        ▣ Video
+                        <BlinkIcon name="video" size={19} /><span className="inbox-call-label">Video</span>
                       </button>
                     </div>}
                   <button type="button" aria-label="Search messages" title="Search messages" onClick={() => { setSearchOpen(v => !v); setChatMenuOpen(false); }}>⌕</button>
@@ -967,7 +974,7 @@ export default function InboxPage({
                 <button
                   type="button"
                   className="inbox-close-chat"
-                  onClick={() => { setActive(null); aroundRef.current = null; setSearchOpen(false); setChatMenuOpen(false); }}
+                  onClick={() => { setActive(null); activeIdRef.current = null; aroundRef.current = null; setSearchOpen(false); setChatMenuOpen(false); }}
                 >
                   Close
                 </button>

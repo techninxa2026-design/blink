@@ -8,11 +8,12 @@ type Props = {
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
   onBack: () => void;
+  onDiscover: () => void;
 };
 const API = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '');
 
 export default function BusinessDashboardPage({
-  expectedType, theme, onToggleTheme, onBack,
+  expectedType, theme, onToggleTheme, onBack, onDiscover,
 }: Props) {
   const [profile, setProfile] = useState<SavedProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -86,10 +87,17 @@ export default function BusinessDashboardPage({
               <h1>{title}</h1>
               <p>Welcome, {profile.name}.</p>
             </section>
-            <section className="bm-card bm-empty">
-              <h2>{title} is ready to build</h2>
-              <p>This page is connected to your saved {creator ? 'Individual Professional' : 'Business / Company'} profile. Dashboard features will be added here next.</p>
-              <button type="button" className="bm-primary" onClick={onBack}>← Back to Business Profile Settings</button>
+            <section className="bm-card bm-dashboard-summary">
+              <span className="bm-eyebrow">YOUR BUSINESS IDENTITY</span>
+              <h2>{profile.name}</h2>
+              <span className={`bm-activation ${profile.active ? 'on' : ''}`}>
+                {profile.active ? '● Active in business discovery' : '○ Business discovery is paused'}
+              </span>
+              <p>{profile.active ? 'Your profile is available for new business connections. Explore the directory to manage requests, conversations and meetings.' : 'Update your business profile settings when you are ready to appear in discovery.'}</p>
+              <div className="bm-utility-links">
+                <button type="button" className="bm-primary" onClick={onDiscover}>Open Business Match →</button>
+                <button type="button" className="bm-link" onClick={onBack}>Edit business profile</button>
+              </div>
             </section>
           </>
         )}

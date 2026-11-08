@@ -1,3 +1,4 @@
+import { confirmAction } from './BlinkDialogs';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import './BusinessMatchPage.css';
 import './CreatorTasks.css';
@@ -212,7 +213,7 @@ export default function CreatorDashboardPage({
     } finally { setBusy(false); }
   }
   async function deleteTask(task: CreatorTask) {
-    if (busy || !window.confirm('Delete "' + task.title + '" permanently?')) return;
+    if (busy || !await confirmAction('Delete "' + task.title + '" permanently?')) return;
     setBusy(true); setError(''); setNotice('');
     try {
       await taskRequest('/' + encodeURIComponent(task.id), 'DELETE');

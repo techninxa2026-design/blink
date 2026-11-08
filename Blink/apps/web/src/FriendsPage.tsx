@@ -1,3 +1,5 @@
+import BlinkLoading from './BlinkLoading';
+import { confirmAction } from './BlinkDialogs';
 
 import { useEffect, useState } from 'react';
 import './FriendsPage.css';
@@ -188,7 +190,7 @@ export default function FriendsPage({
 
 
 async function unfriend(userId: string, name: string) {
-  const confirmed = window.confirm(
+  const confirmed = await confirmAction(
     `Remove ${name} from your friends?`,
   );
 
@@ -318,7 +320,7 @@ async function unfriend(userId: string, name: string) {
             />
 
             {loading ? (
-              <p className="friends-empty">Loading Blink members…</p>
+              <BlinkLoading label="Loading Blink members…" layout="rows" count={4} />
             ) : results.length === 0 ? (
               <p className="friends-empty">No users found.</p>
             ) : (

@@ -1,3 +1,4 @@
+import { confirmAction } from './BlinkDialogs';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import {
   compactReelCount, reelMediaUrl, reelRequest, type Reel,
@@ -159,7 +160,7 @@ export default function ReelsPage({
     finally {setCommentBusy(false);}
   }
   async function deleteComment(id: string) {
-    if (!reel || !window.confirm('Delete your comment?')) return;
+    if (!reel || !await confirmAction('Delete your comment?')) return;
     try {
       await reelRequest('/reels/comments/' + encodeURIComponent(id),'DELETE');
       setComments(await reelRequest<ReelComment[]>('/reels/' + encodeURIComponent(reel.id) + '/comments'));

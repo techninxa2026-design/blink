@@ -1,3 +1,5 @@
+import BlinkLoading from './BlinkLoading';
+import { confirmAction } from './BlinkDialogs';
 import {
   useCallback,
   useEffect,
@@ -392,7 +394,7 @@ export default function ExchangePage({
   async function deletePost(post: ExchangePost) {
     if (
       busy ||
-      !window.confirm(
+      !await confirmAction(
         `Delete "${post.title}"? This cannot be undone.`,
       )
     ) {
@@ -754,9 +756,7 @@ export default function ExchangePage({
         {/* LOADING */}
 
         {loading && (
-          <p className="Exchange-state">
-            Loading Services…
-          </p>
+          <BlinkLoading label="Loading services…" />
         )}
 
         {/* EMPTY STATE */}

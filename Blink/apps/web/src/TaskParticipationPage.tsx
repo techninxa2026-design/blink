@@ -1,3 +1,4 @@
+import { confirmAction } from './BlinkDialogs';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import './BusinessMatchPage.css';
 import './CreatorTasks.css';
@@ -123,9 +124,9 @@ export default function TaskParticipationPage({
     setEditing(!record && (!saved || saved.status === 'DRAFT'));
   }
 
-  function selectItem(itemId: string) {
+  async function selectItem(itemId: string) {
     if (saving || checking || itemId === selectedId) return;
-    if (dirty && !window.confirm('Discard unsaved edits to this checklist item?')) return;
+    if (dirty && !await confirmAction('Discard unsaved edits to this checklist item?')) return;
     restore(itemId);
   }
 
@@ -226,7 +227,7 @@ export default function TaskParticipationPage({
       setError('Save at least one checklist-item answer before submitting.');
       return;
     }
-    if (!window.confirm('Submit your saved answers for creator verification? After submitting, explanations and files cannot be edited. BP is earned only for approved answers.')) return;
+    if (!await confirmAction('Submit your saved answers for creator verification? After submitting, explanations and files cannot be edited. BP is earned only for approved answers.')) return;
     setSubmitting(true); setError(''); setNotice('');
     try {
       await participationRequest('/' + encodeURIComponent(taskId) + '/submit', 'POST');

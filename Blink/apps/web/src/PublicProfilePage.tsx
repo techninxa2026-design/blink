@@ -1,3 +1,4 @@
+import { confirmAction } from './BlinkDialogs';
 
 import { useEffect, useState } from 'react';
 import './PublicProfilePage.css';
@@ -121,7 +122,7 @@ export default function PublicProfilePage({
 async function unfriend() {
   if (!profile) return;
 
-  const confirmed = window.confirm(
+  const confirmed = await confirmAction(
     `Remove ${profile.name} from your friends?`,
   );
 

@@ -494,7 +494,7 @@ export default function MomentActions({
                     ? 'Give Blink Points'
                     : 'Share Moment'}</h2>
               </div>
-              <button type="button" className="bma-close" aria-label="Close panel" onClick={() => setPanel(null)}>×</button>
+              <button type="button" className="bma-close" data-dialog-close aria-label="Close panel" onClick={() => setPanel(null)}>×</button>
             </header>
 
             {error && <p className="bma-error" role="alert">{error}</p>}

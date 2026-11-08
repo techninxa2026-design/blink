@@ -1,3 +1,4 @@
+import { confirmAction } from './BlinkDialogs';
 import { NotesRow } from './CheckinPreview';
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import './CheckinsPage.css';
@@ -67,7 +68,7 @@ export default function CheckinsPage({ onBack, onOpenProfile, theme, onToggleThe
     finally { setBusy(false); }
   }
   async function remove() {
-    if (!mine || busy || !window.confirm('Remove your active Check-In?')) return;
+    if (!mine || busy || !await confirmAction('Remove your active Check-In?')) return;
     setBusy(true); setError(''); setNotice('');
     try { await request(`/checkins/${encodeURIComponent(mine.id)}`, { method: 'DELETE' }); setMine(null); setNotice('Your Check-In was removed.'); window.dispatchEvent(new Event('blink:checkins-changed')); await refresh(); }
     catch (err) { setError(err instanceof Error ? err.message : 'Could not remove Check-In.'); }

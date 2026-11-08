@@ -501,12 +501,15 @@ export function BlinkCallingHost() {
   }
   return <div className="blink-call-scrim" role="dialog" aria-modal="true"
     aria-label={state.kind === 'video' ? 'Blink video call' : 'Blink audio call'}>
-    <section className="blink-call-panel">
+    <section className={`blink-call-panel ${state.kind === 'video' ? 'is-video' : ''}`}>
       <div className="blink-call-top">
         <span>✦ BLINK CONNECT</span>
         <span>{state.kind === 'video' ? 'VIDEO' : 'VOICE'}</span>
       </div>
       <div className="blink-call-stage">
+        {state.kind === 'video' && state.remote && <div className="blink-call-status">
+          <strong>{state.peerName}</strong><span>{state.status === 'connected' ? 'Connected · Video call' : 'Connecting…'}</span>
+        </div>}
         {state.kind === 'video' && state.remote &&
           <video id="blink-call-remote" autoPlay playsInline className="blink-call-remote" />}
         {state.kind === 'audio' && state.remote &&

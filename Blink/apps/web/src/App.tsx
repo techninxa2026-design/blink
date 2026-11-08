@@ -8,6 +8,9 @@ import {
 } from 'react';
 
 import './App.css';
+import ExplorePage from './ExplorePage';
+import BlinkLoading from './BlinkLoading';
+import { BlinkIcon, type BlinkIconName } from './BlinkIcon';
 import './MomentCreative.css';
 import { FACE_FILTERS, loadFaceLandmarker, paintFaceFilter, type FaceFilter, type FacePoint } from './MomentFaceFilters';
 import { MUSIC_TRACKS, makeMusicUrl, makeMusicUrlSync, musicTrack } from './MomentMusic';
@@ -79,6 +82,7 @@ type MomentViewer = {
 
 type Route =
   | 'home'
+  | 'explore'
   | 'profile'
   | 'public-profile'
   | 'connections'
@@ -103,14 +107,13 @@ type Route =
   | 'login'
   | 'signup';
 
-const NAV = [
-  { label: 'Home', icon: '⌂', path: '/home' },
-  { label: 'Connections', icon: '♧', path: '/connections' },
-  { label: 'Capture', icon: '+', path: '' },
-  { label: 'Reels', icon: '▶', path: '/reels' },
-  { label: 'Checkins', icon: '⌖', path: '/checkins' },
-  { label: 'IRL', icon: '▣', path: '/irl' },
-] as const;
+const NAV: { label: string; icon: BlinkIconName; path: string }[] = [
+  { label: 'Home', icon: 'home', path: '/home' },
+  { label: 'Connections', icon: 'people', path: '/connections' },
+  { label: 'Capture', icon: 'capture', path: '' },
+  { label: 'Reels', icon: 'reels', path: '/reels' },
+  { label: 'Explore', icon: 'explore', path: '/explore' },
+];
 
 function token(): string | null {
   return (
@@ -169,6 +172,7 @@ function routeFromPath(path: string): Route {
 
   const map: Record<string, Route> = {
     '/home': 'home',
+    '/explore': 'explore',
     '/reels': 'reels',
     '/reels/create': 'reel-create',
     '/profile': 'profile',
@@ -260,7 +264,7 @@ export default function App() {
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [notice, setNotice] = useState('');
-  const [selectedNav, setSelectedNav] = useState('Home');
+
 
   // REAL MOMENTS
 
@@ -416,20 +420,6 @@ export default function App() {
     setMenuOpen(false);
     setSelectedMomentId(null);
     setCaptureOpen(false);
-
-    setSelectedNav(
-      path === '/home'
-        ? 'Home'
-        : path.startsWith('/reels')
-          ? 'Reels'
-        : path === '/connections'
-          ? 'Connections'
-          : path === '/checkins'
-            ? 'Checkins'
-            : path === '/irl'
-              ? 'IRL'
-              : 'Home',
-    );
 
     window.scrollTo(0, 0);
   }
@@ -919,7 +909,6 @@ export default function App() {
     setCaptureMusicError('');
     ++captureTrackRequestRef.current;
     captureMusicRef.current?.pause();
-    setSelectedNav('Home');
   }
 
   function discardCapture() {
@@ -944,7 +933,6 @@ export default function App() {
     ++captureTrackRequestRef.current;
     captureMusicRef.current?.pause();
     setCameraError('');
-    setSelectedNav('Capture');
     setCaptureOpen(true);
   }
 
@@ -1345,6 +1333,11 @@ export default function App() {
 
   // AUTH GUARD FOR ALL OTHER PAGES
 
+  // The route is the source of truth, including direct links and browser Back.
+  const activeNav = captureOpen ? 'Capture' : route === 'home' ? 'Home' :
+    route === 'connections' || route === 'public-profile' ? 'Connections' :
+    route.startsWith('reel') ? 'Reels' : 'Explore';
+
   // One shared bottom navigation for every authenticated Blink page.
   const sharedNavigation = (
 <nav
@@ -1356,17 +1349,14 @@ export default function App() {
               key={item.label}
               type="button"
               className={`bottom-nav-item ${
-                selectedNav === item.label &&
-                (route === 'home' || route === 'connections' || route === 'irl' ||
-                 route === 'checkins' || route === 'reels' || route === 'reel-detail' || route === 'reel-create')
-                  ? 'selected'
-                  : ''
+                activeNav === item.label ? 'selected' : ''
               } ${
                 item.label === 'Capture'
                   ? 'capture-nav'
                   : ''
               }`}
               aria-label={item.label}
+              aria-current={!captureOpen && activeNav === item.label ? 'page' : undefined}
               onClick={() =>
                 item.label === 'Capture'
                   ? (route !== 'home' ? (goTo('/home'), openCapture()) : openCapture())
@@ -1374,7 +1364,7 @@ export default function App() {
               }
             >
               <span className="nav-symbol">
-                {item.icon}
+                <BlinkIcon name={item.icon} size={23} />
               </span>
 
               <span className="nav-label">
@@ -1404,6 +1394,12 @@ export default function App() {
         </button>
       </main>
     );
+
+  // All existing feature destinations remain available from Explore.
+  if (route === 'explore') return protectedScreen(
+    <ExplorePage onNavigate={goTo} theme={theme} onToggleTheme={toggleTheme} />,
+    'Explore Blink',
+  );
 
   // OTHER EXISTING PAGES
 
@@ -1521,6 +1517,7 @@ export default function App() {
     return protectedScreen(
       <BusinessDashboardPage
         expectedType="COMPANY"
+        onDiscover={() => goTo('/business-match')}
         theme={theme}
         onToggleTheme={toggleTheme}
         onBack={() => goTo('/settings')}
@@ -1764,6 +1761,7 @@ export default function App() {
                 <button
                   type="button"
                   className="drawer-close"
+                  aria-label="Close menu"
                   onClick={() => setMenuOpen(false)}
                 >
                   ×
@@ -1773,6 +1771,14 @@ export default function App() {
               <p className="drawer-label">
                 EXPLORE BLINK
               </p>
+
+              <button onClick={() => goTo('/explore')}>
+                <BlinkIcon name="explore" /> <span>Explore all</span>
+              </button>
+
+              <button onClick={() => goTo('/inbox')}>
+                <BlinkIcon name="message" /> <span>Inbox & calls</span>
+              </button>
 
               <button onClick={() => goTo('/profile')}>
                 👤 <span>My profile</span>
@@ -1910,10 +1916,7 @@ export default function App() {
 
 
           {momentsLoading && moments.length === 0 ? (
-            <div className="blink-moments-state">
-              <span>🧡</span>
-              <h2>Loading moments…</h2>
-            </div>
+            <BlinkLoading label="Loading moments…" layout="moments" count={10} />
           ) : momentsError && moments.length === 0 ? (
             <div className="blink-moments-state">
               <span>⚠️</span>
@@ -2106,7 +2109,7 @@ export default function App() {
               </button>
 
               <button
-                className="moment-close"
+                className="moment-close" data-dialog-close
                 onClick={() =>
                   setSelectedMomentId(null)
                 }
@@ -2230,7 +2233,7 @@ export default function App() {
             <div className="capture-topbar">
               <button
                 type="button"
-                className="capture-close"
+                className="capture-close" data-dialog-close
                 onClick={closeCapture}
                 aria-label="Close camera"
               >

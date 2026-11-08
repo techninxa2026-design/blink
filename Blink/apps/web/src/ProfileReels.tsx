@@ -1,3 +1,4 @@
+import { confirmAction } from './BlinkDialogs';
 import { useEffect, useState } from 'react';
 import { compactReelCount, reelMediaUrl, reelRequest, type Reel } from './reelApi';
 import './ProfileReels.css';
@@ -26,7 +27,7 @@ export default function ProfileReels({ userId, owner = false, onOpenReel }: Prop
 
   async function remove(reel: Reel) {
     if (!owner || deletingId) return;
-    if (!window.confirm('Permanently delete this Reel, including all its reactions, comments and views?')) return;
+    if (!await confirmAction('Permanently delete this Reel, including all its reactions, comments and views?')) return;
     setDeletingId(reel.id);setError('');
     try {
       await reelRequest('/reels/' + encodeURIComponent(reel.id), 'DELETE');
