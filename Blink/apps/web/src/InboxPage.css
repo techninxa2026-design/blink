@@ -443,7 +443,7 @@
 .inbox-select-friend > span:nth-of-type(1){flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .inbox-select-friend input[type=checkbox]{position:absolute;opacity:0;width:1px;height:1px}
 .inbox-selection-mark{width:23px;height:23px;border:2px solid var(--border,#bbb);border-radius:50%;display:grid;place-items:center;flex-shrink:0;font-weight:800;color:white}
-.inbox-selection-mark.selected{background:#16a34a;border-color:#16a34a}
+.inbox-selection-mark.selected{background:#f97316;border-color:#f97316}
 .inbox-select-friend:focus-within{outline:2px solid #fb6c00;outline-offset:2px}
 .inbox-group-picker{display:flex;flex-direction:column;gap:10px}
 .inbox-group-picker .inbox-forward-submit{align-self:stretch}
