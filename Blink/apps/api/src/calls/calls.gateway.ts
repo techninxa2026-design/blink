@@ -6,11 +6,11 @@ import {
   WebSocketServer,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  OnGatewayInit,
 } from '@nestjs/websockets';
 import { JwtService } from '@nestjs/jwt';
-import { Logger } from '@nestjs/common';
 import type { Namespace, Socket } from 'socket.io';
-import { CallsService, type CallSession } from './calls.service';
+import { CallsService } from './calls.service';
 
 interface CallPayload {
   callId?: unknown;
@@ -50,9 +50,8 @@ function allowedOrigin(origin: string | undefined): boolean {
     credentials: false,
   },
 })
-export class CallsGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class CallsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server!: Namespace;
-  private readonly logger = new Logger(CallsGateway.name);
   private readonly online = new Map<string, Set<string>>();
   private readonly ringingTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
@@ -68,29 +67,41 @@ export class CallsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return userId;
   }
 
-  async handleConnection(client: Socket): Promise<void> {
-    try {
+  // Authenticate during the actual Socket.IO namespace handshake, before
+  // the client receives 'connect' or can emit a call-initiate packet.
+  afterInit(server: Namespace): void {
+    server.use((client, next) => {
       const raw: unknown = client.handshake.auth?.token;
-      if (typeof raw !== 'string' || raw.length > 10000) throw new Error('Invalid token.');
-      const payload = await this.jwt.verifyAsync<{ sub: string; email: string; exp: number }>(raw);
-      if (typeof payload.sub !== 'string' || !payload.sub || !payload.email) {
-        throw new Error('Invalid session.');
+      if (typeof raw !== 'string' || raw.length > 10000) {
+        next(new Error('Please sign in again.'));
+        return;
       }
-      client.data.userId = payload.sub;
-      client.join(this.room(payload.sub));
-      const sockets = this.online.get(payload.sub) ?? new Set<string>();
-      sockets.add(client.id);
-      this.online.set(payload.sub, sockets);
+      void this.jwt.verifyAsync<{
+        sub: string; email: string; exp: number
+      }>(raw).then(payload => {
+        if (!payload.sub || !payload.email ||
+            !payload.exp || payload.exp * 1000 <= Date.now()) {
+          next(new Error('Invalid login session.'));
+          return;
+        }
+        client.data.userId = payload.sub;
+        client.data.expiresAt = payload.exp * 1000;
+        next();
+      }).catch(() => next(new Error('Please sign in again.')));
+    });
+  }
 
-      // A socket cannot outlive its JWT, including a long-running call.
-      const remaining = payload.exp * 1000 - Date.now();
-      if (remaining <= 0) throw new Error('Expired session.');
-      const expiration = setTimeout(() => client.disconnect(true), remaining);
-      client.once('disconnect', () => clearTimeout(expiration));
-    } catch {
-      client.emit('call-error', { error: 'Please sign in again.' });
-      client.disconnect(true);
-    }
+  handleConnection(client: Socket): void {
+    const userId = this.user(client);
+    client.join(this.room(userId));
+    const sockets = this.online.get(userId) ?? new Set<string>();
+    sockets.add(client.id);
+    this.online.set(userId, sockets);
+
+    const remaining = Number(client.data.expiresAt) - Date.now();
+    const expiration = setTimeout(() => client.disconnect(true),
+      Math.max(0, remaining));
+    client.once('disconnect', () => clearTimeout(expiration));
   }
 
   handleDisconnect(client: Socket): void {
@@ -135,10 +146,11 @@ export class CallsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (typeof calleeId !== 'string' || calleeId.length > 150) {
         return { ok: false, error: 'Invalid recipient.' };
       }
+      const call = await this.calls.initiate(callerId, calleeId, client.id, payload.kind);
       if (!this.online.get(calleeId)?.size) {
+        this.calls.complete(call.id);
         return { ok: false, error: 'Your friend is not connected. Try again when they are online.' };
       }
-      const call = await this.calls.initiate(callerId, calleeId, client.id, payload.kind);
       this.server.to(this.room(calleeId)).emit('call-incoming', {
         callId: call.id, callerId, callerName: call.callerName,
         kind: call.kind, startedAt: call.startedAt,
