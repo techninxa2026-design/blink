@@ -145,6 +145,12 @@ class Calling {
       if (this.snapshot().status !== 'starting') return;
       const result = await this.ack('call-initiate', { calleeId: peerId, kind });
       if (!result.callId) throw new Error('Call identifier missing.');
+      // Hang-up may have happened before the server returned the call ID.
+      // Release its reservation rather than resurrecting a cancelled call.
+      if (this.snapshot().status !== 'starting') {
+        this.socket?.emit('call-ended', { callId: result.callId });
+        return;
+      }
       this.change({ status: 'ringing', callId: result.callId });
     } catch (error) {
       this.clear(error instanceof Error ? error.message : 'Call unavailable.');
