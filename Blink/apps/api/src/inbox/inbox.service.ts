@@ -63,7 +63,7 @@ export class InboxService {
 
   async editMessage(userId: string, messageId: string, body: unknown) {
     const message = await this.messageForAction(userId, messageId);
-    if (message.senderId !== userId || message.mediaKey || message.unsentAt) throw new ForbiddenException('Only your own active text messages can be edited.');
+    if (message.senderId !== userId || message.mediaKey || message.unsentAt || message.mediaType === 'call') throw new ForbiddenException('Only your own active text messages can be edited.');
     if (typeof body !== 'string' || !body.trim() || body.trim().length > 5000) throw new BadRequestException('Enter 1–5000 characters.');
     return this.prisma.message.update({ where: { id: messageId }, data: { body: body.trim(), editedAt: new Date() } });
   }
@@ -76,7 +76,7 @@ export class InboxService {
 
   async unsendMessage(userId: string, messageId: string) {
     const message = await this.messageForAction(userId, messageId);
-    if (message.senderId !== userId) throw new ForbiddenException('You can only unsend your own messages.');
+    if (message.senderId !== userId || message.mediaType === 'call') throw new ForbiddenException('Call history cannot be unsent.');
     await this.prisma.conversation.updateMany({ where: { id: message.conversationId, pinnedMessageId: messageId }, data: { pinnedMessageId: null } });
     if (!message.unsentAt) await this.prisma.message.update({ where: { id: messageId }, data: { body: null, unsentAt: new Date() } });
     return { ok: true };
@@ -84,7 +84,7 @@ export class InboxService {
 
   async reactToMessage(userId: string, messageId: string, emoji: unknown) {
     const message = await this.messageForAction(userId, messageId);
-    if (message.unsentAt) throw new BadRequestException('Cannot react to an unsent message.');
+    if (message.unsentAt || message.mediaType === 'call') throw new BadRequestException('Cannot react to this event.');
     if (emoji === null) {
       await this.prisma.messageReaction.deleteMany({ where: { messageId, userId } });
     } else {
@@ -99,7 +99,7 @@ export class InboxService {
     if (messageId !== null && typeof messageId !== 'string') throw new BadRequestException('Invalid pin.');
     if (typeof messageId === 'string') {
       const message = await this.messageForAction(userId, messageId);
-      if (message.conversationId !== conversationId || message.unsentAt || message.isPrivate) throw new BadRequestException('Message cannot be pinned.');
+      if (message.conversationId !== conversationId || message.unsentAt || message.isPrivate || message.mediaType === 'call') throw new BadRequestException('Message cannot be pinned.');
     }
     await this.prisma.conversation.update({ where: { id: conversationId }, data: { pinnedMessageId: messageId as string | null } });
     return { ok: true };
@@ -107,7 +107,7 @@ export class InboxService {
 
   async forwardMessage(userId: string, messageId: string, friendIds: unknown) {
     const original = await this.messageForAction(userId, messageId);
-    if (original.isPrivate || original.unsentAt) throw new ForbiddenException('Private or unsent messages cannot be forwarded.');
+    if (original.isPrivate || original.unsentAt || original.mediaType === 'call') throw new ForbiddenException('Private or unsent messages cannot be forwarded.');
     if (!Array.isArray(friendIds) || friendIds.length === 0 || friendIds.length > 10 ||
         friendIds.some(id => typeof id !== 'string' || !id || id === userId) ||
         new Set(friendIds).size !== friendIds.length) throw new BadRequestException('Select 1–10 different friends.');
