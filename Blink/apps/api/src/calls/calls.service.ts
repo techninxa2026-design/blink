@@ -54,7 +54,7 @@ export class CallsService {
           { blockerId: callerId, blockedId: calleeId },
           { blockerId: calleeId, blockedId: callerId },
         ] },
-        select: { id: true },
+        select: { blockerId: true },
       }),
       this.prisma.user.findUnique({
         where: { id: callerId }, select: { name: true },
