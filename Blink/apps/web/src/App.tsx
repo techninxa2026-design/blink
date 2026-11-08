@@ -229,7 +229,7 @@ export default function App() {
   // replaces the call session. Browser-hidden tabs keep their socket alive
   // while open, but cannot receive calls once the tab/browser is terminated.
   useEffect(() => {
-    blinkCalls.connect(user ? token() : null);
+    blinkCalls.connect(token());
     return () => blinkCalls.disconnect();
   }, [user?.id]);
 
