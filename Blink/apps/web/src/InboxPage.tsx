@@ -62,6 +62,8 @@ type ConversationDetail = {
 
 type Props = {
   onBack: () => void;
+  initialFriendId?: string | null;
+  onInitialFriendHandled?: () => void;
   onOpenProfile: (userId: string) => void;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
@@ -90,7 +92,11 @@ async function apiRequest<T>(
   });
 
   if (!response.ok) {
-    throw new Error(options.method === 'POST' ? 'Could not send message. Please try again.' : 'Could not load Inbox. Please try again.');
+    const body = await response.json().catch(() => null) as
+      { message?: string | string[] } | null;
+    const message = Array.isArray(body?.message)
+      ? body.message.join(', ') : body?.message;
+    throw new Error(message || `Inbox request failed (HTTP ${response.status}).`);
   }
 
   return (await response.json()) as T;
@@ -154,6 +160,8 @@ export default function InboxPage({
   onOpenProfile,
   theme,
   onToggleTheme,
+  initialFriendId,
+  onInitialFriendHandled,
 }: Props) {
   const [conversations, setConversations] = useState<
     ConversationSummary[]
@@ -212,6 +220,33 @@ export default function InboxPage({
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const activeIdRef = useRef<string | null>(null);
   const pollBusyRef = useRef(false);
+  const sendBusyRef = useRef(false);
+  const initialFriendHandledRef = useRef<string | null>(null);
+  const acknowledgedMessagesRef = useRef<Map<string, Message[]>>(new Map());
+
+  // A response to POST is authoritative even when an earlier GET was already
+  // in flight. Keep it until a subsequent server snapshot includes its ID.
+  function mergeAcknowledged(detail: ConversationDetail): ConversationDetail {
+    const pending = acknowledgedMessagesRef.current.get(detail.id) ?? [];
+    if (!pending.length) return detail;
+    const receivedIds = new Set(detail.messages.map((message) => message.id));
+    const waiting = pending.filter((message) => !receivedIds.has(message.id));
+    if (waiting.length) acknowledgedMessagesRef.current.set(detail.id, waiting);
+    else acknowledgedMessagesRef.current.delete(detail.id);
+    if (!waiting.length) return detail;
+    return {
+      ...detail,
+      messages: [...detail.messages, ...waiting].sort((a, b) =>
+        a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id)),
+    };
+  }
+
+  function keepAcknowledgement(conversationId: string, message: Message) {
+    const pending = acknowledgedMessagesRef.current.get(conversationId) ?? [];
+    acknowledgedMessagesRef.current.set(conversationId,
+      [...pending.filter((item) => item.id !== message.id), message]);
+  }
+
   const [drafts, setDrafts] = useState<Record<string, string>>({});
 
   useEffect(() => { activeIdRef.current = active?.id ?? null; }, [active?.id]);
@@ -319,23 +354,35 @@ export default function InboxPage({
   async function openConversation(id: string) {
     setOpening(true);
     setError('');
+    activeIdRef.current = id;
 
     try {
       const result = await apiRequest<ConversationDetail>(
         `/inbox/conversations/${encodeURIComponent(id)}`,
       );
+      if (activeIdRef.current !== id) return;
       aroundRef.current = null;
       setChatMenuOpen(false); setSearchOpen(false); setSearchResults([]); setSearchText(''); setHighlightId(null);
-      setActive(result);
+      setActive(mergeAcknowledged(result));
       setReplyTo(null); setForwarding(null); setGroupMembersOpen(false); setGroupAddOpen(false);
       setDraft(drafts[id] ?? '');
       void markConversationRead(id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not open chat.');
+      if (activeIdRef.current === id) {
+        activeIdRef.current = null;
+        setError(err instanceof Error ? err.message : 'Could not open chat.');
+      }
     } finally {
       setOpening(false);
     }
   }
+
+  useEffect(() => {
+    if (!initialFriendId || initialFriendHandledRef.current === initialFriendId) return;
+    initialFriendHandledRef.current = initialFriendId;
+    void startConversation(initialFriendId);
+    onInitialFriendHandled?.();
+  }, [initialFriendId]);
 
   async function markConversationRead(id: string) {
     try {
@@ -356,7 +403,8 @@ export default function InboxPage({
           if (id) {
             const detail = await apiRequest<ConversationDetail>(`/inbox/conversations/${encodeURIComponent(id)}${aroundRef.current ? `?around=${encodeURIComponent(aroundRef.current)}` : ""}`);
             if (activeIdRef.current === id) {
-              setActive((previous) => previous?.id === id ? detail : previous);
+              setActive((previous) =>
+                previous?.id === id ? mergeAcknowledged(detail) : previous);
               const unread = items.find((item) => item.id === id)?.unreadCount ?? 0;
               if (unread > 0) await markConversationRead(id);
             }
@@ -375,8 +423,9 @@ export default function InboxPage({
   async function sendMessage(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const text = draft.trim();
-    if (!active || !text || sending) return;
+    if (!active || !text || sending || sendBusyRef.current) return;
     const conversationId = active.id;
+    sendBusyRef.current = true;
     setSending(true);
     setError('');
     try {
@@ -388,15 +437,21 @@ export default function InboxPage({
           body: JSON.stringify({ body: text, replyToId: replyTo?.id ?? null }),
         },
       );
+      keepAcknowledgement(conversationId, message);
       setActive((current) => current?.id === conversationId
-        ? { ...current, messages: [...current.messages, message] }
+        ? { ...current, messages: [...current.messages.filter(
+          (item) => item.id !== message.id), message] }
         : current);
-      setDraft(''); setReplyTo(null);
+      if (activeIdRef.current === conversationId) {
+        setDraft('');
+        setReplyTo(null);
+      }
       setDrafts((previous) => ({ ...previous, [conversationId]: '' }));
       await loadInbox();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not send message.');
     } finally {
+      sendBusyRef.current = false;
       setSending(false);
     }
   }
