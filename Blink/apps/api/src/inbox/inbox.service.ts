@@ -333,8 +333,8 @@ export class InboxService {
     // serialize against the same MySQL row without changing the schema.
     return this.prisma.$transaction(async (tx) => {
       const lockedFriends = await tx.$queryRaw<Array<{ id: string }>>`
-        SELECT `id` FROM `Friendship`
-        WHERE `userAId` = ${userAId} AND `userBId` = ${userBId}
+        SELECT id FROM Friendship
+        WHERE userAId = ${userAId} AND userBId = ${userBId}
         FOR UPDATE
       `;
       if (!lockedFriends.length) {
