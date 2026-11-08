@@ -142,7 +142,7 @@ class Calling {
     this.change({ ...idle, status: 'starting', peerId, peerName, kind });
     try {
       await this.waitConnected();
-      if (this.state.status !== 'starting') return;
+      if (this.snapshot().status !== 'starting') return;
       const result = await this.ack('call-initiate', { calleeId: peerId, kind });
       if (!result.callId) throw new Error('Call identifier missing.');
       this.change({ status: 'ringing', callId: result.callId });
