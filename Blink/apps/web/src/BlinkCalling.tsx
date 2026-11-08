@@ -16,6 +16,7 @@ interface Snapshot {
   local: MediaStream | null;
   remote: MediaStream | null;
   error: string;
+  ringtoneBlocked: boolean;
 }
 interface Ack { ok: boolean; callId?: string; error?: string }
 interface Signal { callId: string; sdp?: RTCSessionDescriptionInit; candidate?: RTCIceCandidateInit }
@@ -25,6 +26,7 @@ interface Invite {
 const idle: Snapshot = {
   status: 'idle', callId: '', peerId: '', peerName: '', kind: 'audio',
   muted: false, cameraOff: false, local: null, remote: null, error: '',
+  ringtoneBlocked: false,
 };
 
 class Calling {
@@ -43,6 +45,7 @@ class Calling {
   private relayCandidates = 0;
   private remoteCandidates = 0;
   private candidateRelayFailures = 0;
+  private ringAudio: HTMLAudioElement | null = null;
 
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
@@ -52,6 +55,37 @@ class Calling {
   private change(patch: Partial<Snapshot>) {
     this.state = { ...this.state, ...patch };
     this.listeners.forEach(listener => listener());
+  }
+
+  private playRingtone(): void {
+    if (this.state.status !== 'incoming' && this.state.status !== 'ringing') return;
+    if (!this.ringAudio) {
+      const audio = new Audio('/audio/blink-connect-ring.wav');
+      audio.loop = true;
+      audio.preload = 'auto';
+      audio.volume = 0.66;
+      this.ringAudio = audio;
+    }
+    if (!this.ringAudio.paused) return;
+    void this.ringAudio.play().then(() => {
+      if (this.state.ringtoneBlocked) this.change({ ringtoneBlocked: false });
+    }).catch(() => {
+      // Browser autoplay policies can block unsolicited incoming audio.
+      // The incoming screen exposes an explicit sound-enable action.
+      if (this.state.status === 'incoming' || this.state.status === 'ringing') {
+        this.change({ ringtoneBlocked: true });
+      }
+    });
+  }
+
+  enableRingtone(): void { this.playRingtone(); }
+
+  private stopRingtone(): void {
+    const audio = this.ringAudio;
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+    }
   }
 
   connect(token: string | null): void {
@@ -78,6 +112,7 @@ class Calling {
       this.change({ status: 'incoming', callId: invite.callId,
         peerId: invite.callerId, peerName: invite.callerName || 'Blink friend',
         kind: invite.kind, error: '' });
+      this.playRingtone();
     });
     socket.on('call-taken', (event: {callId: string}) => {
       if (event.callId === this.state.callId && this.state.status === 'incoming') {
@@ -86,6 +121,7 @@ class Calling {
     });
     socket.on('call-accepted', (event: {callId: string}) => {
       if (event.callId === this.state.callId && this.state.status === 'ringing') {
+        this.stopRingtone();
         void this.createOffer().catch(error => this.fail(error));
       }
     });
@@ -168,6 +204,7 @@ class Calling {
         return;
       }
       this.change({ status: 'ringing', callId: result.callId });
+      this.playRingtone();
     } catch (error) {
       this.clear(error instanceof Error ? error.message : 'Call unavailable.');
     }
@@ -176,6 +213,7 @@ class Calling {
   async accept() {
     if (this.state.status !== 'incoming') return;
     const callId = this.state.callId;
+    this.stopRingtone();
     this.change({ status: 'connecting' });
     try {
       await this.prepare(callId);
@@ -410,6 +448,7 @@ class Calling {
     this.change({ error: reason });
   }
   private clear(error = '') {
+    this.stopRingtone();
     this.clearConnectionTimers();
     const pc = this.pc;
     this.pc = null;
@@ -484,6 +523,12 @@ export function BlinkCallingHost() {
             'Connected'}</p>
         </div>}
       </div>
+      {state.ringtoneBlocked &&
+        (state.status === 'incoming' || state.status === 'ringing') &&
+        <button type="button" className="blink-call-enable-ring"
+          onClick={() => blinkCalls.enableRingtone()}>
+          <span aria-hidden="true">♫</span> Tap to enable call ringtone
+        </button>}
       <div className="blink-call-actions">
         {state.status === 'incoming' ? <>
           <button type="button" className="blink-call-decline"
