@@ -21,6 +21,7 @@ import ProfilePage from './ProfilePage';
 import FriendsPage from './FriendsPage';
 import PublicProfilePage from './PublicProfilePage';
 import InboxPage from './InboxPage';
+import { BlinkCallingHost, blinkCalls } from './BlinkCalling';
 import ReelsPage from './ReelsPage';
 import ReelsUploader from './ReelsUploader';
 import CheckinsPage from './CheckinsPage';
@@ -223,6 +224,14 @@ export default function App() {
 
   const [user, setUser] = useState<User | null>(storedUser);
   const [inboxTargetFriendId, setInboxTargetFriendId] = useState<string | null>(null);
+
+  // The socket survives in-app route transitions; only a login/logout change
+  // replaces the call session. Browser-hidden tabs keep their socket alive
+  // while open, but cannot receive calls once the tab/browser is terminated.
+  useEffect(() => {
+    blinkCalls.connect(user ? token() : null);
+    return () => blinkCalls.disconnect();
+  }, [user?.id]);
 
   // Keep cross-platform friend presence correct: an active Blink web member
   // should also appear online in the Android Messenger-style friend strip.
@@ -1382,7 +1391,7 @@ export default function App() {
     title: string,
   ) =>
     token() ? (
-      <>{content}{sharedNavigation}</>
+      <>{content}{sharedNavigation}<BlinkCallingHost /></>
     ) : (
       <main className="blink-guard">
         <h1>Sign in to use {title}</h1>
@@ -1672,6 +1681,7 @@ export default function App() {
 
     return (
       <main className="blink-home">
+        <BlinkCallingHost />
         {/* HEADER */}
 
         <header className="home-header">
