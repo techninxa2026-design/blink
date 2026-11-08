@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import './InboxPage.css';
 import { SOCIAL_API_URL } from './blinkSocialApi';
+import { blinkCalls } from './BlinkCalling';
 
 const API_URL = SOCIAL_API_URL;
 
@@ -930,6 +931,22 @@ export default function InboxPage({
                 )}
                 {active.isGroup && <><div className="inbox-avatar" aria-hidden="true">👥</div><button type="button" className="inbox-name-button" onClick={() => setGroupMembersOpen(v => !v)}>{active.groupName || "Group"} · {active.members?.length ?? 0} members</button></>}
                 <div className="inbox-chat-controls">
+                  {!active.isGroup && active.otherUser &&
+                    !active.blockedByMe && !active.blockedByOther &&
+                    <div className="inbox-call-actions">
+                      <button type="button" aria-label="Voice call"
+                        title="Start voice call"
+                        onClick={() => void blinkCalls.start(
+                          active.otherUser!.id, active.otherUser!.name, 'audio')}>
+                        ☎ Call
+                      </button>
+                      <button type="button" aria-label="Video call"
+                        title="Start video call"
+                        onClick={() => void blinkCalls.start(
+                          active.otherUser!.id, active.otherUser!.name, 'video')}>
+                        ▣ Video
+                      </button>
+                    </div>}
                   <button type="button" aria-label="Search messages" title="Search messages" onClick={() => { setSearchOpen(v => !v); setChatMenuOpen(false); }}>⌕</button>
                   <button type="button" aria-label="Conversation options" aria-expanded={chatMenuOpen} onClick={() => setChatMenuOpen(v => !v)}>⋮</button>
                   {chatMenuOpen && <div className="inbox-chat-options">
