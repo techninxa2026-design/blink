@@ -44,6 +44,17 @@ export class InboxController {
     return this.inboxService.listMessageableFriends(req.user.userId);
   }
 
+  @Post('presence/ping')
+  pingPresence(@Req() req: AuthenticatedRequest) {
+    return this.inboxService.pingPresence(req.user.userId);
+  }
+
+  // Only disclose online/offline state for an authenticated user's friends.
+  @Get('presence')
+  friendPresence(@Req() req: AuthenticatedRequest) {
+    return this.inboxService.friendPresence(req.user.userId);
+  }
+
   @Post('conversations')
   openConversation(
     @Req() req: AuthenticatedRequest,
