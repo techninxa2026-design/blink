@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import './InboxPage.css';
 import { SOCIAL_API_URL } from './blinkSocialApi';
 import { blinkCalls } from './BlinkCalling';
+import { blinkCallLabel, readBlinkCallRecord } from './blinkCallHistory';
 
 const API_URL = SOCIAL_API_URL;
 
@@ -880,7 +881,14 @@ export default function InboxPage({
               <span className="inbox-conversation-content">
                 <strong>{conversation.isGroup ? conversation.groupName || "Group" : conversation.otherUser?.name || "Unknown user"}</strong>
                 <span className="inbox-preview">
-                  {conversation.lastMessage?.unsentAt ? 'Message unsent' : conversation.lastMessage?.body ||
+                  {conversation.lastMessage?.unsentAt ? 'Message unsent' :
+                    conversation.lastMessage &&
+                    readBlinkCallRecord(conversation.lastMessage)
+                    ? blinkCallLabel(
+                        readBlinkCallRecord(conversation.lastMessage)!,
+                        conversation.lastMessage.senderId === currentUserId,
+                      )
+                    : conversation.lastMessage?.body ||
                     (conversation.lastMessage?.mediaKey
                       ? '📷 Moment'
                       : 'Start your conversation')}
@@ -987,7 +995,7 @@ export default function InboxPage({
                 ) : (
                   active.messages.map((message) => (
                     <div
-                      className={`inbox-message ${message.senderId === currentUserId ? 'is-mine' : 'is-theirs'}`}
+                      className={`inbox-message ${message.senderId === currentUserId ? 'is-mine' : 'is-theirs'} ${message.mediaType === 'call' ? 'is-call-event' : ''}`}
                       key={message.id}
                       id={`inbox-message-${message.id}`}
                       data-highlighted={highlightId === message.id ? 'true' : undefined}
@@ -995,6 +1003,32 @@ export default function InboxPage({
                       onTouchEnd={() => { if (longPressRef.current !== null) window.clearTimeout(longPressRef.current); }}
                       onTouchMove={() => { if (longPressRef.current !== null) window.clearTimeout(longPressRef.current); }}
                     >
+                      {message.mediaType === 'call' && readBlinkCallRecord(message) ? (
+                        <div className="inbox-call-event-card" role="note"
+                          aria-label={blinkCallLabel(
+                            readBlinkCallRecord(message)!,
+                            message.senderId === currentUserId)}>
+                          <div className="inbox-call-event-icon" aria-hidden="true">
+                            {readBlinkCallRecord(message)!.kind === 'video' ? '▣' : '☎'}
+                          </div>
+                          <div className="inbox-call-event-content">
+                            <strong>{blinkCallLabel(
+                              readBlinkCallRecord(message)!,
+                              message.senderId === currentUserId)}</strong>
+                            <small>{formatTime(message.createdAt)}</small>
+                          </div>
+                          {!active.isGroup && active.otherUser &&
+                            !active.blockedByMe && !active.blockedByOther &&
+                            <button type="button" className="inbox-call-again"
+                              aria-label="Call again"
+                              onClick={() => void blinkCalls.start(
+                                active.otherUser!.id,
+                                active.otherUser!.name,
+                                readBlinkCallRecord(message)!.kind)}>
+                              Call again
+                            </button>}
+                        </div>
+                      ) : <>
                       {message.forwarded && !message.unsentAt && <small className="inbox-forwarded">↪ Forwarded</small>}
                       {message.replyToId && !message.unsentAt && <button type="button" className="inbox-reply-quote" onClick={() => jumpToMessage(message.replyToId!)}><strong>↩ Reply</strong><span>{(() => { const source = active.messages.find(m => m.id === message.replyToId); return source ? previewMessage(source) : 'Original message'; })()}</span></button>}
                       {message.unsentAt ? <p className="inbox-unsent">Message unsent</p> : message.mediaKey ? (message.isPrivate ? (
@@ -1038,6 +1072,7 @@ export default function InboxPage({
                       {Boolean(message.reactions?.length) && !message.unsentAt && <div className="inbox-reaction-display">{message.reactions?.map(r => <span key={r.userId} title="Reaction">{r.emoji}</span>)}</div>}
                       <time>{formatTime(message.createdAt)}</time>
                       {message.senderId === currentUserId && <span className="inbox-read-status">{active.otherLastReadAt && new Date(active.otherLastReadAt).getTime() >= new Date(message.createdAt).getTime() ? 'Seen' : 'Sent'}</span>}
+                      </>}
                     </div>
                   ))
                 )}
