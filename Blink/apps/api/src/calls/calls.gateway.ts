@@ -61,7 +61,7 @@ export class CallsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly jwt: JwtService,
   ) {}
 
-  private room(userId: string): string { return \`user:\${userId}\`; }
+  private room(userId: string): string { return `user:${userId}`; }
   private user(client: Socket): string {
     const userId: unknown = client.data.userId;
     if (typeof userId !== 'string' || !userId) throw new Error('Authentication required.');
