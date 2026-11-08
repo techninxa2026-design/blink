@@ -38,5 +38,7 @@ jobs:
         run: pnpm --dir apps/api run build
       - name: Verify free Blink Points gift rules
         run: NODE_OPTIONS=--experimental-vm-modules pnpm --dir apps/api exec jest --runInBand src/moments/moments.service.spec.ts
+      - name: Verify friend-to-chat conversation rules
+        run: NODE_OPTIONS=--experimental-vm-modules pnpm --dir apps/api exec jest --runInBand src/inbox/inbox.service.spec.ts
       - name: Compile Vite React frontend
         run: pnpm --dir apps/web run build
