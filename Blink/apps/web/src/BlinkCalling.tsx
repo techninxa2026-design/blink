@@ -129,10 +129,20 @@ class Calling {
     });
   }
 
+  private async waitConnected(): Promise<void> {
+    for (let attempt = 0; attempt < 35; attempt++) {
+      if (this.socket?.connected) return;
+      await new Promise<void>(resolve => window.setTimeout(resolve, 200));
+    }
+    throw new Error('Calling service is offline. Please reconnect.');
+  }
+
   async start(peerId: string, peerName: string, kind: BlinkCallKind) {
     if (this.state.status !== 'idle') return;
     this.change({ ...idle, status: 'starting', peerId, peerName, kind });
     try {
+      await this.waitConnected();
+      if (this.state.status !== 'starting') return;
       const result = await this.ack('call-initiate', { calleeId: peerId, kind });
       if (!result.callId) throw new Error('Call identifier missing.');
       this.change({ status: 'ringing', callId: result.callId });
