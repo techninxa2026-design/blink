@@ -102,3 +102,13 @@ Restart coturn and the Blink NestJS service. Check `GET /calls/ice` again. Its `
 ### What the retry addresses
 
 An ICE candidate may be delivered before the remote SDP has been applied. The clients retain and flush early candidates. ICE candidates are now sent with Socket.IO acknowledgements, and the browser/Android use a single ICE restart before reporting failure. The original caller creates restart offers to avoid both peers negotiating simultaneously; the callee requests the restart via the authenticated `call-ice-restart-request` event. The server still authorizes all signals to the already selected participants in a single authenticated one-to-one call. This improves resilience but does not make a STUN-only setup reliable.
+
+## Acoustic echo troubleshooting (voice repeats during an otherwise connected call)
+
+Echo is different from an ICE/TURN problem. A call that has working audio can echo when the remote loudspeaker is recaptured by that device's microphone. Acoustic echo cancellation (AEC) depends on both the hardware and audio route; no software processing guarantees silence with two nearby loudspeakers.
+
+- **Flutter Android:** voice calls now request WebRTC echo cancellation, noise suppression, automatic microphone gain and mono capture. Before opening media, they select Android's voice communication configuration. Voice starts on the earpiece rather than loudspeaker; video starts on speakerphone. The call overlay has an **Earpiece/Speaker on** button. The selected route is reapplied when the remote audio track becomes available and released when the call ends.
+- **React browser:** microphone constraints request AEC, noise suppression, AGC, and preferred mono input. The app maintains a muted local preview and lowers its single remote playback element to 78% volume. The browser may ignore unsupported constraints or provide hardware-specific behavior.
+- **How to verify:** Update both clients; test one web account and one Android account in different rooms, or use wired/Bluetooth headphones on one side. Make sure the web account does not also have a second audible Blink tab open. If the echo disappears using headphones, it was acoustic feedback—not duplicate network packets or TURN signaling.
+- **If only video speakerphone echoes:** lower the hardware speaker volume, use headphones or toggle Android to the earpiece. If echo continues with headsets on both sides, check browser microphone settings, audio enhancements, and the Android device's OS-level audio processing.
+- **Scope:** These changes leave friendship checks, call signaling, ICE/TURN setup, and private message behavior unchanged.
