@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import type { PrismaService } from '../prisma/prisma.service';
 import { CallsService, type CallSession } from './calls.service';
 
