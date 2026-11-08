@@ -1425,6 +1425,10 @@ export default function App() {
           userId={decodeURIComponent(publicProfileId)}
           onBack={() => goTo('/connections')}
           onMyProfile={() => goTo('/profile')}
+          onMessageFriend={(friendId) => {
+            setInboxTargetFriendId(friendId);
+            goTo('/inbox');
+          }}
           onOpenReel={(id) => goTo('/reels/' + encodeURIComponent(id))}
           theme={theme}
           onToggleTheme={toggleTheme}
