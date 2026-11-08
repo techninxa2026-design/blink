@@ -222,6 +222,7 @@ export default function App() {
   );
 
   const [user, setUser] = useState<User | null>(storedUser);
+  const [inboxTargetFriendId, setInboxTargetFriendId] = useState<string | null>(null);
 
   // Keep cross-platform friend presence correct: an active Blink web member
   // should also appear online in the Android Messenger-style friend strip.
@@ -390,6 +391,7 @@ export default function App() {
   }, []);
 
   function goTo(path: string) {
+    if (path !== '/inbox') setInboxTargetFriendId(null);
     window.history.pushState({}, '', path);
 
     setRoute(routeFromPath(path));
@@ -1465,6 +1467,8 @@ export default function App() {
     return protectedScreen(
       <InboxPage
         onBack={() => goTo('/home')}
+        initialFriendId={inboxTargetFriendId}
+        onInitialFriendHandled={() => setInboxTargetFriendId(null)}
         onOpenProfile={openPublicProfile}
         theme={theme}
         onToggleTheme={toggleTheme}
@@ -1598,6 +1602,10 @@ export default function App() {
     return protectedScreen(
       <FriendsPage
         onOpenProfile={openPublicProfile}
+        onMessageFriend={(friendId) => {
+          setInboxTargetFriendId(friendId);
+          goTo('/inbox');
+        }}
         onBack={() => goTo('/home')}
         theme={theme}
         onToggleTheme={toggleTheme}
