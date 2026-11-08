@@ -341,7 +341,8 @@ export default function InboxPage({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ friendId }),
       });
-      await openConversation(result.conversationId);
+      const opened = await openConversation(result.conversationId);
+      if (!opened) return;
       await loadInbox();
       setNewMessageOpen(false);
     } catch (err) {
@@ -351,7 +352,7 @@ export default function InboxPage({
     }
   }
 
-  async function openConversation(id: string) {
+  async function openConversation(id: string): Promise<boolean> {
     setOpening(true);
     setError('');
     activeIdRef.current = id;
@@ -360,18 +361,20 @@ export default function InboxPage({
       const result = await apiRequest<ConversationDetail>(
         `/inbox/conversations/${encodeURIComponent(id)}`,
       );
-      if (activeIdRef.current !== id) return;
+      if (activeIdRef.current !== id) return false;
       aroundRef.current = null;
       setChatMenuOpen(false); setSearchOpen(false); setSearchResults([]); setSearchText(''); setHighlightId(null);
       setActive(mergeAcknowledged(result));
       setReplyTo(null); setForwarding(null); setGroupMembersOpen(false); setGroupAddOpen(false);
       setDraft(drafts[id] ?? '');
       void markConversationRead(id);
+      return true;
     } catch (err) {
       if (activeIdRef.current === id) {
-        activeIdRef.current = null;
+        activeIdRef.current = active?.id ?? null;
         setError(err instanceof Error ? err.message : 'Could not open chat.');
       }
+      return false;
     } finally {
       setOpening(false);
     }
