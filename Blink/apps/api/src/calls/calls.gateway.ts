@@ -9,6 +9,7 @@ import {
   OnGatewayInit,
 } from '@nestjs/websockets';
 import { JwtService } from '@nestjs/jwt';
+import { Logger } from '@nestjs/common';
 import type { Namespace, Socket } from 'socket.io';
 import { CallsService } from './calls.service';
 
@@ -52,6 +53,7 @@ function allowedOrigin(origin: string | undefined): boolean {
 })
 export class CallsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server!: Namespace;
+  private readonly logger = new Logger(CallsGateway.name);
   private readonly online = new Map<string, Set<string>>();
   private readonly ringingTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
@@ -130,6 +132,11 @@ export class CallsGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
     this.clearRinging(callId);
     const call = this.calls.complete(callId);
     if (!call) return;
+    // End the live socket session immediately; keep database recording
+    // independent so a temporary SQL failure never traps a user on a call.
+    void this.calls.persistOutcome(call, reason).catch((error: unknown) => {
+      this.logger.error('Could not persist Blink call history', error);
+    });
     const event = { callId, reason };
     this.server.to(this.room(call.callerId)).emit('call-ended', event);
     this.server.to(this.room(call.calleeId)).emit('call-ended', event);
