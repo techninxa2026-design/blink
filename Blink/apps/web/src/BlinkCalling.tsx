@@ -40,6 +40,7 @@ class Calling {
   private turnConfigured = false;
   private restartAttempted = false;
   private localCandidates = 0;
+  private relayCandidates = 0;
   private remoteCandidates = 0;
   private candidateRelayFailures = 0;
 
@@ -246,6 +247,9 @@ class Calling {
     pc.onicecandidate = event => {
       if (event.candidate && this.state.callId === callId) {
         this.localCandidates++;
+        if (event.candidate.candidate.includes(' typ relay ')) {
+          this.relayCandidates++;
+        }
         void this.ack('ice-candidate', {
           callId, candidate: event.candidate.toJSON(),
         }).catch(() => {
@@ -298,10 +302,18 @@ class Calling {
     if (this.candidateRelayFailures >= 3) {
       return new Error('The call server rejected ICE candidates. Verify WebSocket signaling.');
     }
+    const summary = 'ICE candidates sent: ' + this.localCandidates +
+      ', received: ' + this.remoteCandidates + '.';
     if (!this.turnConfigured) {
-      return new Error('No working media route. The Blink API has no TURN relay configured. Ask the server administrator to configure CALL_TURN_URLS and CALL_TURN_SHARED_SECRET.');
+      return new Error('No network path found. Blink has no TURN relay configured. The server administrator must configure CALL_TURN_URLS and CALL_TURN_SHARED_SECRET. ' + summary);
     }
-    return new Error('Could not establish an audio/video route. Verify TURN server credentials, UDP/TCP and relay firewall ports, then retry.');
+    if (this.relayCandidates === 0) {
+      return new Error('TURN was configured but this browser gathered no relay candidate. Verify coturn credentials, external IP and UDP/TCP/firewall access. ' + summary);
+    }
+    if (this.remoteCandidates === 0) {
+      return new Error('No remote ICE candidates could be applied. Check peer signaling, both devices and the call gateway. ' + summary);
+    }
+    return new Error('Could not establish an audio/video route despite TURN candidates. Verify TURN reachability and relay firewall ports. ' + summary);
   }
 
   private armMediaTimeout(callId: string, durationMs: number) {
@@ -406,6 +418,7 @@ class Calling {
     this.turnConfigured = false;
     this.restartAttempted = false;
     this.localCandidates = 0;
+    this.relayCandidates = 0;
     this.remoteCandidates = 0;
     this.candidateRelayFailures = 0;
     this.change({ ...idle, error });
