@@ -20,6 +20,7 @@ export interface CallSession {
   kind: CallKind;
   state: CallState;
   startedAt: number;
+  acceptedAt?: number;
 }
 
 @Injectable()
@@ -104,6 +105,7 @@ export class CallsService {
       throw new ForbiddenException('This call is no longer ringing for you.');
     }
     call.calleeSocketId = socketId;
+    call.acceptedAt = Date.now();
     call.state = 'connected';
     return call;
   }
@@ -128,6 +130,62 @@ export class CallsService {
     if (this.busy.get(call.callerId) === callId) this.busy.delete(call.callerId);
     if (this.busy.get(call.calleeId) === callId) this.busy.delete(call.calleeId);
     return call;
+  }
+
+  /**
+   * Persist one immutable call-history entry in the existing direct Inbox
+   * conversation. Message.mediaType is an unrestricted String field, so this
+   * requires no schema migration and cannot be forged through sendMessage.
+   * The deterministic ID makes at-least-once recording idempotent.
+   */
+  async persistOutcome(call: CallSession, reason: string): Promise<void> {
+    const endedAt = Date.now();
+    const outcome = reason === 'missed' ? 'missed'
+      : reason === 'rejected' ? 'declined'
+      : reason === 'ended' && call.state === 'ringing' ? 'cancelled'
+      : reason === 'disconnected' && call.state === 'ringing' ? 'cancelled'
+      : reason === 'disconnected' ? 'dropped'
+      : 'completed';
+    const durationSeconds = call.acceptedAt
+      ? Math.max(0, Math.floor((endedAt - call.acceptedAt) / 1000)) : 0;
+    const history = JSON.stringify({
+      version: 1, callId: call.id, kind: call.kind,
+      outcome, durationSeconds,
+    });
+
+    await this.prisma.$transaction(async (tx) => {
+      const conversation = await tx.conversation.findFirst({
+        where: {
+          isGroup: false,
+          AND: [
+            { members: { some: { userId: call.callerId } } },
+            { members: { some: { userId: call.calleeId } } },
+            { members: { every: { userId: { in: [call.callerId, call.calleeId] } } } },
+          ],
+        },
+        select: { id: true },
+      });
+      if (!conversation) return;
+      const id = 'blink_call_' + call.id;
+      // A retry or duplicated socket disconnect must not create two cards.
+      const existing = await tx.message.findUnique({
+        where: { id }, select: { id: true },
+      });
+      if (existing) return;
+      await tx.message.create({
+        data: {
+          id,
+          conversationId: conversation.id,
+          senderId: call.callerId,
+          mediaType: 'call',
+          body: history,
+        },
+      });
+      await tx.conversation.update({
+        where: { id: conversation.id },
+        data: { updatedAt: new Date(endedAt) },
+      });
+    });
   }
 
   bySocket(socketId: string): CallSession[] {
