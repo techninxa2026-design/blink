@@ -48,3 +48,57 @@ The Socket.IO server is reached at wss://<API host>/calls with the default /sock
 - **Network**: STUN-only calling is not reliable over carrier-grade/symmetric NAT; deploy TURN for real-world reliability. TURN bandwidth is not free.
 - **Scope**: one-to-one audio/video calls, not groups, call recording, or PSTN. Browser and Android builds must be device-tested; CI compilation alone does not validate NAT traversal, audio route, microphone permissions or background behavior.
 - **Session life**: Blink JWTs currently expire after about one hour; their signaling sockets are disconnected on expiry. Token renewal requires an explicit existing-auth enhancement rather than silently bypassing expiration.
+
+## Troubleshooting: media connection failed on Web and Android
+
+**Why ringing still works:** Socket.IO successfully reaches NestJS for call setup, but WebRTC must establish an independent audio/video path using ICE candidates. Blink's default `GET /calls/ice` response only contains STUN unless the API deployment has working `CALL_TURN_URLS` and `CALL_TURN_SHARED_SECRET`. When users are on different mobile/office networks, STUN-only frequently cannot connect. The updated API now includes `turnConfigured: true|false` without disclosing secrets. The clients acknowledge ICE candidate forwarding, buffer early candidates, and attempt one ICE restart, but code cannot replace an actual TURN relay.
+
+### Diagnose without sharing credentials
+
+1. Deploy the latest NestJS and web versions and install the updated Flutter APK; make sure both clients use the same API host and that the WebSocket namespace `/calls` and HTTP endpoint `/calls/ice` reach that host.
+2. In an authenticated browser DevTools Network tab, inspect the response to `GET /calls/ice` while starting a call. It must contain `turnConfigured:true` and at least one `turn:` or `turns:` entry for production use. **Do not share the username, credential or JWT** from this response; only check the boolean and URL schemes.
+3. If `turnConfigured:false`, set `CALL_TURN_URLS` and `CALL_TURN_SHARED_SECRET` on the **NestJS runtime environment** and restart that server. Do not put these values in React/Vite `VITE_*` variables or Flutter `--dart-define`.
+4. If `turnConfigured:true` and ICE still fails, validate that coturn's `use-auth-secret` + `static-auth-secret` equal the NestJS TURN shared secret, and that its public IP, relay UDP port range and TLS certificate are correct. Try the TURN URL and short-lived credentials in the browser WebRTC Trickle ICE test; a working relay produces a **relay** candidate.
+5. If a call displays “candidate relay rejected”, inspect NestJS Socket.IO /calls namespace, authentication, WebSocket proxy upgrade, and acknowledgements. A NestJS Socket.IO message ACK is required for the updated apps.
+6. Test two friends on the same Wi-Fi first, then Wi-Fi vs mobile data; compare the results. Some networks only permit TURN over TCP/TLS. A public STUN server is **not** a production replacement for TURN.
+
+### Example coturn deployment on a separate Linux relay host
+
+Run coturn on a publicly reachable Linux server (this may be separate from the Blink Node/NestJS host):
+
+```bash
+sudo apt update
+sudo apt install -y coturn
+sudo systemctl enable --now coturn
+```
+
+Sample `/etc/turnserver.conf` (replace example DNS, public IPv4 and secret with your real settings; never commit the real secret):
+
+```ini
+listening-port=3478
+fingerprint
+realm=turn.example.com
+use-auth-secret
+static-auth-secret=REPLACE_WITH_A_LONG_RANDOM_PRIVATE_SECRET
+external-ip=203.0.113.10
+min-port=49160
+max-port=49200
+no-cli
+no-multicast-peers
+```
+
+Open inbound **3478 UDP/TCP** and **49160–49200 UDP** on the relay firewall/security group and underlying host; if you enable `turns:`, additionally configure a valid TLS certificate/key, `tls-listening-port=5349`, and open 5349 TCP. If coturn runs behind NAT, configure the appropriate `external-ip=PUBLIC/PRIVATE` mapping. For real production traffic choose a larger relay UDP range based on expected concurrent calls.
+
+Set the Blink NestJS environment (example; real values must stay private):
+
+```env
+CALL_STUN_URLS=stun:stun.l.google.com:19302
+CALL_TURN_URLS=turn:turn.example.com:3478?transport=udp
+CALL_TURN_SHARED_SECRET=REPLACE_WITH_THE_SAME_LONG_RANDOM_PRIVATE_SECRET
+```
+
+Restart coturn and the Blink NestJS service. Check `GET /calls/ice` again. Its `turnConfigured` flag only proves that the API **returns** TURN configuration; only an actual gathered relay candidate and real device call prove that TURN is reachable. Neither compilation nor an HTTP 200 response can validate NAT traversal.
+
+### What the retry addresses
+
+An ICE candidate may be delivered before the remote SDP has been applied. The clients retain and flush early candidates. ICE candidates are now sent with Socket.IO acknowledgements, and the browser/Android use a single ICE restart before reporting failure. The original caller creates restart offers to avoid both peers negotiating simultaneously; the callee requests the restart via the authenticated `call-ice-restart-request` event. The server still authorizes all signals to the already selected participants in a single authenticated one-to-one call. This improves resilience but does not make a STUN-only setup reliable.
