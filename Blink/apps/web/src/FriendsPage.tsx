@@ -143,7 +143,18 @@ export default function FriendsPage({
   }
 
   useEffect(() => {
-    void loadConnections();
+    // The Friends page must reflect requests sent from Android without
+    // needing a browser refresh. Only poll when the tab is visible.
+    const refresh = () => {
+      if (!document.hidden) void loadConnections();
+    };
+    refresh();
+    const timer = window.setInterval(refresh, 7000);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', refresh);
+    };
   }, []);
 
   useEffect(() => {
