@@ -323,66 +323,54 @@ export class InboxService {
   }
 
   async openConversation(userId: string, friendId: string) {
-    if (
-      typeof friendId !== 'string' ||
-      !friendId.trim() ||
-      userId === friendId
-    ) {
+    if (typeof friendId !== 'string' || !friendId.trim() || userId === friendId) {
       throw new BadRequestException('Invalid friend.');
     }
 
     const [userAId, userBId] = [userId, friendId].sort();
-    const blocked = await this.prisma.userBlock.findFirst({ where: { OR: [{ blockerId: userId, blockedId: friendId }, { blockerId: friendId, blockedId: userId }] } });
-    if (blocked) throw new ForbiddenException("Cannot start a conversation while a user is blocked.");
+    // Lock the EXISTING friendship row, rather than racing a find/create.
+    // Concurrent Android and Web requests for the same two friends now
+    // serialize against the same MySQL row without changing the schema.
+    return this.prisma.$transaction(async (tx) => {
+      const lockedFriends = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT `id` FROM `Friendship`
+        WHERE `userAId` = ${userAId} AND `userBId` = ${userBId}
+        FOR UPDATE
+      `;
+      if (!lockedFriends.length) {
+        throw new ForbiddenException('You can only start a conversation with a friend.');
+      }
 
-    const friendship = await this.prisma.friendship.findUnique({
-      where: {
-        userAId_userBId: { userAId, userBId },
-      },
-    });
+      const blocked = await tx.userBlock.findFirst({ where: { OR: [
+        { blockerId: userId, blockedId: friendId },
+        { blockerId: friendId, blockedId: userId },
+      ] } });
+      if (blocked) {
+        throw new ForbiddenException('Cannot start a conversation while a user is blocked.');
+      }
 
-    if (!friendship) {
-      throw new ForbiddenException(
-        'You can only start a conversation with a friend.',
-      );
-    }
-
-    // Find an existing direct conversation first.
-    const existing = await this.prisma.conversation.findFirst({
-      where: {
-        AND: [
-          { isGroup: false },
-          { members: { some: { userId } } },
-          { members: { some: { userId: friendId } } },
-          { members: { every: { userId: { in: [userId, friendId] } } } },
-        ],
-      },
-      include: {
-        members: {
-          select: { userId: true },
-        },
-      },
-    });
-
-    if (existing && !existing.isGroup && existing.members.length === 2) {
-      return { conversationId: existing.id };
-    }
-
-    const conversation = await this.prisma.conversation.create({
-      data: {
-        members: {
-          create: [
-            { userId },
-            { userId: friendId },
+      const existing = await tx.conversation.findFirst({
+        where: {
+          AND: [
+            { isGroup: false },
+            { members: { some: { userId } } },
+            { members: { some: { userId: friendId } } },
+            { members: { every: { userId: { in: [userId, friendId] } } } },
           ],
         },
-      },
-      select: { id: true },
-    });
+        include: { members: { select: { userId: true } } },
+      });
+      if (existing && !existing.isGroup && existing.members.length === 2) {
+        return { conversationId: existing.id };
+      }
 
-    return { conversationId: conversation.id };
+      const created = await tx.conversation.create({
+        data: { members: { create: [{ userId }, { userId: friendId }] } },
+        select: { id: true },
+      });
+      return { conversationId: created.id };
+    }, { maxWait: 5000, timeout: 10000 });
   }
-
   async getConversation(userId: string, conversationId: string, around?: string) {
     const membership = await this.getMembership(userId, conversationId);
     let aroundMessage: { createdAt: Date } | null = null;
