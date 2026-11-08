@@ -321,10 +321,9 @@ class Calling {
     const callId = this.state.callId;
     const pc = this.pc;
     if (!callId || !pc || this.state.status === 'idle') return;
-    if (this.restartAttempted) {
-      if (!this.restartInProgress) this.fail(this.mediaFailure());
-      return;
-    }
+    // After requesting an ICE restart, the old connection can stay in
+    // "failed" until new SDP and candidates arrive; let the retry timer decide.
+    if (this.restartAttempted) return;
     this.restartAttempted = true;
     this.restartInProgress = true;
     this.change({ status: 'connecting' });
