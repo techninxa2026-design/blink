@@ -235,6 +235,19 @@ export class CallsGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
     } catch (error) { return this.fail(error); }
   }
 
+  @SubscribeMessage('call-ice-restart-request')
+  requestIceRestart(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: CallPayload,
+  ): CallResult {
+    try {
+      const callId = payload?.callId;
+      const peer = this.calls.peerSocket(callId, this.user(client), client.id);
+      this.server.to(peer).emit('call-ice-restart-request', { callId });
+      return { ok: true };
+    } catch (error) { return this.fail(error); }
+  }
+
   @SubscribeMessage('call-offer')
   offer(@ConnectedSocket() client: Socket, @MessageBody() payload: CallPayload): CallResult {
     return this.forward(client, payload, 'call-offer');
