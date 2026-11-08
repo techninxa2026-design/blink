@@ -112,3 +112,12 @@ Echo is different from an ICE/TURN problem. A call that has working audio can ec
 - **How to verify:** Update both clients; test one web account and one Android account in different rooms, or use wired/Bluetooth headphones on one side. Make sure the web account does not also have a second audible Blink tab open. If the echo disappears using headphones, it was acoustic feedback—not duplicate network packets or TURN signaling.
 - **If only video speakerphone echoes:** lower the hardware speaker volume, use headphones or toggle Android to the earpiece. If echo continues with headsets on both sides, check browser microphone settings, audio enhancements, and the Android device's OS-level audio processing.
 - **Scope:** These changes leave friendship checks, call signaling, ICE/TURN setup, and private message behavior unchanged.
+
+## Blink Connect ringtone and call-history timeline
+
+- Incoming and outgoing ringing use the same original, looped `blink-connect-ring.wav` asset in Flutter Android and React Web. Ringtone playback stops on answer, decline, hang-up, missed timeout, and disconnect. The ringtone is not copied from Messenger or another commercial app.
+- Browsers may block incoming audio until a user gesture. Blink's incoming-call overlay presents a **Tap to enable call ringtone** action when automatic playback is denied. A closed browser or killed Android app still needs push-based call delivery, which is outside this change.
+- At the conclusion of a call, NestJS creates one immutable `Message` with `mediaType: "call"` in the existing two-member Inbox conversation. Its JSON body has `version:1`, `callId`, `kind`, `outcome`, `durationSeconds`. Outcomes include `missed`, `declined`, `cancelled`, `completed`, and `dropped`. Its deterministic ID prevents duplicate history entries.
+- Both clients render a centered orange **call timeline event** and a **Call again** action. Normal text messages, groups, and media messages remain unchanged; users cannot edit, unsend, forward, pin or react to server-generated call records (each participant can still hide one locally).
+- Android Inbox online rings/dots and Web friend selection highlights use Blink orange rather than green. Android Home has a compact Check-Ins panel, tighter Blink Feed spacing, and a lighter Moments section header without changing other screens.
+- No Prisma migration is required. Backend and Web must be redeployed together and the updated Flutter app installed before testing cross-platform call history and the ringtone.
