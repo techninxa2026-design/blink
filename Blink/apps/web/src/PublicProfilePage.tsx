@@ -35,6 +35,7 @@ type Props = {
   onBack: () => void;
   onMyProfile: () => void;
   onOpenReel: (id: string) => void;
+  onMessageFriend: (id: string) => void;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
 };
@@ -57,6 +58,7 @@ export default function PublicProfilePage({
   onBack,
   onMyProfile,
   onOpenReel,
+  onMessageFriend,
   theme,
   onToggleTheme,
 }: Props) {
@@ -228,6 +230,10 @@ async function unfriend() {
   return (
     <div className="public-profile-actions">
       <span className="public-profile-status">✓ Friends</span>
+      <button type="button" className="public-profile-primary"
+        onClick={() => onMessageFriend(profile.id)}>
+        💬 Message
+      </button>
 
       <button
         type="button"
