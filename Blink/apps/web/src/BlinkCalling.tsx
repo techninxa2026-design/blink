@@ -224,7 +224,14 @@ class Calling {
         return urls.some(url => url.startsWith('turn:') || url.startsWith('turns:'));
       });
     const media = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: true, noiseSuppression: true },
+      // Browser DSP: reduce acoustic echo from the remote speaker,
+      // suppress room noise and keep microphone gain stable where supported.
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        channelCount: { ideal: 1 },
+      },
       video: this.state.kind === 'video'
         ? { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
         : false,
@@ -433,9 +440,20 @@ export function BlinkCallingHost() {
     const local = document.getElementById('blink-call-local') as HTMLVideoElement | null;
     const remote = document.getElementById('blink-call-remote') as HTMLVideoElement | null;
     const audio = document.getElementById('blink-call-audio') as HTMLAudioElement | null;
-    if (local) local.srcObject = state.local;
-    if (remote) remote.srcObject = state.remote;
-    if (audio) audio.srcObject = state.remote;
+    if (local) {
+      local.srcObject = state.local;
+      local.muted = true; // Local preview must never play into the microphone.
+    }
+    if (remote) {
+      remote.srcObject = state.remote;
+      remote.muted = false;
+      remote.volume = 0.78; // Avoid excessively loud speaker feedback.
+    }
+    if (audio) {
+      audio.srcObject = state.remote;
+      audio.muted = false;
+      audio.volume = 0.78;
+    }
   }, [state.local, state.remote, state.status, state.kind]);
   if (state.status === 'idle') {
     return state.error ? <div className="blink-call-notice" role="alert">
