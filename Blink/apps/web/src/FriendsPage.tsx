@@ -27,6 +27,7 @@ type Tab = 'discover' | 'requests' | 'friends';
 
 type Props = {
 onOpenProfile: (userId: string) => void;
+  onMessageFriend: (userId: string) => void;
   onBack: () => void;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
@@ -108,6 +109,7 @@ function UserAvatar({ user }: { user: PublicUser }) {
 export default function FriendsPage({
   onBack,
   onOpenProfile,
+  onMessageFriend,
   theme,
   onToggleTheme,
 }: Props) {
@@ -221,6 +223,7 @@ async function unfriend(userId: string, name: string) {
 
       setNotice(result.message || 'Updated successfully.');
       await loadConnections();
+      if (path.endsWith('/accept')) setTab('friends');
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Something went wrong.',
@@ -305,10 +308,6 @@ async function unfriend(userId: string, name: string) {
 
             {loading ? (
               <p className="friends-empty">Loading Blink members…</p>
-            ) : !query.trim() ? (
-              <p className="friends-empty">
-                Enter a name to find someone on Blink.
-              </p>
             ) : results.length === 0 ? (
               <p className="friends-empty">No users found.</p>
             ) : (
@@ -328,7 +327,10 @@ async function unfriend(userId: string, name: string) {
                     </div>
 
                     {isFriend(user.id) ? (
-                      <span className="friends-status">Friends ✓</span>
+                      <button type="button" className="friends-primary"
+                        onClick={() => onMessageFriend(user.id)}>
+                        💬 Message
+                      </button>
                     ) : isPending(user.id) ? (
                       <span className="friends-status">Pending</span>
                     ) : (
@@ -460,6 +462,11 @@ async function unfriend(userId: string, name: string) {
 </button>
                       <span>{friend.user.bio || 'Blink member'}</span>
                     </div>
+                    <div className="friends-actions">
+                    <button type="button" className="friends-primary"
+                      onClick={() => onMessageFriend(friend.user.id)}>
+                      💬 Message
+                    </button>
                     <button
   type="button"
   className="friends-secondary"
@@ -468,6 +475,7 @@ async function unfriend(userId: string, name: string) {
 >
   {busyId === friend.user.id ? 'Removing...' : 'Unfriend'}
 </button>
+                  </div>
                   </div>
                 ))}
               </div>
