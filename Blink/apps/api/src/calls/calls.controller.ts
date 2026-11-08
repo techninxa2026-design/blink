@@ -30,7 +30,7 @@ export class CallsController {
     const turnUrls = urls(this.config.get<string>('CALL_TURN_URLS') ?? '');
     const sharedSecret = this.config.get<string>('CALL_TURN_SHARED_SECRET') ?? '';
     if (turnUrls.length && sharedSecret.length >= 16) {
-      const username = \`\${Math.floor(Date.now() / 1000) + 3600}:\${request.user.userId}\`;
+      const username = `${Math.floor(Date.now() / 1000) + 3600}:${request.user.userId}`;
       const credential = createHmac('sha1', sharedSecret)
         .update(username).digest('base64');
       iceServers.push({ urls: turnUrls, username, credential });
