@@ -22,6 +22,35 @@ const publicUserSelect = {
 export class InboxService {
   constructor(private readonly prisma: PrismaService) {}
 
+  // Presence is intentionally ephemeral, not a database attribute.
+  // A member is online only while their authenticated app is sending
+  // foreground heartbeats. Stale entries expire automatically.
+  // Single-process adapter; a shared Redis TTL store is needed if
+  // this API is deployed behind multiple server instances.
+  private readonly presence = new Map<string, number>();
+  private readonly onlineWindowMs = 90_000;
+
+  pingPresence(userId: string) {
+    const now = Date.now();
+    this.presence.set(userId, now);
+    if (this.presence.size > 10000) {
+      for (const [id, seen] of this.presence) {
+        if (now - seen > this.onlineWindowMs) this.presence.delete(id);
+      }
+    }
+    return { ok: true };
+  }
+
+  async friendPresence(userId: string) {
+    const friends = await this.listMessageableFriends(userId);
+    const now = Date.now();
+    return friends.map((friend) => ({
+      userId: friend.id,
+      online: now - (this.presence.get(friend.id) ?? 0) <
+        this.onlineWindowMs,
+    }));
+  }
+
   private async messageForAction(userId: string, messageId: string) {
     const message = await this.prisma.message.findUnique({ where: { id: messageId } });
     if (!message) throw new NotFoundException('Message not found.');
