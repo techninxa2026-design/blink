@@ -9,6 +9,7 @@ import { MomentsModule } from './moments/moments.module';
 import { ProfileModule } from './profile/profile.module';
 import { FriendsModule } from './friends/friends.module';
 import { InboxModule } from './inbox/inbox.module';
+import { CallsModule } from './calls/calls.module';
 import { CheckinsModule } from './checkins/checkins.module';
 import { IrlModule } from './irl/irl.module';
 import { SecretsModule } from './secrets/secrets.module';
@@ -25,6 +26,7 @@ import { ReelsModule } from './reels/reels.module';
     ProfileModule,
     FriendsModule,
     InboxModule,
+    CallsModule,
     CheckinsModule,
     IrlModule,
     ExchangeModule,
