@@ -222,6 +222,32 @@ export default function App() {
   );
 
   const [user, setUser] = useState<User | null>(storedUser);
+
+  // Keep cross-platform friend presence correct: an active Blink web member
+  // should also appear online in the Android Messenger-style friend strip.
+  // Presence is reported only while this tab is visible and authenticated.
+  useEffect(() => {
+    if (!user?.id) return;
+    const ping = () => {
+      if (document.visibilityState !== 'visible') return;
+      const jwt = token();
+      if (!jwt) return;
+      void fetch(`${API}/inbox/presence/ping`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${jwt}` },
+      }).catch(() => {
+        // Older server deployments may not support presence yet.
+      });
+    };
+    ping();
+    const timer = window.setInterval(ping, 25000);
+    document.addEventListener('visibilitychange', ping);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', ping);
+    };
+  }, [user?.id]);
+
   const [menuOpen, setMenuOpen] = useState(false);
   const [notice, setNotice] = useState('');
   const [selectedNav, setSelectedNav] = useState('Home');
