@@ -35,6 +35,14 @@ class Calling {
   private pendingIce: RTCIceCandidateInit[] = [];
   private readonly listeners = new Set<() => void>();
   private connectionTimer: ReturnType<typeof setTimeout> | null = null;
+  private disconnectedTimer: ReturnType<typeof setTimeout> | null = null;
+  private isCaller = false;
+  private turnConfigured = false;
+  private restartAttempted = false;
+  private restartInProgress = false;
+  private localCandidates = 0;
+  private remoteCandidates = 0;
+  private candidateRelayFailures = 0;
 
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
@@ -66,6 +74,7 @@ class Calling {
         socket.emit('call-rejected', { callId: invite.callId });
         return;
       }
+      this.isCaller = false;
       this.change({ status: 'incoming', callId: invite.callId,
         peerId: invite.callerId, peerName: invite.callerName || 'Blink friend',
         kind: invite.kind, error: '' });
@@ -93,6 +102,12 @@ class Calling {
     socket.on('ice-candidate', (signal: Signal) => {
       if (signal.callId === this.state.callId && signal.candidate) {
         void this.receiveIce(signal.candidate).catch(error => this.fail(error));
+      }
+    });
+    socket.on('call-ice-restart-request', (event: {callId: string}) => {
+      if (event?.callId === this.state.callId && this.isCaller &&
+          this.state.status !== 'idle' && !this.restartAttempted) {
+        void this.recoverIce().catch(error => this.fail(error));
       }
     });
     socket.on('call-ended', (event: {callId: string}) => {
@@ -139,6 +154,7 @@ class Calling {
 
   async start(peerId: string, peerName: string, kind: BlinkCallKind) {
     if (this.state.status !== 'idle') return;
+    this.isCaller = true;
     this.change({ ...idle, status: 'starting', peerId, peerName, kind });
     try {
       await this.waitConnected();
@@ -199,7 +215,14 @@ class Calling {
       headers: { Authorization: 'Bearer ' + this.token }, cache: 'no-store',
     });
     if (!response.ok) throw new Error('Cannot retrieve calling network settings.');
-    const { iceServers } = await response.json() as { iceServers: RTCIceServer[] };
+    const { iceServers, turnConfigured } = await response.json() as {
+      iceServers: RTCIceServer[]; turnConfigured?: boolean;
+    };
+    this.turnConfigured = turnConfigured === true ||
+      iceServers.some(item => {
+        const urls = Array.isArray(item.urls) ? item.urls : [item.urls];
+        return urls.some(url => url.startsWith('turn:') || url.startsWith('turns:'));
+      });
     const media = await navigator.mediaDevices.getUserMedia({
       audio: { echoCancellation: true, noiseSuppression: true },
       video: this.state.kind === 'video'
@@ -212,7 +235,7 @@ class Calling {
     }
     const pc = new RTCPeerConnection({ iceServers });
     this.pc = pc;
-    this.pendingIce = [];
+    // Preserve candidates received before media preparation completed.
     const remote = new MediaStream();
     // Keep the caller identity visible until a remote media track arrives.
     this.change({ local: media });
@@ -223,26 +246,105 @@ class Calling {
     };
     pc.onicecandidate = event => {
       if (event.candidate && this.state.callId === callId) {
-        this.socket?.emit('ice-candidate', {
+        this.localCandidates++;
+        void this.ack('ice-candidate', {
           callId, candidate: event.candidate.toJSON(),
+        }).catch(() => {
+          if (this.state.callId !== callId) return;
+          this.candidateRelayFailures++;
+          if (this.candidateRelayFailures >= 3) {
+            this.fail(new Error('Call server is not relaying ICE candidates. Check WebSocket signaling.'));
+          }
         });
+      }
+    };
+    pc.oniceconnectionstatechange = () => {
+      if (this.state.callId !== callId) return;
+      const ice = pc.iceConnectionState;
+      if (ice === 'connected' || ice === 'completed') {
+        if (this.disconnectedTimer) clearTimeout(this.disconnectedTimer);
+        this.disconnectedTimer = null;
+      } else if (ice === 'failed') {
+        void this.recoverIce().catch(error => this.fail(error));
+      } else if (ice === 'disconnected' && !this.disconnectedTimer) {
+        this.disconnectedTimer = setTimeout(() => {
+          this.disconnectedTimer = null;
+          if (this.state.callId === callId &&
+              pc.iceConnectionState === 'disconnected') {
+            void this.recoverIce().catch(error => this.fail(error));
+          }
+        }, 5000);
       }
     };
     pc.onconnectionstatechange = () => {
       if (this.state.callId !== callId) return;
       if (pc.connectionState === 'connected') {
-        if (this.connectionTimer) clearTimeout(this.connectionTimer);
-        this.connectionTimer = null;
+        this.clearConnectionTimers();
         this.change({ status: 'connected' });
       } else if (pc.connectionState === 'failed') {
-        this.fail(new Error('Media connection failed. Check your network.'));
+        void this.recoverIce().catch(error => this.fail(error));
       }
     };
+    this.armMediaTimeout(callId, 30000);
+  }
+
+  private clearConnectionTimers() {
+    if (this.connectionTimer) clearTimeout(this.connectionTimer);
+    if (this.disconnectedTimer) clearTimeout(this.disconnectedTimer);
+    this.connectionTimer = null;
+    this.disconnectedTimer = null;
+  }
+
+  private mediaFailure(): Error {
+    if (this.candidateRelayFailures >= 3) {
+      return new Error('The call server rejected ICE candidates. Verify WebSocket signaling.');
+    }
+    if (!this.turnConfigured) {
+      return new Error('No working media route. The Blink API has no TURN relay configured. Ask the server administrator to configure CALL_TURN_URLS and CALL_TURN_SHARED_SECRET.');
+    }
+    return new Error('Could not establish an audio/video route. Verify TURN server credentials, UDP/TCP and relay firewall ports, then retry.');
+  }
+
+  private armMediaTimeout(callId: string, durationMs: number) {
+    if (this.connectionTimer) clearTimeout(this.connectionTimer);
     this.connectionTimer = setTimeout(() => {
-      if (this.state.callId === callId && this.state.status !== 'connected') {
-        this.fail(new Error('Media connection timed out. A TURN server may be required.'));
+      if (this.state.callId !== callId || this.state.status === 'connected') return;
+      if (!this.restartAttempted) {
+        void this.recoverIce().catch(error => this.fail(error));
+      } else {
+        this.fail(this.mediaFailure());
       }
-    }, 30000);
+    }, durationMs);
+  }
+
+  private async recoverIce(): Promise<void> {
+    const callId = this.state.callId;
+    const pc = this.pc;
+    if (!callId || !pc || this.state.status === 'idle') return;
+    if (this.restartAttempted) {
+      if (!this.restartInProgress) this.fail(this.mediaFailure());
+      return;
+    }
+    this.restartAttempted = true;
+    this.restartInProgress = true;
+    this.change({ status: 'connecting' });
+    this.armMediaTimeout(callId, 20000);
+    try {
+      if (!this.isCaller) {
+        await this.ack('call-ice-restart-request', { callId });
+        return;
+      }
+      // Only the original caller creates ICE restart offers to avoid glare.
+      pc.restartIce();
+      const offer = await pc.createOffer();
+      if (this.state.callId !== callId) return;
+      await pc.setLocalDescription(offer);
+      await this.ack('call-offer', { callId, sdp: {
+        type: offer.type, sdp: offer.sdp,
+      } });
+    } finally {
+      this.restartInProgress = false;
+    }
   }
 
   private async createOffer() {
@@ -278,7 +380,13 @@ class Calling {
       this.pendingIce.push(candidate);
       return;
     }
-    await this.pc.addIceCandidate(new RTCIceCandidate(candidate));
+    try {
+      await this.pc.addIceCandidate(new RTCIceCandidate(candidate));
+      this.remoteCandidates++;
+    } catch {
+      // Late candidates from a previous ICE generation are safe to ignore.
+      // The 20s/30s media timeout still detects unusable candidate pairs.
+    }
   }
   private async flushIce() {
     const all = [...this.pendingIce];
@@ -291,8 +399,7 @@ class Calling {
     this.change({ error: reason });
   }
   private clear(error = '') {
-    if (this.connectionTimer) clearTimeout(this.connectionTimer);
-    this.connectionTimer = null;
+    this.clearConnectionTimers();
     const pc = this.pc;
     this.pc = null;
     if (pc) {
@@ -303,6 +410,13 @@ class Calling {
     }
     this.state.local?.getTracks().forEach(track => track.stop());
     this.pendingIce = [];
+    this.isCaller = false;
+    this.turnConfigured = false;
+    this.restartAttempted = false;
+    this.restartInProgress = false;
+    this.localCandidates = 0;
+    this.remoteCandidates = 0;
+    this.candidateRelayFailures = 0;
     this.change({ ...idle, error });
   }
 }
