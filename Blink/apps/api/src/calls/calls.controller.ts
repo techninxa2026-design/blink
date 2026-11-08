@@ -1,4 +1,4 @@
-import { Controller, Get, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Header, Req, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHmac } from 'node:crypto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -18,6 +18,7 @@ export class CallsController {
   constructor(private readonly config: ConfigService) {}
 
   @Get('ice')
+  @Header('Cache-Control', 'private, no-store')
   ice(@Req() request: AuthenticatedRequest): {
     iceServers: IceServerConfig[];
     turnConfigured: boolean;
