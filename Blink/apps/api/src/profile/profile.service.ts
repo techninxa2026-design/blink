@@ -85,6 +85,66 @@ export class ProfileService {
   }
 
   // Update display name and bio.
+  /**
+   * Reward receipts already persisted by Blink's three earning systems.
+   * This is intentionally not a fabricated transaction ledger or payment API.
+   * All queries are scoped to the JWT user, and no other member's history
+   * can be requested through this endpoint.
+   */
+  async getMyBpActivity(userId: string) {
+    const [taskRewards, secretRewards, momentGifts] = await Promise.all([
+      this.prisma.taskRewardReceipt.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        take: 60,
+        select: { id: true, amount: true, createdAt: true },
+      }),
+      this.prisma.blinkSecretReward.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        take: 60,
+        select: { secretId: true, points: true, createdAt: true },
+      }),
+      this.prisma.momentBpGift.findMany({
+        where: { moment: { senderId: userId } },
+        orderBy: { createdAt: 'desc' },
+        take: 60,
+        select: { id: true, amount: true, createdAt: true },
+      }),
+    ]);
+
+    const items = [
+      ...taskRewards.map(row => ({
+        id: 'task:' + row.id,
+        type: 'TASK_REWARD',
+        description: 'Creator Task step approved',
+        amount: Number(row.amount),
+        createdAt: row.createdAt,
+      })),
+      ...secretRewards.map(row => ({
+        id: 'secret:' + row.secretId,
+        type: 'SECRET_REWARD',
+        description: 'Correct Blink Secret guess',
+        amount: row.points,
+        createdAt: row.createdAt,
+      })),
+      ...momentGifts.map(row => ({
+        id: 'moment:' + row.id,
+        type: 'MOMENT_GIFT',
+        description: 'Blink Points received on a Moment',
+        amount: row.amount,
+        createdAt: row.createdAt,
+      })),
+    ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, 100);
+
+    return {
+      items,
+      scope: 'RECORDED_REWARDS',
+      message: 'Recorded task, Secret and Moment reward events. This is not a bank statement.',
+    };
+  }
+
   async updateMyProfile(
     userId: string,
     body: UpdateProfileBody,

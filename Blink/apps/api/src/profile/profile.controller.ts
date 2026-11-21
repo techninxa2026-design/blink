@@ -113,6 +113,13 @@ export class ProfileController {
     return this.profileService.getMyProfile(req.user.userId);
   }
 
+  // Server-backed wallet activity for the authenticated account only.
+  // Register before the public /:userId route to prevent route collision.
+  @Get('me/bp-activity')
+  getMyBpActivity(@Req() req: AuthenticatedRequest) {
+    return this.profileService.getMyBpActivity(req.user.userId);
+  }
+
 
 @Get(':userId')
 getPublicProfile(
